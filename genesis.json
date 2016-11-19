@@ -1,0 +1,8 @@
+[
+  "base/chainID", "test_chain_id",
+  "base/account", {
+  	"id": "1d2df1ae-accb-11e6-bbbb-00ff5244ae7f",
+  	"entity_id": "entity_id"
+  },
+  "base/user", {"pub_key":[1,"843878B932EE4908A42D24BFFC039EB8DFACD4340C83342310682094047FAFAB"],"name":"Name","entity_id":"EntityID","permissions":1}
+]
