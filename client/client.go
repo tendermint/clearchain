@@ -25,24 +25,45 @@ func SetChainID(id string) {
 }
 
 // GetAccounts makes a request to the ledger to returns a set of accounts
-func GetAccounts(privateKey crypto.PrivKey, accountsRequested []string) AccountsReturned {
-	publicKey := privateKey.PubKey()
+func GetAccounts(privateKey crypto.PrivKey, accountsRequested []string) (returned AccountsReturned) {
 	tx := &types.AccountQueryTx{Accounts: accountsRequested,
-		Address: publicKey.Address()}
-	tx.Signature = privateKey.Sign(tx.SignBytes(chainID))
+		Address: privateKey.PubKey().Address()}
 
-	txs := []byte{types.TxTypeQueryAccount}
+	res := sendQuery(privateKey, tx)
+
+	err := json.Unmarshal(res.Data, &returned)
+	if err != nil {
+		panic(fmt.Sprintf("Type assertion failed with: %v %v", returned, err))
+	}
+	
+	return
+}
+
+// AccountIndex makes a request to the ledger to returns all account IDs
+func GetAllAccounts(privateKey crypto.PrivKey) (returned types.AccountIndex) {
+	tx := &types.AccountIndexQueryTx{Address: privateKey.PubKey().Address()}
+
+	res := sendQuery(privateKey, tx)
+	
+	err := json.Unmarshal(res.Data, &returned)
+	if err != nil {
+		panic(fmt.Sprintf("Type assertion failed with: %v %v", res, err))
+	}
+	return
+}
+
+func sendQuery(privateKey crypto.PrivKey, tx types.SignedTx) tendermintTypes.Result {
+	return sendToTendermint(privateKey, tx, client.QuerySync)
+}
+
+func sendToTendermint(privateKey crypto.PrivKey, tx types.SignedTx, fn func(tx []byte) (res tendermintTypes.Result)) tendermintTypes.Result {
+	tx.SignTx(privateKey, chainID)
+	
+	txs := []byte{tx.TxType()}
 	txs = append(txs, wire.BinaryBytes(struct{ types.Tx }{tx})...)
 
-	res := client.QuerySync(txs)
+	return fn(txs)
 
-	var accountsReturned AccountsReturned
-
-	err := json.Unmarshal(res.Data, &accountsReturned)
-	if err != nil {
-		panic(err)
-	}
-	return accountsReturned
 }
 
 // StartClient is a convenience function to start the client app

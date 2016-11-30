@@ -3,8 +3,8 @@ package types
 import (
 	uuid "github.com/satori/go.uuid"
 	common "github.com/tendermint/go-common"
-	crypto "github.com/tendermint/go-crypto"
-	wire "github.com/tendermint/go-wire"
+	"github.com/tendermint/go-crypto"
+	"github.com/tendermint/go-wire"
 	tmsp "github.com/tendermint/tmsp/types"
 )
 
@@ -23,7 +23,7 @@ type AccountQueryTx struct {
 }
 
 func (tx AccountQueryTx) String() string {
-	return common.Fmt("AccountQueryTx{%x %s}", tx.Address, tx.Accounts)
+	return common.Fmt("AccountQueryTx{%x %s %v}", tx.Address, tx.Accounts, tx.Signature)
 }
 
 // TxType returns the byte type of TransferTx.
@@ -60,6 +60,11 @@ func (tx AccountQueryTx) SignBytes(chainID string) []byte {
 	return signBytes
 }
 
+func (tx *AccountQueryTx) SignTx(privateKey crypto.PrivKey, chainID string) {
+	tx.Signature = privateKey.Sign(tx.SignBytes(chainID))
+}
+
+
 //--------------------------------------------
 
 // AccountIndexQueryTx defines the attribute of a wildcard query
@@ -69,7 +74,7 @@ type AccountIndexQueryTx struct {
 }
 
 func (tx AccountIndexQueryTx) String() string {
-	return common.Fmt("AccountIndexQueryTx{%x}", tx.Address)
+	return common.Fmt("AccountIndexQueryTx{%x %v}", tx.Address, tx.Signature)
 }
 
 // TxType returns the byte type of TransferTx.
@@ -96,4 +101,8 @@ func (tx AccountIndexQueryTx) SignBytes(chainID string) []byte {
 	signBytes = append(signBytes, wire.BinaryBytes(tx)...)
 	tx.Signature = sig
 	return signBytes
+}
+
+func (tx *AccountIndexQueryTx) SignTx(privateKey crypto.PrivKey, chainID string) {
+	tx.Signature = privateKey.Sign(tx.SignBytes(chainID))
 }

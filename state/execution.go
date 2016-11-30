@@ -96,7 +96,7 @@ func createAccount(state *State, tx *types.CreateAccountTx, isCheckTx bool) tmsp
 		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Account already exists: %q", tx.AccountID))
 	}
 	// Get or create the accounts index
-	accountIndex := getOrMakeAccountIndex(state)
+	accountIndex := GetOrMakeAccountIndex(state)
 	if accountIndex.Has(tx.AccountID) {
 		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Account already exists in the account index: %q", tx.AccountID))
 	}
@@ -419,7 +419,7 @@ func makeNewUser(state types.UserSetter, creator *types.User, tx *types.CreateUs
 	}
 }
 
-func getOrMakeAccountIndex(state types.AccountIndexGetter) *types.AccountIndex {
+func GetOrMakeAccountIndex(state types.AccountIndexGetter) *types.AccountIndex {
 	if index := state.GetAccountIndex(); index != nil {
 		return index
 	}

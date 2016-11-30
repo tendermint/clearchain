@@ -1,13 +1,20 @@
 package types
 
 import (
-	wire "github.com/tendermint/go-wire"
+	"github.com/tendermint/go-wire"
+	"github.com/tendermint/go-crypto"
 )
 
 // Tx (Transaction) is an atomic operation on the ledger state.
 type Tx interface {
 	TxType() byte
 	SignBytes(chainID string) []byte
+}
+
+type SignedTx interface {
+	TxType() byte
+	SignBytes(chainID string) []byte
+	SignTx(privateKey crypto.PrivKey, chainID string)
 }
 
 // TxExecutor validates Tx execution permission
