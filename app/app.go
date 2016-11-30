@@ -85,6 +85,10 @@ func (app *Ledger) SetOption(key string, value string) (log string) {
 			return "Error decoding acc message: " + err.Error()
 		}
 		app.state.SetAccount(acc.ID, acc)
+		accountIndex := sm.GetOrMakeAccountIndex(app.state)
+		accountIndex.Add(acc.ID)
+		app.state.SetAccountIndex(accountIndex)
+
 		return "Success"
 	case "user":
 		var err error
@@ -118,7 +122,7 @@ func (app *Ledger) Query(query []byte) (res tmsp.Result) {
 	typeByte := query[0]
 	query = query[1:]
 	switch typeByte {
-	case types.TxTypeQueryAccount:
+	case types.TxTypeQueryAccount, types.TxTypeQueryAccountIndex:
 		return app.executeQueryTx(query)
 	case PluginTypeByteBase:
 		return tmsp.OK.SetLog("This type of query not yet supported")
