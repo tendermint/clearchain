@@ -1,0 +1,19 @@
+language: go
+
+go:
+  - 1.7
+
+matrix:
+  - fast_finish: true
+
+install:
+  - export GOPATH=$HOME/gopath
+  - export PATH=$PATH:$HOME/gopath/bin
+  - make deps
+
+script:
+  - export GOPATH=$HOME/gopath
+  - export PATH=$HOME/gopath/bin:$PATH
+  - make ci
+  - make test
+  - make lint
