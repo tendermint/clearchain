@@ -1,5 +1,7 @@
 # Clearchain
 
+[![Travis-CI 
+Status](https://api.travis-ci.org/tendermint/clearchain.png?branch=master)](http://travis-ci.org/#!/tendermint/clearchain)
 [![GoDoc](https://godoc.org/github.com/tendermint/clearchain?status.svg)](https://godoc.org/github.com/tendermint/clearchain)
 [![license](https://img.shields.io/github/license/tendermint/tendermint.svg)](https://github.com/tendermint/clearchain/blob/master/LICENSE)
 
