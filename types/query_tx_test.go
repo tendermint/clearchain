@@ -10,6 +10,8 @@ import (
 )
 
 func TestAccountQueryTx_String(t *testing.T) {
+	signature , _  := crypto.SignatureFromBytes([]byte{1 ,100 ,140 ,5 ,246 ,69 ,107 ,210 ,41 ,250 ,189 ,162 ,44 ,49 ,6 ,222 ,185 ,227 ,247 ,12 ,213 ,215 ,246 ,182 ,66 ,0 ,233 ,54 ,215 ,124 ,175 ,172 ,235 ,72 ,151 ,154 ,26 ,65 ,145 ,127 ,121 ,223 ,4 ,233 ,210 ,18 ,188 ,144 ,72 ,18 ,63 ,80 ,158 ,68 ,221 ,110 ,82 ,249 ,26 ,46 ,202 ,154 ,43 ,1 ,13})
+
 	type fields struct {
 		Accounts  []string
 		Address   []byte
@@ -20,7 +22,7 @@ func TestAccountQueryTx_String(t *testing.T) {
 		fields fields
 		want   string
 	}{
-		{"stringRepr", fields{Accounts: []string{"account_1", "account_2"}, Address: []byte{byte(0x01)}}, "AccountQueryTx{01 [account_1 account_2]}"},
+		{"stringRepr", fields{Accounts: []string{"account_1", "account_2"}, Address: []byte{byte(0x01)}, Signature:signature }, "AccountQueryTx{01 [account_1 account_2] /648C05F6456B.../}"},
 	}
 	for _, tt := range tests {
 		tx := AccountQueryTx{
