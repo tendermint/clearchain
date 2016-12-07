@@ -1,10 +1,10 @@
 package main
 
 import (
-	//	"encoding/json"
+//	"encoding/json"
 	"fmt"
 	"github.com/tendermint/clearchain/client"
-	//	"github.com/tendermint/clearchain/types"
+	"github.com/tendermint/clearchain/types"
 	crypto "github.com/tendermint/go-crypto"
 	//	wire "github.com/tendermint/go-wire"
 )
@@ -20,15 +20,21 @@ func main() {
 	//	fmt.Println("privKeyBytes: ", string(privKeyBytes))
 
 	privKey, _ := crypto.PrivKeyFromBytes(privKeyBytes)
-	var accountsRequested []string = []string{"1d2df1ae-accb-11e6-bbbb-00ff5244ae7f"}
 
-	fmt.Println("accountsReturned")
-	for _, account := range client.GetAccounts(privKey, accountsRequested).Account {
+	fmt.Println("Account IDs:")
+	var accountsRequested []string = client.GetAllAccounts(privKey).Accounts
+	//	[]string{"1d2df1ae-accb-11e6-bbbb-00ff5244ae7f"}
+
+	for _, account := range accountsRequested {
 		fmt.Println("\t", account)
 	}
 
-	fmt.Println("AllAccounts")
-	for _, account := range client.GetAllAccounts(privKey).Accounts {
+	var accounts []*types.Account = client.GetAccounts(privKey, accountsRequested).Account
+
+	fmt.Println("accounts returned:")
+	for _, account := range accounts {
 		fmt.Println("\t", account)
 	}
 }
+
+//
