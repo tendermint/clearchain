@@ -36,7 +36,6 @@ func flagHandler(flag *flag.Flag) {
 		return
 	default:
 		panic(fmt.Sprintf(":( Unimplemented flag: %v", flag.Name))
-		return
 	}
 }
 
