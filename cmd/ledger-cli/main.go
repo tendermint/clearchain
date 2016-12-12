@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	GenerateKey string = "generateKey"
-	DecodeKey string = "decodeKey"
+	GenerateKey  = "generateKey"
+	DecodeKey = "decodeKey"
 )
 
 func main() {
