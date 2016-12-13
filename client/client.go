@@ -6,10 +6,13 @@ import (
 
 	"github.com/tendermint/clearchain/types"
 	"github.com/tendermint/go-crypto"
+	"github.com/tendermint/go-logger"
 	"github.com/tendermint/go-wire"
 	"github.com/tendermint/tmsp/client"
 	tendermintTypes "github.com/tendermint/tmsp/types"
 )
+
+var log = logger.New("module", "client")
 
 // AccountsReturned defines the attributes of response's payload
 type AccountsReturned struct {
@@ -35,7 +38,7 @@ func GetAccounts(privateKey crypto.PrivKey, accountsRequested []string) (returne
 	if err != nil {
 		panic(fmt.Sprintf("Type assertion failed with: %v %v", returned, err))
 	}
-	
+
 	return
 }
 
@@ -44,7 +47,7 @@ func GetAllAccounts(privateKey crypto.PrivKey) (returned types.AccountIndex) {
 	tx := &types.AccountIndexQueryTx{Address: privateKey.PubKey().Address()}
 
 	res := sendQuery(privateKey, tx)
-	
+
 	err := json.Unmarshal(res.Data, &returned)
 	if err != nil {
 		panic(fmt.Sprintf("Type assertion failed with: %v %v", res, err))
@@ -58,7 +61,7 @@ func sendQuery(privateKey crypto.PrivKey, tx types.SignedTx) tendermintTypes.Res
 
 func sendToTendermint(privateKey crypto.PrivKey, tx types.SignedTx, fn func(tx []byte) (res tendermintTypes.Result)) tendermintTypes.Result {
 	tx.SignTx(privateKey, chainID)
-	
+
 	txs := []byte{tx.TxType()}
 	txs = append(txs, wire.BinaryBytes(struct{ types.Tx }{tx})...)
 
@@ -73,6 +76,8 @@ func StartClient(serverAddress string) {
 	if err != nil {
 		panic("connecting to tmsp_app: " + err.Error())
 	}
+
+	log.Info("Tendermint server connection established to " + serverAddress)
 }
 
 func SetOption(key, value string) {
