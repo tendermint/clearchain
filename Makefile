@@ -21,7 +21,7 @@ $(BUILD_DIR)/%: deps
 	GOOS=$(word 2,$(subst /, ,$@)) GOARCH=$(word 3,$(subst /, ,$@)) \
 	go build -v -ldflags="$(LDFLAGS_DEFAULT) $(LDFLAGS)" -o $@/$(NAME) ./cmd/$(NAME)
 	GOOS=$(word 2,$(subst /, ,$@)) GOARCH=$(word 3,$(subst /, ,$@)) \
-	go build -v -ldflags="$(LDFLAGS_DEFAULT) $(LDFLAGS)" -o $@/ledger-cli ./cmd/ledger-cli
+	go build -v -ldflags="$(LDFLAGS_DEFAULT) $(LDFLAGS)" -o $@/ledgerctl ./cmd/ledgerctl
 	GOOS=$(word 2,$(subst /, ,$@)) GOARCH=$(word 3,$(subst /, ,$@)) \
 	go build -v -ldflags="$(LDFLAGS_DEFAULT) $(LDFLAGS)" -o $@/webserver ./cmd/webserver
 
