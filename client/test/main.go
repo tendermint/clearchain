@@ -1,12 +1,10 @@
 package main
 
 import (
-//	"encoding/json"
 	"fmt"
 	"github.com/tendermint/clearchain/client"
 	"github.com/tendermint/clearchain/types"
-	crypto "github.com/tendermint/go-crypto"
-	//	wire "github.com/tendermint/go-wire"
+	"github.com/tendermint/go-crypto"
 )
 
 func main() {
