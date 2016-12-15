@@ -33,7 +33,7 @@ func main() {
 		kvz := loadGenesis(*genFilePath)
 		for _, kv := range kvz {
 			log := app.SetOption(kv.Key, kv.Value)
-			fmt.Println(common.Fmt("Set %v=%v. Log: %v", kv.Key, kv.Value, log))
+			fmt.Println(common.Fmt("Log: %v Set %v=%v. ", log, kv.Key, kv.Value))
 		}
 	}
 
