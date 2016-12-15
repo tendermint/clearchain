@@ -36,7 +36,7 @@ func CreateUser(privateKey crypto.PrivKey,
 		PubKey:    newUsersPubKey,
 		CanCreate: newUserCanCreateLegalEntity}
 
-	res := sendToTendermint(privateKey, tx, client.AppendTxSync, false)
+	res := sendAppendTx(privateKey, tx)
 
 	if res.IsErr() {
 		panic(fmt.Sprintf("Wrong response from server: %v", res))
@@ -50,7 +50,7 @@ func CreateAccount(privateKey crypto.PrivKey,
 	tx := &types.CreateAccountTx{Address: privateKey.PubKey().Address(),
 		AccountID: accountID}
 
-	res := sendToTendermint(privateKey, tx, client.AppendTxSync, false)
+	res := sendAppendTx(privateKey, tx)
 
 	if res.IsErr() {
 		panic(fmt.Sprintf("Wrong response from server: %v", res))
@@ -68,7 +68,7 @@ func CreateLegalEntity(privateKey crypto.PrivKey,
 		Type:     entityType,
 		Name:     name}
 
-	res := sendToTendermint(privateKey, tx, client.AppendTxSync, false)
+	res := sendAppendTx(privateKey, tx)
 
 	if res.IsErr() {
 		panic(fmt.Sprintf("Wrong response from server: %v", res))
@@ -108,6 +108,10 @@ func GetAllAccounts(privateKey crypto.PrivKey) (returned types.AccountIndex) {
 
 func sendQuery(privateKey crypto.PrivKey, tx types.SignedTx) tendermintTypes.Result {
 	return sendToTendermint(privateKey, tx, client.QuerySync, true)
+}
+
+func sendAppendTx(privateKey crypto.PrivKey, tx types.SignedTx)  tendermintTypes.Result {
+	return sendToTendermint(privateKey, tx, client.AppendTxSync, false)	
 }
 
 func sendToTendermint(privateKey crypto.PrivKey, tx types.SignedTx, fn func(tx []byte) (res tendermintTypes.Result), isQuery bool) tendermintTypes.Result {
