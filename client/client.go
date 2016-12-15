@@ -27,6 +27,57 @@ func SetChainID(id string) {
 	chainID = id
 }
 
+func CreateUser(privateKey crypto.PrivKey,
+	newUsersName string,
+	newUsersPubKey crypto.PubKey,
+	newUserCanCreateLegalEntity bool) {
+	tx := &types.CreateUserTx{Address: privateKey.PubKey().Address(),
+		Name:      newUsersName,
+		PubKey:    newUsersPubKey,
+		CanCreate: newUserCanCreateLegalEntity}
+
+	res := sendToTendermint(privateKey, tx, client.AppendTxSync, false)
+
+	if res.IsErr() {
+		panic(fmt.Sprintf("Wrong response from server: %v", res))
+	} else {
+		Commit(client)
+	}
+}
+
+func CreateAccount(privateKey crypto.PrivKey,
+	accountID string) {
+	tx := &types.CreateAccountTx{Address: privateKey.PubKey().Address(),
+		AccountID: accountID}
+
+	res := sendToTendermint(privateKey, tx, client.AppendTxSync, false)
+
+	if res.IsErr() {
+		panic(fmt.Sprintf("Wrong response from server: %v", res))
+	} else {
+		Commit(client)
+	}
+
+	log.Info("Created account with ID: " + accountID)
+}
+
+func CreateLegalEntity(privateKey crypto.PrivKey,
+	entityID string, entityType byte, name string) {
+	tx := &types.CreateLegalEntityTx{Address: privateKey.PubKey().Address(),
+		EntityID: entityID,
+		Type:     entityType,
+		Name:     name}
+
+	res := sendToTendermint(privateKey, tx, client.AppendTxSync, false)
+
+	if res.IsErr() {
+		panic(fmt.Sprintf("Wrong response from server: %v", res))
+	} else {
+		Commit(client)
+	}
+	log.Info("Created legal entity with ID: " + entityID)
+}
+
 // GetAccounts makes a request to the ledger to returns a set of accounts
 func GetAccounts(privateKey crypto.PrivKey, accountsRequested []string) (returned AccountsReturned) {
 	tx := &types.AccountQueryTx{Accounts: accountsRequested,
@@ -56,17 +107,21 @@ func GetAllAccounts(privateKey crypto.PrivKey) (returned types.AccountIndex) {
 }
 
 func sendQuery(privateKey crypto.PrivKey, tx types.SignedTx) tendermintTypes.Result {
-	return sendToTendermint(privateKey, tx, client.QuerySync)
+	return sendToTendermint(privateKey, tx, client.QuerySync, true)
 }
 
-func sendToTendermint(privateKey crypto.PrivKey, tx types.SignedTx, fn func(tx []byte) (res tendermintTypes.Result)) tendermintTypes.Result {
+func sendToTendermint(privateKey crypto.PrivKey, tx types.SignedTx, fn func(tx []byte) (res tendermintTypes.Result), isQuery bool) tendermintTypes.Result {
 	tx.SignTx(privateKey, chainID)
 
-	txs := []byte{tx.TxType()}
-	txs = append(txs, wire.BinaryBytes(struct{ types.Tx }{tx})...)
+	var txs []byte
+	if isQuery {
+		txs = []byte{tx.TxType()}
+		txs = append(txs, wire.BinaryBytes(struct{ types.Tx }{tx})...)
+	} else {
+		txs = wire.BinaryBytes(struct{ types.Tx }{tx})
+	}
 
 	return fn(txs)
-
 }
 
 // StartClient is a convenience function to start the client app
@@ -91,8 +146,10 @@ func Commit(client tmspcli.Client) {
 	res := client.CommitSync()
 
 	if res.IsErr() {
-		panic(fmt.Sprintf("committing: %v", res.Log))
+		panic(fmt.Sprintf("Commit error: %v", res.Log))
 	}
+
+	log.Info("Committed tx")
 }
 
 func AppendTx(txBytes []byte) {

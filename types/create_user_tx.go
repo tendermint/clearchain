@@ -21,6 +21,10 @@ type CreateUserTx struct {
 	Signature crypto.Signature `json:"signature"`
 }
 
+func (tx *CreateUserTx) SignTx(privateKey crypto.PrivKey, chainID string) {
+	tx.Signature = privateKey.Sign(tx.SignBytes(chainID))
+}
+
 // TxType returns the byte type of CreateUserTx
 func (tx *CreateUserTx) TxType() byte {
 	return TxTypeCreateUser

@@ -1,7 +1,7 @@
 package types
 
 import (
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 	common "github.com/tendermint/go-common"
 	crypto "github.com/tendermint/go-crypto"
 	wire "github.com/tendermint/go-wire"
@@ -18,6 +18,10 @@ type CreateAccountTx struct {
 	Address   []byte           `json:"address"`    // Hash of the user's PubKey
 	AccountID string           `json:"account_id"` // ID of the new account
 	Signature crypto.Signature `json:"signature"`
+}
+
+func (tx *CreateAccountTx) SignTx(privateKey crypto.PrivKey, chainID string) {
+	tx.Signature = privateKey.Sign(tx.SignBytes(chainID))
 }
 
 // TxType returns the byte type of CreateAccountTx
