@@ -43,8 +43,8 @@ var keygenCmd = &cobra.Command{
 			privateKey = crypto.GenPrivKeyEd25519()
 		}
 
-		fmt.Println("PrivateKey : ", client.Encode(privateKey.Bytes()))
-		fmt.Println("PublicKey  : ", client.Encode(privateKey.PubKey().Bytes()))
-
+		fmt.Println("PrivateKey     : ", client.Encode(privateKey.Bytes()))
+		fmt.Println("PublicKeyAddr  : ", client.Encode(privateKey.PubKey().Address()))
+		fmt.Println("PublicKey      : ", client.Encode(privateKey.PubKey().Bytes()))
 	},
 }
