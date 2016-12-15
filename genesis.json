@@ -1,8 +1,9 @@
 [
   "base/chainID", "test_chain_id",
+  "base/legalEntity", {"id":"legalEntityID","type":1,"name":"legalEntityName","permissions":31,"creator_addr":"pSEeeX9eWxaSn1XJ1T9zJ8FzIBw="},
   "base/account", {
   	"id": "1d2df1ae-accb-11e6-bbbb-00ff5244ae7f",
-  	"entity_id": "entity_id"
+  	"entity_id": "legalEntityID"
   },
-  "base/user", {"pub_key":[1,"843878B932EE4908A42D24BFFC039EB8DFACD4340C83342310682094047FAFAB"],"name":"Name","entity_id":"EntityID","permissions":1}
+  "base/user", {"pub_key":[1,"843878B932EE4908A42D24BFFC039EB8DFACD4340C83342310682094047FAFAB"],"name":"Name","entity_id":"legalEntityID","permissions":31}
 ]

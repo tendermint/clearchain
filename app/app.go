@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/json"
 	"strings"
 
 	bctypes "github.com/tendermint/basecoin/types"
@@ -68,7 +69,7 @@ func (app *Ledger) SetOption(key string, value string) (log string) {
 		// Set option on plugin
 		plugin := app.plugins.GetByName(PluginName)
 		if plugin == nil {
-			return "Invalid plugin name: " + PluginName
+			panic("Invalid plugin name: " + PluginName)
 		}
 		return plugin.SetOption(app.state, key, value)
 	}
@@ -82,7 +83,7 @@ func (app *Ledger) SetOption(key string, value string) (log string) {
 		var acc *types.Account
 		wire.ReadJSONPtr(&acc, []byte(value), &err)
 		if err != nil {
-			return "Error decoding acc message: " + err.Error()
+			panic("Error decoding acc message: " + err.Error())
 		}
 		app.state.SetAccount(acc.ID, acc)
 		accountIndex := sm.GetOrMakeAccountIndex(app.state)
@@ -95,10 +96,21 @@ func (app *Ledger) SetOption(key string, value string) (log string) {
 		var user *types.User
 		wire.ReadJSONPtr(&user, []byte(value), &err)
 		if err != nil {
-			return "Error decoding user message: " + err.Error()
+			panic("Error decoding user message: " + err.Error())
 		}
 
 		app.state.SetUser(user.PubKey.Address(), user)
+		return "Success"
+	case "legalEntity":
+		var legalEntity types.LegalEntity
+
+		err := json.Unmarshal([]byte(value), &legalEntity)
+
+		if err != nil {
+			panic("Error decoding legalEntity message: " + err.Error())
+		}
+
+		app.state.SetLegalEntity(legalEntity.ID, &legalEntity)
 		return "Success"
 	}
 	return "Unrecognized option key " + key
