@@ -1,8 +1,12 @@
 package types
 
 import (
-	"github.com/tendermint/go-wire"
+	"bytes"
+	"errors"
+
+	common "github.com/tendermint/go-common"
 	"github.com/tendermint/go-crypto"
+	"github.com/tendermint/go-wire"
 )
 
 // Tx (Transaction) is an atomic operation on the ledger state.
@@ -11,10 +15,11 @@ type Tx interface {
 	SignBytes(chainID string) []byte
 }
 
+// SignedTx extends Tx with a method to generate signatures.
 type SignedTx interface {
 	TxType() byte
 	SignBytes(chainID string) []byte
-	SignTx(privateKey crypto.PrivKey, chainID string)
+	SignTx(privateKey crypto.PrivKey, chainID string) error
 }
 
 // TxExecutor validates Tx execution permission
@@ -37,3 +42,12 @@ var _ = wire.RegisterInterface(
 	wire.ConcreteType{O: &CreateLegalEntityTx{}, Byte: TxTypeCreateLegalEntity},
 	wire.ConcreteType{O: &CreateUserTx{}, Byte: TxTypeCreateUser},
 )
+
+// SignTx signs the transaction if its address and the privateKey's one match.
+func SignTx(signedBytes []byte, addr []byte, privKey crypto.PrivKey) (crypto.Signature, error) {
+	if !bytes.Equal(privKey.PubKey().Address(), addr) {
+		return nil, errors.New(common.Fmt("SignTx: addresses mismatch: %x != %x",
+			privKey.PubKey().Address(), addr))
+	}
+	return privKey.Sign(signedBytes), nil
+}

@@ -104,3 +104,38 @@ func TestCreateAccountTx_String(t *testing.T) {
 		}
 	}
 }
+
+func TestCreateAccountTx_SignTx(t *testing.T) {
+	privKey := crypto.GenPrivKeyEd25519()
+	addr := privKey.PubKey().Address()
+	type fields struct {
+		Address   []byte
+		AccountID string
+		Signature crypto.Signature
+	}
+	type args struct {
+		privateKey crypto.PrivKey
+		chainID    string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{"validSignature", fields{addr, "account_id", nil}, args{privKey, "chainID"}, false},
+		{"invalidSignature", fields{addr, "account_id", nil}, args{crypto.GenPrivKeyEd25519(), "chainID"}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tx := &CreateAccountTx{
+				Address:   tt.fields.Address,
+				AccountID: tt.fields.AccountID,
+				Signature: tt.fields.Signature,
+			}
+			if err := tx.SignTx(tt.args.privateKey, tt.args.chainID); (err != nil) != tt.wantErr {
+				t.Errorf("CreateAccountTx.SignTx() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

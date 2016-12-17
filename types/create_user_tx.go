@@ -21,8 +21,14 @@ type CreateUserTx struct {
 	Signature crypto.Signature `json:"signature"`
 }
 
-func (tx *CreateUserTx) SignTx(privateKey crypto.PrivKey, chainID string) {
-	tx.Signature = privateKey.Sign(tx.SignBytes(chainID))
+// SignTx signs the transaction if its address and the privateKey's one match.
+func (tx *CreateUserTx) SignTx(privateKey crypto.PrivKey, chainID string) error {
+	sig, err := SignTx(tx.SignBytes(chainID), tx.Address, privateKey)
+	if err != nil {
+		return err
+	}
+	tx.Signature = sig
+	return nil
 }
 
 // TxType returns the byte type of CreateUserTx
