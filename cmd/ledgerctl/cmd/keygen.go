@@ -30,8 +30,9 @@ var keygenCmd = &cobra.Command{
 	Short: "Generate secure private and public key pair",
 	Run: func(cmd *cobra.Command, args []string) {
 		var privKey crypto.PrivKey
+		log.Println("Generating public/private key pair...")
 		if flagWithSecret {
-			fmt.Fprintf(os.Stderr, "Generating public/private key pair.\nEnter a secret: ")
+			fmt.Fprintf(os.Stderr, "Enter a secret: ")
 			userInput, err := ReadLineBytes(os.Stdin)
 			if err != nil {
 				log.Fatal(err)
@@ -53,15 +54,21 @@ var keygenCmd = &cobra.Command{
 		} else {
 			privKeyFile, err := os.Create(flagOutputFile)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				log.Fatal(err)
 			}
-			privKeyFile.WriteString(client.Encode(privKey.Bytes()))
+			privKeyFile.WriteString(fmt.Sprintf("%s\n", client.Encode(privKey.Bytes())))
+			if err = privKeyFile.Close(); err != nil {
+				log.Fatal(err)
+			}
 
 			pubKeyFile, err := os.Create(strings.Join([]string{flagOutputFile, "pub"}, "."))
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "error: %v\n", err)
+				log.Fatal(err)
 			}
-			pubKeyFile.WriteString(client.Encode(pubKey.Bytes()))
+			pubKeyFile.WriteString(fmt.Sprintf("%s\n", client.Encode(pubKey.Bytes())))
+			if err = pubKeyFile.Close(); err != nil {
+				log.Fatal(err)
+			}
 		}
 	},
 }
