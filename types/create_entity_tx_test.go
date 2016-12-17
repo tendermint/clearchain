@@ -121,3 +121,42 @@ func TestCreateLegalEntityTx_String(t *testing.T) {
 		}
 	}
 }
+
+func TestCreateLegalEntityTx_SignTx(t *testing.T) {
+	privKey := crypto.GenPrivKeyEd25519()
+	addr := privKey.PubKey().Address()
+	type fields struct {
+		Address   []byte
+		EntityID  string
+		Type      byte
+		Name      string
+		Signature crypto.Signature
+	}
+	type args struct {
+		privateKey crypto.PrivKey
+		chainID    string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{"validSignature", fields{addr, "entity", 0, "", nil}, args{privKey, "chainID"}, false},
+		{"invalidSignature", fields{addr, "user", 0, "", nil}, args{crypto.GenPrivKeyEd25519(), "chainID"}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tx := &CreateLegalEntityTx{
+				Address:   tt.fields.Address,
+				EntityID:  tt.fields.EntityID,
+				Type:      tt.fields.Type,
+				Name:      tt.fields.Name,
+				Signature: tt.fields.Signature,
+			}
+			if err := tx.SignTx(tt.args.privateKey, tt.args.chainID); (err != nil) != tt.wantErr {
+				t.Errorf("CreateLegalEntityTx.SignTx() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

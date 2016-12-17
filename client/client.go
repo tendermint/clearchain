@@ -9,7 +9,7 @@ import (
 	"github.com/tendermint/go-logger"
 	"github.com/tendermint/go-wire"
 	"github.com/tendermint/tmsp/client"
-	tendermintTypes "github.com/tendermint/tmsp/types"
+	tmsp "github.com/tendermint/tmsp/types"
 )
 
 var log = logger.New("module", "client")
@@ -106,16 +106,18 @@ func GetAllAccounts(privateKey crypto.PrivKey) (returned types.AccountIndex) {
 	return
 }
 
-func sendQuery(privateKey crypto.PrivKey, tx types.SignedTx) tendermintTypes.Result {
+func sendQuery(privateKey crypto.PrivKey, tx types.SignedTx) tmsp.Result {
 	return sendToTendermint(privateKey, tx, client.QuerySync, true)
 }
 
-func sendAppendTx(privateKey crypto.PrivKey, tx types.SignedTx)  tendermintTypes.Result {
-	return sendToTendermint(privateKey, tx, client.AppendTxSync, false)	
+func sendAppendTx(privateKey crypto.PrivKey, tx types.SignedTx) tmsp.Result {
+	return sendToTendermint(privateKey, tx, client.AppendTxSync, false)
 }
 
-func sendToTendermint(privateKey crypto.PrivKey, tx types.SignedTx, fn func(tx []byte) (res tendermintTypes.Result), isQuery bool) tendermintTypes.Result {
-	tx.SignTx(privateKey, chainID)
+func sendToTendermint(privateKey crypto.PrivKey, tx types.SignedTx, fn func(tx []byte) (res tmsp.Result), isQuery bool) tmsp.Result {
+	if err := tx.SignTx(privateKey, chainID); err != nil {
+		return tmsp.ErrBaseInvalidSignature.AppendLog(err.Error())
+	}
 
 	var txs []byte
 	if isQuery {
@@ -170,7 +172,7 @@ func CheckTx(txBytes []byte) {
 	}
 }
 
-func Query(txBytes []byte) (res tendermintTypes.Result) {
+func Query(txBytes []byte) (res tmsp.Result) {
 	return client.QuerySync(txBytes)
 }
 
