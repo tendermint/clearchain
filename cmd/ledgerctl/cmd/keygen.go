@@ -20,8 +20,9 @@ var (
 func init() {
 	keygenCmd.Flags().BoolVar(&flagWithSecret, "with-secret", false, "Generate keys from a secret")
 	keygenCmd.Flags().StringVarP(&flagOutputFile, "output-file", "O", "",
-		`Write the private key to the given file;
-			     the public key will be saved with the .pub extension`)
+		`Write the private key binary format to the given file;
+			     the public key and the address files will be saved
+			     with .pub and .addr extensions respectively`)
 	RootCmd.AddCommand(keygenCmd)
 }
 
@@ -45,30 +46,32 @@ var keygenCmd = &cobra.Command{
 		} else {
 			privKey = crypto.GenPrivKeyEd25519()
 		}
-		pubKey := privKey.PubKey()
 
-		fmt.Println("Fingerprint:\n", client.Encode(pubKey.Address()))
-		if len(flagOutputFile) == 0 {
-			fmt.Println("\nPrivateKey:\n", client.Encode(privKey.Bytes()))
-			fmt.Println("\nPublicKey:\n", client.Encode(pubKey.Bytes()))
-		} else {
-			privKeyFile, err := os.Create(flagOutputFile)
-			if err != nil {
-				log.Fatal(err)
-			}
-			privKeyFile.WriteString(fmt.Sprintf("%s\n", client.Encode(privKey.Bytes())))
-			if err = privKeyFile.Close(); err != nil {
-				log.Fatal(err)
-			}
+		privKeyBytes := privKey.Bytes()
+		pubKeyBytes := privKey.PubKey().Bytes()
+		addrBytes := privKey.PubKey().Address()
 
-			pubKeyFile, err := os.Create(strings.Join([]string{flagOutputFile, "pub"}, "."))
-			if err != nil {
-				log.Fatal(err)
-			}
-			pubKeyFile.WriteString(fmt.Sprintf("%s\n", client.Encode(pubKey.Bytes())))
-			if err = pubKeyFile.Close(); err != nil {
-				log.Fatal(err)
-			}
+		fmt.Println("\nPrivateKey:\n", client.Encode(privKeyBytes))
+		fmt.Println("\nPublicKey:\n", client.Encode(pubKeyBytes))
+		fmt.Println("Address:\n", client.Encode(addrBytes))
+		if len(flagOutputFile) != 0 {
+			mustWriteToFile(mustCreateFile(flagOutputFile), privKeyBytes)
+			mustWriteToFile(mustCreateFile(strings.Join([]string{flagOutputFile, "pub"}, ".")), pubKeyBytes)
+			mustWriteToFile(mustCreateFile(strings.Join([]string{flagOutputFile, "addr"}, ".")), addrBytes)
 		}
 	},
+}
+
+func mustCreateFile(filename string) *os.File {
+	f, err := os.Create(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return f
+}
+
+func mustWriteToFile(f *os.File, b []byte) {
+	if _, err := f.Write(b); err != nil {
+		log.Fatal(err)
+	}
 }
