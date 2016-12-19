@@ -53,7 +53,7 @@ var keygenCmd = &cobra.Command{
 
 		fmt.Println("\nPrivateKey:\n", client.Encode(privKeyBytes))
 		fmt.Println("\nPublicKey:\n", client.Encode(pubKeyBytes))
-		fmt.Println("Address:\n", client.Encode(addrBytes))
+		fmt.Println("\nAddress:\n", client.Encode(addrBytes))
 		if len(flagOutputFile) != 0 {
 			mustWriteToFile(mustCreateFile(flagOutputFile), privKeyBytes)
 			mustWriteToFile(mustCreateFile(strings.Join([]string{flagOutputFile, "pub"}, ".")), pubKeyBytes)
