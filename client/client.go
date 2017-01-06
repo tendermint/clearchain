@@ -19,6 +19,10 @@ type AccountsReturned struct {
 	Account []*types.Account `json:"accounts"`
 }
 
+type LegalEntitiesReturned struct {
+	LegalEntities []*types.LegalEntity `json:"legalEntities"`
+}
+
 var chainID string
 var client tmspcli.Client
 
@@ -87,7 +91,7 @@ func GetAccounts(privateKey crypto.PrivKey, accountsRequested []string) (returne
 
 	err := json.Unmarshal(res.Data, &returned)
 	if err != nil {
-		panic(fmt.Sprintf("Type assertion failed with: %v %v", returned, err))
+		panic(fmt.Sprintf("JSON unmarshal for message %v failed with: %v ", returned, err))
 	}
 
 	return
@@ -101,7 +105,19 @@ func GetAllAccounts(privateKey crypto.PrivKey) (returned types.AccountIndex) {
 
 	err := json.Unmarshal(res.Data, &returned)
 	if err != nil {
-		panic(fmt.Sprintf("Type assertion failed with: %v %v", res, err))
+		panic(fmt.Sprintf("JSON unmarshal for message %v failed with: %v ", res, err))
+	}
+	return
+}
+
+func GetAllLegalEntities(privateKey crypto.PrivKey) (returned types.LegalEntityIndex) {
+	tx := &types.LegalEntityIndexQueryTx{Address: privateKey.PubKey().Address()}
+
+	res := sendQuery(privateKey, tx)
+
+	err := json.Unmarshal(res.Data, &returned)
+	if err != nil {
+		panic(fmt.Sprintf("JSON unmarshal for message %v failed with: %v ", res, err))
 	}
 	return
 }
@@ -184,4 +200,20 @@ func printKey(key []byte, title string) {
 	}
 	fmt.Println()
 
+}
+
+func GetLegalEntities(privateKey crypto.PrivKey, ids []string) (returned LegalEntitiesReturned) {
+	tx := &types.LegalEntityQueryTx{Ids: ids,
+		Address: privateKey.PubKey().Address()}
+
+	res := sendQuery(privateKey, tx)
+	if res.IsErr() {
+		panic(fmt.Sprintf("Error in tendermint response: %v ", res.Log))
+	}
+	err := json.Unmarshal(res.Data, &returned)
+	if err != nil {
+		panic(fmt.Sprintf("JSON unmarshal for message %v failed with: %v ", res.Data, err))
+	}
+
+	return
 }

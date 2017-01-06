@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/tendermint/clearchain/client"
+	"github.com/tendermint/clearchain/types"
 	"github.com/tendermint/go-crypto"
 )
 
@@ -86,10 +87,17 @@ func defaultHandler(w http.ResponseWriter, r *http.Request) {
 
 func viewHandler(w http.ResponseWriter, r *http.Request) {
 	//TODO: Security issue: No autentication, authorization is there to limit access to this code.
-	 
+
 	accountsRequested := client.GetAllAccounts(privateKey).Accounts
 	accounts := client.GetAccounts(privateKey, accountsRequested).Account
-	jsonBytes, err := json.Marshal(accounts)
+	
+	legalEntityIds := client.GetAllLegalEntities(privateKey).Ids
+	legalEntities := client.GetLegalEntities(privateKey, legalEntityIds).LegalEntities
+	
+	jsonBytes, err := json.Marshal(struct {
+		LegalEntities []*types.LegalEntity `json:"legalEntities"`
+		Account       []*types.Account     `json:"accounts"`
+	}{legalEntities, accounts})
 
 	if err != nil {
 		panic(fmt.Sprintf("JSON marshalling error for message: %v, %v", accounts, err))
