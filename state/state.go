@@ -85,6 +85,26 @@ func (s *State) SetAccountIndex(i *types.AccountIndex) {
 	SetAccountIndex(s.store, i)
 }
 
+func (s *State) GetLegalEntityIndex() *types.LegalEntityIndex {
+	data := s.store.Get(LegalEntityIndexKey())
+	if len(data) == 0 {
+		return nil
+	}
+	var LegalEntityIndex *types.LegalEntityIndex
+	err := wire.ReadBinaryBytes(data, &LegalEntityIndex)
+	if err != nil {
+		panic(common.Fmt("Error reading LegalEntityIndex %X error: %v",
+			data, err.Error()))
+	}
+	return LegalEntityIndex
+}
+
+func (s *State) SetLegalEntityIndex(LegalEntityIndex *types.LegalEntityIndex) {
+	LegalEntityIndexBytes := wire.BinaryBytes(LegalEntityIndex)
+	s.store.Set(LegalEntityIndexKey(), LegalEntityIndexBytes)
+}
+
+
 //----------------------------------------
 
 func (s *State) CacheWrap() *State {
@@ -192,6 +212,11 @@ func AccountIndexKey() []byte {
 	return []byte("base/i/a")
 }
 
+func LegalEntityIndexKey() []byte {
+	return []byte("base/i/l")
+}
+
+
 // GetAccountIndex retrieves a AccountIndex from the given store
 func GetAccountIndex(store basecoin.KVStore) *types.AccountIndex {
 	data := store.Get(AccountIndexKey())
@@ -212,3 +237,7 @@ func SetAccountIndex(store basecoin.KVStore, acc *types.AccountIndex) {
 	accBytes := wire.BinaryBytes(acc)
 	store.Set(AccountIndexKey(), accBytes)
 }
+
+func SetLegalEntityIndex(store basecoin.KVStore, LegalEntityIndex *types.LegalEntityIndex) {
+}
+

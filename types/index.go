@@ -58,3 +58,22 @@ type AccountIndexGetterSetter interface {
 	GetAccountIndex() *AccountIndex
 	SetAccountIndex(i *AccountIndex)
 }
+
+type LegalEntityIndex struct {
+	Ids []string `json:"ids"`
+}
+
+func (i *LegalEntityIndex) Has(s string) bool {
+	for _, t := range i.Ids {
+		if t == s {
+			return true
+		}
+	}
+	return false
+}
+
+func (i *LegalEntityIndex) Add(s string) {
+	if !i.Has(s) {
+		i.Ids = append(i.Ids, s)
+	}
+}

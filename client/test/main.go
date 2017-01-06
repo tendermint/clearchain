@@ -45,6 +45,20 @@ func main() {
 	for _, account := range accounts {
 		fmt.Println("\t", account)
 	}
+
+	legalEntityIDs := client.GetAllLegalEntities(privateKey)
+
+	fmt.Println("legalEntity IDs:")
+	for _, legalEntityID := range legalEntityIDs.Ids {
+		fmt.Println("\t", legalEntityID)
+
+	}
+
+	legalEntities := client.GetLegalEntities(privateKey, legalEntityIDs.Ids).LegalEntities
+	fmt.Println("legalEntities returned:")
+	for _, legalEntity := range legalEntities {
+		fmt.Println("\t", legalEntity)
+	}
 }
 
 //

@@ -3,8 +3,8 @@ package state
 import (
 	"encoding/json"
 
-	"github.com/tendermint/clearchain/types"
 	bctypes "github.com/tendermint/basecoin/types"
+	"github.com/tendermint/clearchain/types"
 	"github.com/tendermint/go-common"
 	"github.com/tendermint/go-events"
 	tmsp "github.com/tendermint/tmsp/types"
@@ -211,71 +211,84 @@ func ExecTx(state *State, pgz *bctypes.Plugins, tx types.Tx,
 	}
 }
 
+func accountQuery(state *State, tx *types.AccountQueryTx) tmsp.Result {
+	// Validate basic
+	if res := tx.ValidateBasic(); res.IsErr() {
+		return res.PrependLog("in ValidateBasic()")
+	}
+
+	user := state.GetUser(tx.Address)
+	if user == nil {
+		return tmsp.ErrBaseUnknownAddress.AppendLog(common.Fmt("Address is unknown: %v", tx.Address))
+	}
+	accounts := make([]*types.Account, len(tx.Accounts))
+	for i, accountID := range tx.Accounts {
+		account := state.GetAccount(accountID)
+		if account == nil {
+			return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid account_id: %q", accountID))
+		}
+		accounts[i] = account
+	}
+
+	// Generate byte-to-byte signature
+	signBytes := tx.SignBytes(state.GetChainID())
+	if !user.VerifySignature(signBytes, tx.Signature) {
+		return tmsp.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
+	}
+	data, err := json.Marshal(struct {
+		Account []*types.Account `json:"accounts"`
+	}{accounts})
+	if err != nil {
+		return tmsp.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
+	}
+	return tmsp.OK.SetData(data)
+}
+
+func accountIndexQuery(state *State, tx *types.AccountIndexQueryTx) tmsp.Result {
+	// Validate basic
+	if res := tx.ValidateBasic(); res.IsErr() {
+		return res.PrependLog("in ValidateBasic()")
+	}
+
+	user := state.GetUser(tx.Address)
+	if user == nil {
+		return tmsp.ErrBaseUnknownAddress.AppendLog(common.Fmt("Address is unknown: %v", tx.Address))
+	}
+
+	// Check that the account index exists
+	accountIndex := state.GetAccountIndex()
+	if accountIndex == nil {
+		return tmsp.ErrInternalError.AppendLog("AccountIndex has not yet been initialized")
+	}
+
+	// Generate byte-to-byte signature
+	signBytes := tx.SignBytes(state.GetChainID())
+	if !user.VerifySignature(signBytes, tx.Signature) {
+		return tmsp.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
+	}
+	data, err := json.Marshal(accountIndex)
+	if err != nil {
+		return tmsp.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
+	}
+	return tmsp.OK.SetData(data)
+}
+
 // ExecQueryTx handles queries.
 func ExecQueryTx(state *State, tx types.Tx) tmsp.Result {
-	chainID := state.GetChainID()
-
+	
 	// Execute transaction
 	switch tx := tx.(type) {
 	case *types.AccountQueryTx:
-		// Validate basic
-		if res := tx.ValidateBasic(); res.IsErr() {
-			return res.PrependLog("in ValidateBasic()")
-		}
-
-		user := state.GetUser(tx.Address)
-		if user == nil {
-			return tmsp.ErrBaseUnknownAddress.AppendLog(common.Fmt("Address is unknown: %v", tx.Address))
-		}
-		accounts := make([]*types.Account, len(tx.Accounts))
-		for i, accountID := range tx.Accounts {
-			account := state.GetAccount(accountID)
-			if account == nil {
-				return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid account_id: %q", accountID))
-			}
-			accounts[i] = account
-		}
-
-		// Generate byte-to-byte signature
-		signBytes := tx.SignBytes(chainID)
-		if !user.VerifySignature(signBytes, tx.Signature) {
-			return tmsp.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
-		}
-		data, err := json.Marshal(struct {
-			Account []*types.Account `json:"accounts"`
-		}{accounts})
-		if err != nil {
-			return tmsp.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
-		}
-		return tmsp.OK.SetData(data)
+		return accountQuery(state, tx)
 
 	case *types.AccountIndexQueryTx:
-		// Validate basic
-		if res := tx.ValidateBasic(); res.IsErr() {
-			return res.PrependLog("in ValidateBasic()")
-		}
+		return accountIndexQuery(state, tx)
 
-		user := state.GetUser(tx.Address)
-		if user == nil {
-			return tmsp.ErrBaseUnknownAddress.AppendLog(common.Fmt("Address is unknown: %v", tx.Address))
-		}
+	case *types.LegalEntityQueryTx:
+		return legalEntityQuery(state, tx)
 
-		// Check that the account index exists
-		accountIndex := state.GetAccountIndex()
-		if accountIndex == nil {
-			return tmsp.ErrInternalError.AppendLog("AccountIndex has not yet been initialized")
-		}
-
-		// Generate byte-to-byte signature
-		signBytes := tx.SignBytes(chainID)
-		if !user.VerifySignature(signBytes, tx.Signature) {
-			return tmsp.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
-		}
-		data, err := json.Marshal(accountIndex)
-		if err != nil {
-			return tmsp.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
-		}
-		return tmsp.OK.SetData(data)
+	case *types.LegalEntityIndexQueryTx:
+		return legalEntityIndexQueryTx(state, tx)
 
 	default:
 		return tmsp.ErrBaseEncodingError.SetLog("Unknown tx type")
@@ -424,4 +437,66 @@ func GetOrMakeAccountIndex(state types.AccountIndexGetter) *types.AccountIndex {
 		return index
 	}
 	return types.NewAccountIndex()
+}
+
+func legalEntityQuery(state *State, tx *types.LegalEntityQueryTx) tmsp.Result {
+	// Validate basic
+	if res := tx.ValidateBasic(); res.IsErr() {
+		return res.PrependLog("in ValidateBasic()")
+	}
+
+	user := state.GetUser(tx.Address)
+	if user == nil {
+		return tmsp.ErrBaseUnknownAddress.AppendLog(common.Fmt("Address is unknown: %v", tx.Address))
+	}
+	legalEntities := make([]*types.LegalEntity, len(tx.Ids))
+	for i, id := range tx.Ids {
+		legalEntity := state.GetLegalEntity(id)
+		if legalEntity == nil {
+			return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid legalEntity id: %q", id))
+		}
+		legalEntities[i] = legalEntity
+	}
+
+	// Generate byte-to-byte signature
+	signBytes := tx.SignBytes(state.GetChainID())
+	if !user.VerifySignature(signBytes, tx.Signature) {
+		return tmsp.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
+	}
+	data, err := json.Marshal(struct {
+		LegalEntities []*types.LegalEntity `json:"legalEntities"`
+	}{legalEntities})
+	if err != nil {
+		return tmsp.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
+	}
+	return tmsp.OK.SetData(data)
+}
+
+func legalEntityIndexQueryTx(state *State, tx *types.LegalEntityIndexQueryTx) tmsp.Result {
+	// Validate basic
+	if res := tx.ValidateBasic(); res.IsErr() {
+		return res.PrependLog("in ValidateBasic()")
+	}
+
+	user := state.GetUser(tx.Address)
+	if user == nil {
+		return tmsp.ErrBaseUnknownAddress.AppendLog(common.Fmt("Address is unknown: %v", tx.Address))
+	}
+
+	// Check that the account index exists
+	legalEntities := state.GetLegalEntityIndex()
+	if legalEntities == nil {
+		return tmsp.ErrInternalError.AppendLog("LegalEntities has not yet been initialized")
+	}
+
+	// Generate byte-to-byte signature
+	signBytes := tx.SignBytes(state.GetChainID())
+	if !user.VerifySignature(signBytes, tx.Signature) {
+		return tmsp.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
+	}
+	data, err := json.Marshal(legalEntities)
+	if err != nil {
+		return tmsp.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
+	}
+	return tmsp.OK.SetData(data)
 }

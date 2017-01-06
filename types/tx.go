@@ -41,6 +41,8 @@ var _ = wire.RegisterInterface(
 	wire.ConcreteType{O: &CreateAccountTx{}, Byte: TxTypeCreateAccount},
 	wire.ConcreteType{O: &CreateLegalEntityTx{}, Byte: TxTypeCreateLegalEntity},
 	wire.ConcreteType{O: &CreateUserTx{}, Byte: TxTypeCreateUser},
+	wire.ConcreteType{O: &LegalEntityIndexQueryTx{}, Byte: TxTypeQueryLegalEntityIndex},
+	wire.ConcreteType{O: &LegalEntityQueryTx{}, Byte: TxTypeLegalEntity},
 )
 
 // SignTx signs the transaction if its address and the privateKey's one match.

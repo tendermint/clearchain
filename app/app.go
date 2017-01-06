@@ -111,6 +111,12 @@ func (app *Ledger) SetOption(key string, value string) (log string) {
 		}
 
 		app.state.SetLegalEntity(legalEntity.ID, &legalEntity)
+		legalEntities := app.state.GetLegalEntityIndex()
+		if legalEntities == nil {
+			legalEntities = &types.LegalEntityIndex{Ids: []string{}}
+		}
+		legalEntities.Add(legalEntity.ID)
+		app.state.SetLegalEntityIndex(legalEntities)
 		return "Success"
 	}
 	return "Unrecognized option key " + key
@@ -134,7 +140,7 @@ func (app *Ledger) Query(query []byte) (res tmsp.Result) {
 	typeByte := query[0]
 	query = query[1:]
 	switch typeByte {
-	case types.TxTypeQueryAccount, types.TxTypeQueryAccountIndex:
+	case types.TxTypeQueryAccount, types.TxTypeQueryAccountIndex, types.TxTypeLegalEntity, types.TxTypeQueryLegalEntityIndex:
 		return app.executeQueryTx(query)
 	case PluginTypeByteBase:
 		return tmsp.OK.SetLog("This type of query not yet supported")
