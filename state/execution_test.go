@@ -112,6 +112,7 @@ func TestExecTx(t *testing.T) {
 			EntityID: uuid.NewV4().String(),
 			Type:     types.EntityTypeCustodianByte,
 			Name:     "new Custodian",
+			ParentID: uuid.NewV4().String(),
 		}
 		signBytes := tx.SignBytes(chainID)
 		tx.Signature = user.Sign(signBytes)
@@ -127,6 +128,7 @@ func TestExecTx(t *testing.T) {
 			EntityID: uuid.NewV4().String(),
 			Type:     types.EntityTypeCustodianByte,
 			Name:     "new Custodian",
+			ParentID: uuid.NewV4().String(),
 		}
 		signBytes := tx.SignBytes(chainID)
 		tx.Signature = user.Sign(signBytes)
@@ -258,7 +260,7 @@ func TestExecTx(t *testing.T) {
 			concreteTx := tt.args.tx.(*types.CreateLegalEntityTx)
 			if got.IsOK() && !tt.args.isCheckTx {
 				newEntity := s.GetLegalEntity(concreteTx.EntityID)
-				want := types.NewLegalEntityByType(concreteTx.Type, concreteTx.EntityID, concreteTx.Name, concreteTx.Address)
+				want := types.NewLegalEntityByType(concreteTx.Type, concreteTx.EntityID, concreteTx.Name, concreteTx.Address,concreteTx.ParentID)
 				if !newEntity.Equal(want) {
 					t.Errorf("%q. created %v, want %v", tt.name, newEntity, want)
 				}
@@ -677,7 +679,7 @@ func Test_makeNewEntity(t *testing.T) {
 		if !tt.args.isCheckTx {
 			ntimes = 1
 		}
-		e := types.NewLegalEntityByType(tt.args.tx.Type, tt.args.tx.EntityID, tt.args.tx.Name, user.User.PubKey.Address())
+		e := types.NewLegalEntityByType(tt.args.tx.Type, tt.args.tx.EntityID, tt.args.tx.Name, user.User.PubKey.Address(),"")
 		mockObj.EXPECT().SetLegalEntity(tt.args.tx.EntityID, e).Times(ntimes)
 		makeNewEntity(tt.args.state, tt.args.user, tt.args.tx, tt.args.isCheckTx)
 	}

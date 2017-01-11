@@ -96,15 +96,10 @@ func createAccount(state *State, tx *types.CreateAccountTx, isCheckTx bool) tmsp
 		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Account already exists: %q", tx.AccountID))
 	}
 	// Get or create the accounts index
-	accountIndex := GetOrMakeAccountIndex(state)
-	if accountIndex.Has(tx.AccountID) {
-		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Account already exists in the account index: %q", tx.AccountID))
-	}
-	acc := types.NewAccount(tx.AccountID, entity.ID)
-	accountIndex.Add(tx.AccountID)
 	if !isCheckTx {
+		acc := types.NewAccount(tx.AccountID, entity.ID)
 		state.SetAccount(acc.ID, acc)
-		state.SetAccountIndex(accountIndex)
+		SetAccountInIndex(state, *acc)
 	}
 
 	return tmsp.OK
@@ -144,7 +139,8 @@ func createLegalEntity(state *State, tx *types.CreateLegalEntityTx, isCheckTx bo
 	if ent := state.GetLegalEntity(tx.EntityID); ent != nil {
 		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("LegalEntity already exists: %q", tx.EntityID))
 	}
-	makeNewEntity(state, user, tx, isCheckTx)
+	ent := makeNewEntity(state, user, tx, isCheckTx)
+	SetLegalEntityInIndex(state, ent)
 
 	return tmsp.OK
 }
@@ -275,7 +271,7 @@ func accountIndexQuery(state *State, tx *types.AccountIndexQueryTx) tmsp.Result 
 
 // ExecQueryTx handles queries.
 func ExecQueryTx(state *State, tx types.Tx) tmsp.Result {
-	
+
 	// Execute transaction
 	switch tx := tx.(type) {
 	case *types.AccountQueryTx:
@@ -408,14 +404,15 @@ func applyChangesToOutput(state types.AccountSetter, in types.TxTransferSender, 
 	}
 }
 
-func makeNewEntity(state types.LegalEntitySetter, user *types.User, tx *types.CreateLegalEntityTx, isCheckTx bool) {
-	ent := types.NewLegalEntityByType(tx.Type, tx.EntityID, tx.Name, user.PubKey.Address())
+func makeNewEntity(state types.LegalEntitySetter, user *types.User, tx *types.CreateLegalEntityTx, isCheckTx bool) (ent *types.LegalEntity) {
+	ent = types.NewLegalEntityByType(tx.Type, tx.EntityID, tx.Name, user.PubKey.Address(), tx.ParentID)
 	if ent == nil {
 		common.PanicSanity(common.Fmt("Unexpected TxType: %x", tx.Type))
 	}
 	if !isCheckTx {
 		state.SetLegalEntity(ent.ID, ent)
 	}
+	return
 }
 
 func makeNewUser(state types.UserSetter, creator *types.User, tx *types.CreateUserTx, isCheckTx bool) {
@@ -437,6 +434,33 @@ func GetOrMakeAccountIndex(state types.AccountIndexGetter) *types.AccountIndex {
 		return index
 	}
 	return types.NewAccountIndex()
+}
+
+func SetAccountInIndex(state *State, account types.Account) tmsp.Result {
+	accountIndex := GetOrMakeAccountIndex(state)
+	if accountIndex.Has(account.ID) {
+		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Account already exists in the account index: %q", account.ID))
+	}
+	accountIndex.Add(account.ID)
+	SetAccountIndex(state.store, accountIndex)
+	return tmsp.OK
+}
+
+func SetLegalEntityInIndex(state *State, legalEntity *types.LegalEntity) tmsp.Result {
+	legalEntities := state.GetLegalEntityIndex()
+
+	if legalEntities == nil {
+		legalEntities = &types.LegalEntityIndex{Ids: []string{}}
+	}
+
+	if legalEntities.Has(legalEntity.ID) {
+		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("LegalEntity already exists in the LegalEntity index: %q", legalEntity.ID))
+	}
+	legalEntities.Add(legalEntity.ID)
+
+	SetLegalEntityIndex(state.store, legalEntities)
+
+	return tmsp.OK
 }
 
 func legalEntityQuery(state *State, tx *types.LegalEntityQueryTx) tmsp.Result {

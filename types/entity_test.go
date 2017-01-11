@@ -15,16 +15,17 @@ func TestNewLegalEntity(t *testing.T) {
 		name        string
 		permissions Perm
 		creatorAddr []byte
+		parent		string
 	}
 	tests := []struct {
 		name string
 		args args
 		want *LegalEntity
 	}{
-		{"newEntity", args{uuid, EntityTypeCHByte, "", Perm(0), []byte{}}, &LegalEntity{ID: uuid, Type: EntityTypeCHByte, Name: "", Permissions: Perm(0)}},
+		{"newEntity", args{uuid, EntityTypeCHByte, "", Perm(0), []byte{},"parent"}, &LegalEntity{ID: uuid, Type: EntityTypeCHByte, Name: "", Permissions: Perm(0), EntityID: "parent"}},
 	}
 	for _, tt := range tests {
-		if got := NewLegalEntity(tt.args.id, tt.args.t, tt.args.name, tt.args.permissions, tt.args.creatorAddr); !got.Equal(tt.want) {
+		if got := NewLegalEntity(tt.args.id, tt.args.t, tt.args.name, tt.args.permissions, tt.args.creatorAddr, tt.args.parent); !got.Equal(tt.want) {
 			t.Errorf("%q. NewLegalEntity() = %v, want %v", tt.name, got, tt.want)
 		}
 	}
@@ -38,6 +39,7 @@ func TestLegalEntity_Equal(t *testing.T) {
 		Name        string
 		Permissions Perm
 		CreatorAddr []byte
+		Parent		string
 	}
 	type args struct {
 		e *LegalEntity
@@ -49,13 +51,13 @@ func TestLegalEntity_Equal(t *testing.T) {
 		want   bool
 	}{
 		{"equal",
-			fields{id, byte(0xFF), "test_name", PermTransferTx, []byte{}},
-			args{&LegalEntity{id, byte(0xFF), "test_name", PermTransferTx, []byte{}}},
+			fields{id, byte(0xFF), "test_name", PermTransferTx, []byte{},"parent"},
+			args{&LegalEntity{id, "parent", byte(0xFF), "test_name", PermTransferTx, []byte{}}},
 			true,
 		},
 		{"notEqual",
-			fields{id, byte(0xFF), "test_name", PermTransferTx, []byte{}},
-			args{&LegalEntity{uuid.NewV4().String(), byte(0xFF), "test_name", PermTransferTx, []byte{}}},
+			fields{id, byte(0xFF), "test_name", PermTransferTx, []byte{},"parent"},
+			args{&LegalEntity{uuid.NewV4().String(), "parent", byte(0xFF), "test_name", PermTransferTx, []byte{}}},
 			false,
 		},
 	}
@@ -67,6 +69,7 @@ func TestLegalEntity_Equal(t *testing.T) {
 			Name:        tt.fields.Name,
 			Permissions: tt.fields.Permissions,
 			CreatorAddr: tt.fields.CreatorAddr,
+			EntityID:		tt.fields.Parent,
 		}
 		if got := l.Equal(tt.args.e); got != tt.want {
 			t.Errorf("%q. LegalEntity.Equal() = %v, want %v", tt.name, got, tt.want)
@@ -111,20 +114,21 @@ func TestLegalEntity_String(t *testing.T) {
 		n  string
 		p  Perm
 		c  []byte
+		parent string
 	}
 	testcases := []struct {
 		name string
 		args *args
 		want string
 	}{
-		{"nonEmpty", &args{id, 0x01, "CH1", PermTransferTx, []byte{}}, common.Fmt("LegalEntity{%x %s \"CH1\" %v %s}", EntityTypeCHByte, id, PermTransferTx, "")},
+		{"nonEmpty", &args{id, 0x01, "CH1", PermTransferTx, []byte{},"parent"}, common.Fmt("LegalEntity{%x %s \"CH1\" %v %s %v}", EntityTypeCHByte, id, PermTransferTx, "","parent")},
 		{"nil", nil, "nil-LegalEntity"},
 	}
 
 	for _, tc := range testcases {
 		var e *LegalEntity
 		if tc.args != nil {
-			e = NewLegalEntity(tc.args.id, tc.args.t, tc.args.n, tc.args.p, tc.args.c)
+			e = NewLegalEntity(tc.args.id, tc.args.t, tc.args.n, tc.args.p, tc.args.c,tc.args.parent)
 		}
 		if ret := e.String(); ret != tc.want {
 			t.Errorf("%q: String() return %q, expected: %q", tc.name, ret, tc.want)

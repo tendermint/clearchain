@@ -86,9 +86,7 @@ func (app *Ledger) SetOption(key string, value string) (log string) {
 			panic("Error decoding acc message: " + err.Error())
 		}
 		app.state.SetAccount(acc.ID, acc)
-		accountIndex := sm.GetOrMakeAccountIndex(app.state)
-		accountIndex.Add(acc.ID)
-		app.state.SetAccountIndex(accountIndex)
+		sm.SetAccountInIndex(app.state, *acc)
 
 		return "Success"
 	case "user":
@@ -111,12 +109,8 @@ func (app *Ledger) SetOption(key string, value string) (log string) {
 		}
 
 		app.state.SetLegalEntity(legalEntity.ID, &legalEntity)
-		legalEntities := app.state.GetLegalEntityIndex()
-		if legalEntities == nil {
-			legalEntities = &types.LegalEntityIndex{Ids: []string{}}
-		}
-		legalEntities.Add(legalEntity.ID)
-		app.state.SetLegalEntityIndex(legalEntities)
+		sm.SetLegalEntityInIndex(app.state, &legalEntity)
+
 		return "Success"
 	}
 	return "Unrecognized option key " + key

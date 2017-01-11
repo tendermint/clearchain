@@ -238,6 +238,8 @@ func SetAccountIndex(store basecoin.KVStore, acc *types.AccountIndex) {
 	store.Set(AccountIndexKey(), accBytes)
 }
 
-func SetLegalEntityIndex(store basecoin.KVStore, LegalEntityIndex *types.LegalEntityIndex) {
+func SetLegalEntityIndex(store basecoin.KVStore, legalEntityIndex *types.LegalEntityIndex) {
+	bytes := wire.BinaryBytes(legalEntityIndex)
+	store.Set(LegalEntityIndexKey(), bytes)
 }
 
