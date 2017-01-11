@@ -28,9 +28,10 @@ func main() {
 	client.CreateAccount(privateKey, accountID)
 
 	entityID := uuid.NewV4().String()
+	parentID := uuid.NewV4().String()
 	entityType := types.EntityTypeCHByte
 	legalEntityName := "newLegalEntityName"
-	client.CreateLegalEntity(privateKey, entityID, entityType, legalEntityName)
+	client.CreateLegalEntity(privateKey, entityID, entityType, legalEntityName, parentID)
 
 	fmt.Println("Account IDs:")
 	var accountsRequested []string = client.GetAllAccounts(privateKey).Accounts

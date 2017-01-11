@@ -1,9 +1,20 @@
 [
   "base/chainID", "test_chain_id",
-  "base/legalEntity", {"id":"b40cbf4e-5923-4ccd-beec-e22a9117b91b","type":1,"name":"legalEntityName","permissions":31,"creator_addr":"pSEeeX9eWxaSn1XJ1T9zJ8FzIBw="},
+  "base/legalEntity", {"id":"b40cbf4e-5923-4ccd-beec-e22a9117b91b","type":1,"name":"CH","permissions":31,"creator_addr":"pSEeeX9eWxaSn1XJ1T9zJ8FzIBw="},
+  "base/legalEntity", {"id":"27dec6dd-7e7a-4295-a759-ded510d784ff","type":2,"name":"GCM","permissions":31,"creator_addr":"pSEeeX9eWxaSn1XJ1T9zJ8FzIBw="},
+  "base/legalEntity", {"id":"41458f8b-32f2-45d3-a884-9505625fa22b","type":3,"name":"ICM","permissions":31,"creator_addr":"pSEeeX9eWxaSn1XJ1T9zJ8FzIBw="},
+  "base/legalEntity", {"id":"60b6e1e8-a907-4f91-81ef-ddab36716dd4","type":4,"name":"Custodian","permissions":31,"creator_addr":"pSEeeX9eWxaSn1XJ1T9zJ8FzIBw="},
+  "base/legalEntity", {"id":"82bf8a78-2f8d-41f6-9f6c-5a1cf99956c2","type":4,"name":"Bank Of Ireland","permissions":31,"creator_addr":"pSEeeX9eWxaSn1XJ1T9zJ8FzIBw=","entity_id": "60b6e1e8-a907-4f91-81ef-ddab36716dd4"},
+  
+  
   "base/account", {
   	"id": "1d2df1ae-accb-11e6-bbbb-00ff5244ae7f",
   	"entity_id": "b40cbf4e-5923-4ccd-beec-e22a9117b91b",
+  	"wallets":[{"currency":"EUR","balance":1000000,"sequence":1},{"currency":"USD","balance":2000000,"sequence":1}]
+  },
+  "base/account", {
+  	"id": "6b6d3a08-5527-4955-b4fd-f5ba7e083548",
+  	"entity_id": "82bf8a78-2f8d-41f6-9f6c-5a1cf99956c2",
   	"wallets":[{"currency":"EUR","balance":1000000,"sequence":1},{"currency":"USD","balance":2000000,"sequence":1}]
   },
   "base/user", {"pub_key":[1,"843878B932EE4908A42D24BFFC039EB8DFACD4340C83342310682094047FAFAB"],"name":"Name","entity_id":"b40cbf4e-5923-4ccd-beec-e22a9117b91b","permissions":31}

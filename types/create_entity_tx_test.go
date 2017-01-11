@@ -105,8 +105,8 @@ func TestCreateLegalEntityTx_String(t *testing.T) {
 		fields fields
 		want   string
 	}{
-		{"empty", fields{}, "CreateLegalEntityTx{,\"\",0,}"},
-		{"stringRepr", fields{Address: []byte{0}, EntityID: "entity_id"}, "CreateLegalEntityTx{00,\"entity_id\",0,}"},
+		{"empty", fields{}, "CreateLegalEntityTx{,\"\",0,,}"},
+		{"stringRepr", fields{Address: []byte{0}, EntityID: "entity_id"}, "CreateLegalEntityTx{00,\"entity_id\",0,,}"},
 	}
 	for _, tt := range tests {
 		tx := &CreateLegalEntityTx{

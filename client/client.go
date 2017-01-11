@@ -66,11 +66,12 @@ func CreateAccount(privateKey crypto.PrivKey,
 }
 
 func CreateLegalEntity(privateKey crypto.PrivKey,
-	entityID string, entityType byte, name string) {
+	entityID string, entityType byte, name string, parentID string) {
 	tx := &types.CreateLegalEntityTx{Address: privateKey.PubKey().Address(),
 		EntityID: entityID,
 		Type:     entityType,
-		Name:     name}
+		Name:     name,
+	ParentID: parentID}
 
 	res := sendAppendTx(privateKey, tx)
 

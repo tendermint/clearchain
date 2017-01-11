@@ -14,27 +14,27 @@ import (
 
 // RandCH creates a new CH
 func RandCH() *types.LegalEntity {
-	return types.NewCH(uuid.NewV4().String(), petname.Generate(2, "-"), nil)
+	return types.NewCH(uuid.NewV4().String(), petname.Generate(2, "-"), nil, "")
 }
 
 // RandGCM creates a new GCM
 func RandGCM(creatorAddr []byte) *types.LegalEntity {
-	return types.NewGCM(uuid.NewV4().String(), petname.Generate(2, "-"), creatorAddr)
+	return types.NewGCM(uuid.NewV4().String(), petname.Generate(2, "-"), creatorAddr, "")
 }
 
 // RandICM creates a new ICM
 func RandICM(creatorAddr []byte) *types.LegalEntity {
-	return types.NewICM(uuid.NewV4().String(), petname.Generate(2, "-"), creatorAddr)
+	return types.NewICM(uuid.NewV4().String(), petname.Generate(2, "-"), creatorAddr, "")
 }
 
 // RandCustodian creates a new Custodian
 func RandCustodian(creatorAddr []byte) *types.LegalEntity {
-	return types.NewCustodian(uuid.NewV4().String(), petname.Generate(2, "-"), creatorAddr)
+	return types.NewCustodian(uuid.NewV4().String(), petname.Generate(2, "-"), creatorAddr, "")
 }
 
 // RandEntity generates a LegalEntity
 func RandEntity(t byte, permissions types.Perm) *types.LegalEntity {
-	return types.NewLegalEntity(uuid.NewV4().String(), t, petname.Generate(2, "-"), permissions, nil)
+	return types.NewLegalEntity(uuid.NewV4().String(), t, petname.Generate(2, "-"), permissions, nil, "")
 }
 
 // RandAccounts generates num random accounts for the given LegalEntity.
