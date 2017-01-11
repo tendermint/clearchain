@@ -10,7 +10,7 @@
   "base/account", {
   	"id": "1d2df1ae-accb-11e6-bbbb-00ff5244ae7f",
   	"entity_id": "b40cbf4e-5923-4ccd-beec-e22a9117b91b",
-  	"wallets":[{"currency":"EUR","balance":1000000,"sequence":1},{"currency":"USD","balance":2000000,"sequence":1}]
+  	"wallets":[{"currency":"EUR","balance":1100000,"sequence":1},{"currency":"USD","balance":2300000,"sequence":1}]
   },
   "base/account", {
   	"id": "6b6d3a08-5527-4955-b4fd-f5ba7e083548",
