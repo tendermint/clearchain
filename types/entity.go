@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"github.com/tendermint/go-common"
 )
 
 // EntityType byte identifiers
@@ -39,6 +40,8 @@ func NewLegalEntityByType(t byte, id string, name string, creatorAddr []byte, En
 		return NewGCM(id, name, creatorAddr, EntityID)
 	case EntityTypeICMByte:
 		return NewICM(id, name, creatorAddr, EntityID)
+	default:
+		common.PanicSanity(common.Fmt("Unexpected TxType: %x", t))
 	}
 	return nil
 }

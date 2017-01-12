@@ -7,7 +7,6 @@ import (
 
 	"github.com/tendermint/clearchain/testutil"
 	"github.com/tendermint/clearchain/testutil/mocks/mock_account"
-	"github.com/tendermint/clearchain/testutil/mocks/mock_entity"
 	"github.com/tendermint/clearchain/testutil/mocks/mock_user"
 	"github.com/tendermint/clearchain/types"
 	"github.com/golang/mock/gomock"
@@ -649,39 +648,6 @@ func Test_validateWalletSequence(t *testing.T) {
 		if got := validateWalletSequence(tt.args.acc, tt.args.in); got.Code != tt.want.Code {
 			t.Errorf("%q. validateWalletSequence() = %v, want %v", tt.name, got, tt.want)
 		}
-	}
-}
-
-func Test_makeNewEntity(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-	mockObj := mock_entity.NewMockLegalEntitySetter(mockCtrl)
-	user := testutil.RandUsers(1)[0]
-	genCreateLegalEntityTx := func() *types.CreateLegalEntityTx {
-		return &types.CreateLegalEntityTx{
-			Type: types.EntityTypeGCMByte, EntityID: "ID", Name: "Name", Address: user.User.PubKey.Address()}
-	}
-	type args struct {
-		state     types.LegalEntitySetter
-		user      *types.User
-		tx        *types.CreateLegalEntityTx
-		isCheckTx bool
-	}
-	tests := []struct {
-		name string
-		args args
-	}{
-		{"appendTx", args{mockObj, &user.User, genCreateLegalEntityTx(), false}},
-		{"appendTx", args{mockObj, &user.User, genCreateLegalEntityTx(), true}},
-	}
-	for _, tt := range tests {
-		ntimes := 0
-		if !tt.args.isCheckTx {
-			ntimes = 1
-		}
-		e := types.NewLegalEntityByType(tt.args.tx.Type, tt.args.tx.EntityID, tt.args.tx.Name, user.User.PubKey.Address(),"")
-		mockObj.EXPECT().SetLegalEntity(tt.args.tx.EntityID, e).Times(ntimes)
-		makeNewEntity(tt.args.state, tt.args.user, tt.args.tx, tt.args.isCheckTx)
 	}
 }
 

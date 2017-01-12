@@ -99,10 +99,10 @@ func createAccount(state *State, tx *types.CreateAccountTx, isCheckTx bool) tmsp
 	if !isCheckTx {
 		acc := types.NewAccount(tx.AccountID, entity.ID)
 		state.SetAccount(acc.ID, acc)
-		SetAccountInIndex(state, *acc)
+		return SetAccountInIndex(state, *acc)
+	} else {
+		return tmsp.OK
 	}
-
-	return tmsp.OK
 }
 
 func createLegalEntity(state *State, tx *types.CreateLegalEntityTx, isCheckTx bool) tmsp.Result {
@@ -139,10 +139,13 @@ func createLegalEntity(state *State, tx *types.CreateLegalEntityTx, isCheckTx bo
 	if ent := state.GetLegalEntity(tx.EntityID); ent != nil {
 		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("LegalEntity already exists: %q", tx.EntityID))
 	}
-	ent := makeNewEntity(state, user, tx, isCheckTx)
-	SetLegalEntityInIndex(state, ent)
-
-	return tmsp.OK
+	if !isCheckTx {
+		legalEntity := types.NewLegalEntityByType(tx.Type, tx.EntityID, tx.Name, user.PubKey.Address(), tx.ParentID)
+		state.SetLegalEntity(legalEntity.ID, legalEntity)
+		return SetLegalEntityInIndex(state, legalEntity)
+	} else {
+		return tmsp.OK
+	}
 }
 
 func createUser(state *State, tx *types.CreateUserTx, isCheckTx bool) tmsp.Result {
@@ -404,17 +407,6 @@ func applyChangesToOutput(state types.AccountSetter, in types.TxTransferSender, 
 	}
 }
 
-func makeNewEntity(state types.LegalEntitySetter, user *types.User, tx *types.CreateLegalEntityTx, isCheckTx bool) (ent *types.LegalEntity) {
-	ent = types.NewLegalEntityByType(tx.Type, tx.EntityID, tx.Name, user.PubKey.Address(), tx.ParentID)
-	if ent == nil {
-		common.PanicSanity(common.Fmt("Unexpected TxType: %x", tx.Type))
-	}
-	if !isCheckTx {
-		state.SetLegalEntity(ent.ID, ent)
-	}
-	return
-}
-
 func makeNewUser(state types.UserSetter, creator *types.User, tx *types.CreateUserTx, isCheckTx bool) {
 	perms := creator.Permissions
 	if !tx.CanCreate {
@@ -442,7 +434,7 @@ func SetAccountInIndex(state *State, account types.Account) tmsp.Result {
 		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Account already exists in the account index: %q", account.ID))
 	}
 	accountIndex.Add(account.ID)
-	SetAccountIndex(state.store, accountIndex)
+	state.SetAccountIndex(accountIndex)
 	return tmsp.OK
 }
 
@@ -458,7 +450,7 @@ func SetLegalEntityInIndex(state *State, legalEntity *types.LegalEntity) tmsp.Re
 	}
 	legalEntities.Add(legalEntity.ID)
 
-	SetLegalEntityIndex(state.store, legalEntities)
+	state.SetLegalEntityIndex(legalEntities)
 
 	return tmsp.OK
 }

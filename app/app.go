@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	bctypes "github.com/tendermint/basecoin/types"
-	sm "github.com/tendermint/clearchain/state"
+	"github.com/tendermint/clearchain/state"
 	"github.com/tendermint/clearchain/types"
 	common "github.com/tendermint/go-common"
 	"github.com/tendermint/go-wire"
@@ -37,15 +37,15 @@ const (
 type Ledger struct {
 	eyesCli    *eyes.Client
 	govMint    *gov.Governmint
-	state      *sm.State
-	cacheState *sm.State
+	state      *state.State
+	cacheState *state.State
 	plugins    *bctypes.Plugins
 }
 
 // NewLedger creates a new instance of the app
 func NewLedger(eyesCli *eyes.Client) *Ledger {
 	govMint := gov.NewGovernmint()
-	state := sm.NewState(eyesCli)
+	state := state.NewState(eyesCli)
 	plugins := bctypes.NewPlugins()
 	plugins.RegisterPlugin(PluginTypeByteGov, PluginNameGov, govMint)
 	return &Ledger{
@@ -86,7 +86,7 @@ func (app *Ledger) SetOption(key string, value string) (log string) {
 			panic("Error decoding acc message: " + err.Error())
 		}
 		app.state.SetAccount(acc.ID, acc)
-		sm.SetAccountInIndex(app.state, *acc)
+		state.SetAccountInIndex(app.state, *acc)
 
 		return "Success"
 	case "user":
@@ -109,7 +109,7 @@ func (app *Ledger) SetOption(key string, value string) (log string) {
 		}
 
 		app.state.SetLegalEntity(legalEntity.ID, &legalEntity)
-		sm.SetLegalEntityInIndex(app.state, &legalEntity)
+		state.SetLegalEntityInIndex(app.state, &legalEntity)
 
 		return "Success"
 	}
@@ -190,7 +190,7 @@ func (app *Ledger) executeTx(txBytes []byte, simulate bool) (res tmsp.Result) {
 		return tmsp.ErrBaseEncodingError.AppendLog("Error decoding tx: " + err.Error())
 	}
 	// Validate and exec tx
-	res = sm.ExecTx(app.state, app.plugins, tx, simulate, nil)
+	res = state.ExecTx(app.state, app.plugins, tx, simulate, nil)
 	if res.IsErr() {
 		return res.PrependLog("Error in AppendTx")
 	}
@@ -208,7 +208,7 @@ func (app *Ledger) executeQueryTx(txBytes []byte) (res tmsp.Result) {
 		return tmsp.ErrBaseEncodingError.AppendLog("Error decoding tx: " + err.Error())
 	}
 	// Validate and exec tx
-	res = sm.ExecQueryTx(app.state, tx)
+	res = state.ExecQueryTx(app.state, tx)
 	if res.IsErr() {
 		return res.PrependLog("Error in QueryTx")
 	}
