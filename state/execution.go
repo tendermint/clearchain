@@ -100,9 +100,9 @@ func createAccount(state *State, tx *types.CreateAccountTx, isCheckTx bool) tmsp
 		acc := types.NewAccount(tx.AccountID, entity.ID)
 		state.SetAccount(acc.ID, acc)
 		return SetAccountInIndex(state, *acc)
-	} else {
-		return tmsp.OK
 	}
+
+	return tmsp.OK
 }
 
 func createLegalEntity(state *State, tx *types.CreateLegalEntityTx, isCheckTx bool) tmsp.Result {
@@ -143,9 +143,9 @@ func createLegalEntity(state *State, tx *types.CreateLegalEntityTx, isCheckTx bo
 		legalEntity := types.NewLegalEntityByType(tx.Type, tx.EntityID, tx.Name, user.PubKey.Address(), tx.ParentID)
 		state.SetLegalEntity(legalEntity.ID, legalEntity)
 		return SetLegalEntityInIndex(state, legalEntity)
-	} else {
-		return tmsp.OK
 	}
+
+	return tmsp.OK
 }
 
 func createUser(state *State, tx *types.CreateUserTx, isCheckTx bool) tmsp.Result {
@@ -421,6 +421,7 @@ func makeNewUser(state types.UserSetter, creator *types.User, tx *types.CreateUs
 	}
 }
 
+//Returns existing AccountIndex from store or creates new empty one 
 func GetOrMakeAccountIndex(state types.AccountIndexGetter) *types.AccountIndex {
 	if index := state.GetAccountIndex(); index != nil {
 		return index
@@ -428,6 +429,7 @@ func GetOrMakeAccountIndex(state types.AccountIndexGetter) *types.AccountIndex {
 	return types.NewAccountIndex()
 }
 
+//Sets Account in AccountIndex in store 
 func SetAccountInIndex(state *State, account types.Account) tmsp.Result {
 	accountIndex := GetOrMakeAccountIndex(state)
 	if accountIndex.Has(account.ID) {
@@ -438,6 +440,7 @@ func SetAccountInIndex(state *State, account types.Account) tmsp.Result {
 	return tmsp.OK
 }
 
+//Sets LegalEntity in LegalEntityIndex in store 
 func SetLegalEntityInIndex(state *State, legalEntity *types.LegalEntity) tmsp.Result {
 	legalEntities := state.GetLegalEntityIndex()
 
