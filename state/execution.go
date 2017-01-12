@@ -373,37 +373,42 @@ func validatePermissions(u *types.User, e *types.LegalEntity, a *types.Account, 
 }
 
 // Apply changes to inputs
-func applyChangesToInput(state types.AccountSetter, in types.TxTransferSender, acc *types.Account, isCheckTx bool) {
-	wal := acc.GetWallet(in.Currency)
-	if wal == nil {
-		acc.Wallets = append(acc.Wallets, types.Wallet{
-			Currency: in.Currency,
-			Balance:  -in.Amount,
-			Sequence: 1})
-	} else {
-		wal.Balance -= in.Amount
-		wal.Sequence++
-	}
+func applyChangesToInput(state types.AccountSetter, in types.TxTransferSender, account *types.Account, isCheckTx bool) {
+	applyChanges(account, in.Currency, in.Amount, false)
+
 	if !isCheckTx {
-		state.SetAccount(in.AccountID, acc)
+		state.SetAccount(account.ID, account)
 	}
 }
 
 // Apply changes to outputs
 func applyChangesToOutput(state types.AccountSetter, in types.TxTransferSender, out types.TxTransferRecipient, acc *types.Account, isCheckTx bool) {
-	wal := acc.GetWallet(in.Currency)
-	if wal == nil {
-		acc.Wallets = append(acc.Wallets, types.Wallet{
-			Currency: in.Currency,
-			Balance:  in.Amount,
-			Sequence: 1})
+	applyChanges(acc, in.Currency, in.Amount, true)
 
-	} else {
-		wal.Balance += in.Amount
-		wal.Sequence++
-	}
 	if !isCheckTx {
-		state.SetAccount(out.AccountID, acc)
+		state.SetAccount(acc.ID, acc)
+	}
+}
+
+func applyChanges(account *types.Account, currency string, amount int64, isBuy bool) {
+
+	initialWallet := account.GetWallet(currency)
+	wal := initialWallet
+	
+	if wal == nil {
+		wal = &types.Wallet{Currency: currency}
+	}
+
+	if isBuy {
+		wal.Balance += amount
+	} else {
+		wal.Balance += -amount
+	}
+
+	wal.Sequence++
+
+	if initialWallet == nil {
+		account.Wallets = append(account.Wallets, *wal)
 	}
 }
 
@@ -421,7 +426,7 @@ func makeNewUser(state types.UserSetter, creator *types.User, tx *types.CreateUs
 	}
 }
 
-//Returns existing AccountIndex from store or creates new empty one 
+//Returns existing AccountIndex from store or creates new empty one
 func GetOrMakeAccountIndex(state types.AccountIndexGetter) *types.AccountIndex {
 	if index := state.GetAccountIndex(); index != nil {
 		return index
@@ -429,7 +434,7 @@ func GetOrMakeAccountIndex(state types.AccountIndexGetter) *types.AccountIndex {
 	return types.NewAccountIndex()
 }
 
-//Sets Account in AccountIndex in store 
+//Sets Account in AccountIndex in store
 func SetAccountInIndex(state *State, account types.Account) tmsp.Result {
 	accountIndex := GetOrMakeAccountIndex(state)
 	if accountIndex.Has(account.ID) {
@@ -440,7 +445,7 @@ func SetAccountInIndex(state *State, account types.Account) tmsp.Result {
 	return tmsp.OK
 }
 
-//Sets LegalEntity in LegalEntityIndex in store 
+//Sets LegalEntity in LegalEntityIndex in store
 func SetLegalEntityInIndex(state *State, legalEntity *types.LegalEntity) tmsp.Result {
 	legalEntities := state.GetLegalEntityIndex()
 

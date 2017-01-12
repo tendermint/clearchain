@@ -221,6 +221,7 @@ func TestExecTx(t *testing.T) {
 				senderAccount := s.GetAccount(senderAccount.ID)
 				recipientAccount := s.GetAccount(recipientAccount.ID)
 				senderWallet := senderAccount.GetWallet(ccy)
+				
 				recipientWallet := recipientAccount.GetWallet(ccy)
 				if senderWallet.Balance != -amount {
 					t.Errorf("%q. senderWallet.Balance = %v, want %v", tt.name, senderWallet.Balance, -amount)
@@ -485,8 +486,9 @@ func Test_applyChangesToInput(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	mockObj := mock_account.NewMockAccountSetter(mockCtrl)
+	accountID := uuid.NewV4().String()
 	genTxTransferSender := func() types.TxTransferSender {
-		return types.TxTransferSender{AccountID: uuid.NewV4().String(), Amount: 15, Currency: "USD"}
+		return types.TxTransferSender{AccountID: accountID, Amount: 15, Currency: "USD"}
 	}
 
 	type args struct {
@@ -499,8 +501,8 @@ func Test_applyChangesToInput(t *testing.T) {
 		name string
 		args args
 	}{
-		{"appendTx", args{mockObj, genTxTransferSender(), &types.Account{}, false}},
-		{"checkTx", args{mockObj, genTxTransferSender(), &types.Account{}, true}},
+		{"appendTx", args{mockObj, genTxTransferSender(), &types.Account{ID: accountID}, false}},
+		{"checkTx", args{mockObj, genTxTransferSender(), &types.Account{ID: accountID}, true}},
 	}
 	for _, tt := range tests {
 		ntimes := 0
@@ -519,8 +521,9 @@ func Test_applyChangesToOutput(t *testing.T) {
 	genTxTransferSender := func() types.TxTransferSender {
 		return types.TxTransferSender{Amount: 100, Currency: "USD"}
 	}
+	accountID := uuid.NewV4().String()
 	genTxTransferRecipient := func() types.TxTransferRecipient {
-		return types.TxTransferRecipient{AccountID: uuid.NewV4().String()}
+		return types.TxTransferRecipient{AccountID: accountID}
 	}
 	type args struct {
 		state     types.AccountSetter
@@ -533,8 +536,8 @@ func Test_applyChangesToOutput(t *testing.T) {
 		name string
 		args args
 	}{
-		{"appendTx", args{mockObj, genTxTransferSender(), genTxTransferRecipient(), testutil.RandAccount(nil), false}},
-		{"checkTx", args{mockObj, genTxTransferSender(), genTxTransferRecipient(), testutil.RandAccount(nil), true}},
+		{"appendTx", args{mockObj, genTxTransferSender(), genTxTransferRecipient(), &types.Account{ID: accountID}, false}},
+		{"checkTx", args{mockObj, genTxTransferSender(), genTxTransferRecipient(), &types.Account{ID: accountID}, true}},
 	}
 	for _, tt := range tests {
 		ntimes := 0

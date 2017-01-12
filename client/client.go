@@ -71,7 +71,7 @@ func CreateLegalEntity(privateKey crypto.PrivKey,
 		EntityID: entityID,
 		Type:     entityType,
 		Name:     name,
-	ParentID: parentID}
+		ParentID: parentID}
 
 	res := sendAppendTx(privateKey, tx)
 
@@ -82,6 +82,20 @@ func CreateLegalEntity(privateKey crypto.PrivKey,
 	}
 	log.Info("Created legal entity with ID: " + entityID)
 }
+
+//func TransferMoney(privateKey crypto.PrivKey) {
+//	//	Address: privateKey.PubKey().Address(),
+//	tx := &types.TransferTx{}
+//
+//	res := sendAppendTx(privateKey, tx)
+//
+//	if res.IsErr() {
+//		panic(fmt.Sprintf("Wrong response from server: %v", res))
+//	} else {
+//		Commit(client)
+//	}
+//	log.Info("Created transfer entry")
+//}
 
 // GetAccounts makes a request to the ledger to returns a set of accounts
 func GetAccounts(privateKey crypto.PrivKey, accountsRequested []string) (returned AccountsReturned) {
