@@ -81,8 +81,9 @@ func (s *State) GetAccountIndex() *types.AccountIndex {
 }
 
 // SetAccountIndex sets the accounts index
-func (s *State) SetAccountIndex(i *types.AccountIndex) {
-	SetAccountIndex(s.store, i)
+func (s *State) SetAccountIndex(index *types.AccountIndex) {
+	accBytes := wire.BinaryBytes(index)
+	s.store.Set(AccountIndexKey(), accBytes)
 }
 
 func (s *State) GetLegalEntityIndex() *types.LegalEntityIndex {
@@ -103,7 +104,6 @@ func (s *State) SetLegalEntityIndex(LegalEntityIndex *types.LegalEntityIndex) {
 	LegalEntityIndexBytes := wire.BinaryBytes(LegalEntityIndex)
 	s.store.Set(LegalEntityIndexKey(), LegalEntityIndexBytes)
 }
-
 
 //----------------------------------------
 
@@ -231,15 +231,3 @@ func GetAccountIndex(store basecoin.KVStore) *types.AccountIndex {
 	}
 	return acc
 }
-
-// SetAccountIndex stores a AccountIndex to the given store
-func SetAccountIndex(store basecoin.KVStore, acc *types.AccountIndex) {
-	accBytes := wire.BinaryBytes(acc)
-	store.Set(AccountIndexKey(), accBytes)
-}
-
-func SetLegalEntityIndex(store basecoin.KVStore, legalEntityIndex *types.LegalEntityIndex) {
-	bytes := wire.BinaryBytes(legalEntityIndex)
-	store.Set(LegalEntityIndexKey(), bytes)
-}
-
