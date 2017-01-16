@@ -20,7 +20,7 @@ type AccountsReturned struct {
 }
 
 type LegalEntitiesReturned struct {
-	LegalEntities []*types.LegalEntity `json:"legalEntities"`
+	LegalEntities []*types.LegalEntity `json:"legal_entities"`
 }
 
 var chainID string
