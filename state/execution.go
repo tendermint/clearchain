@@ -1,7 +1,6 @@
 package state
 
 import (
-	"fmt"
 	"encoding/json"
 
 	bctypes "github.com/tendermint/basecoin/types"
@@ -393,8 +392,7 @@ func applyChangesToOutput(state types.AccountSetter, in types.TxTransferSender, 
 
 func applyChanges(account *types.Account, currency string, amount int64, isBuy bool) {
 
-	initialWallet := account.GetWallet(currency)
-	wal := initialWallet
+	wal := account.GetWallet(currency)
 
 	if wal == nil {
 		wal = &types.Wallet{Currency: currency}
@@ -408,9 +406,7 @@ func applyChanges(account *types.Account, currency string, amount int64, isBuy b
 
 	wal.Sequence++
 
-	if initialWallet == nil {
-		account.Wallets = append(account.Wallets, *wal)
-	}
+	account.SetWallet(*wal)
 }
 
 func makeNewUser(state types.UserSetter, creator *types.User, tx *types.CreateUserTx, isCheckTx bool) {

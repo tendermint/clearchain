@@ -210,6 +210,7 @@ func TestExecTx(t *testing.T) {
 		{"checkTxCreateUserTx_CantCreate", args{s, nil, &tx8, true, nil}, tmsp.OK},
 		{"appendTxCreateUserTx_CantCreate", args{s, nil, &tx8, false, nil}, tmsp.OK},
 	}
+	transferCnt := 0
 	for _, tt := range tests {
 		got := ExecTx(tt.args.state, tt.args.pgz, tt.args.tx, tt.args.isCheckTx, tt.args.evc)
 		if got.Code != tt.want.Code {
@@ -221,19 +222,22 @@ func TestExecTx(t *testing.T) {
 				senderAccount := s.GetAccount(senderAccount.ID)
 				recipientAccount := s.GetAccount(recipientAccount.ID)
 				senderWallet := senderAccount.GetWallet(ccy)
-				
 				recipientWallet := recipientAccount.GetWallet(ccy)
-				if senderWallet.Balance != -amount {
-					t.Errorf("%q. senderWallet.Balance = %v, want %v", tt.name, senderWallet.Balance, -amount)
+				transferCnt++
+				
+				balanceWanted := int64(transferCnt)*-amount
+				if senderWallet.Balance != balanceWanted {
+					t.Errorf("%q. senderWallet.Balance = %v, want %v", tt.name, senderWallet.Balance, balanceWanted)
 				}
-				if senderWallet.Sequence != 1 {
-					t.Errorf("%q. senderWallet.Sequence = %v, want %v", tt.name, senderWallet.Sequence, 1)
+				if senderWallet.Sequence != transferCnt {
+					t.Errorf("%q. senderWallet.Sequence = %v, want %v", tt.name, senderWallet.Sequence, transferCnt)
 				}
-				if recipientWallet.Balance != amount {
-					t.Errorf("%q. recipientWallet.Balance = %v, want %v", tt.name, recipientWallet.Balance, amount)
+				balanceWanted = int64(transferCnt)*amount
+				if recipientWallet.Balance != balanceWanted {
+					t.Errorf("%q. recipientWallet.Balance = %v, want %v", tt.name, recipientWallet.Balance, balanceWanted)
 				}
-				if recipientWallet.Sequence != 1 {
-					t.Errorf("%q. recipientWallet.Sequence = %v, want %v", tt.name, recipientWallet.Sequence, 1)
+				if recipientWallet.Sequence != transferCnt {
+					t.Errorf("%q. recipientWallet.Sequence = %v, want %v", tt.name, recipientWallet.Sequence, transferCnt)
 				}
 			}
 		case *types.CreateAccountTx:

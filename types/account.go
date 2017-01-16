@@ -66,6 +66,17 @@ func (acc *Account) GetWallet(currency string) *Wallet {
 	return nil
 }
 
+func (account *Account) SetWallet(wallet Wallet) {
+	for i, wal := range account.Wallets {
+		if wal.Currency == wallet.Currency {
+			account.Wallets[i] = wallet
+			return
+		}
+	}
+	
+	account.Wallets = append(account.Wallets, wallet)
+}
+
 //-----------------------------------------
 
 // Wallet defines the attributes of an account's wallet
