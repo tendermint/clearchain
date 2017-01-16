@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"encoding/json"
 
 	bctypes "github.com/tendermint/basecoin/types"
@@ -88,7 +89,7 @@ func createAccount(state *State, tx *types.CreateAccountTx, isCheckTx bool) tmsp
 	// Generate byte-to-byte signature and validate the signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !user.VerifySignature(signBytes, tx.Signature) {
-		return tmsp.ErrBaseInvalidSignature.AppendLog("Verification failed, user's signature doesn't match")
+		return tmsp.ErrBaseInvalidSignature.AppendLog("user's signature doesn't match")
 	}
 
 	// Create the new account
@@ -132,7 +133,7 @@ func createLegalEntity(state *State, tx *types.CreateLegalEntityTx, isCheckTx bo
 	// Generate byte-to-byte signature and validate the signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !user.VerifySignature(signBytes, tx.Signature) {
-		return tmsp.ErrBaseInvalidSignature.AppendLog("Verification failed, user's signature doesn't match")
+		return tmsp.ErrBaseInvalidSignature.AppendLog("user's signature doesn't match")
 	}
 
 	// Create new legal entity
@@ -176,7 +177,7 @@ func createUser(state *State, tx *types.CreateUserTx, isCheckTx bool) tmsp.Resul
 	// Generate byte-to-byte signature and validate the signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !creator.VerifySignature(signBytes, tx.Signature) {
-		return tmsp.ErrBaseInvalidSignature.AppendLog("Verification failed, user's signature doesn't match")
+		return tmsp.ErrBaseInvalidSignature.AppendLog("user's signature doesn't match")
 	}
 	// Create new user
 	if usr := state.GetUser(tx.PubKey.Address()); usr != nil {
@@ -232,7 +233,7 @@ func accountQuery(state *State, tx *types.AccountQueryTx) tmsp.Result {
 	// Generate byte-to-byte signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !user.VerifySignature(signBytes, tx.Signature) {
-		return tmsp.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
+		return tmsp.ErrUnauthorized.AppendLog("signature doesn't match")
 	}
 	data, err := json.Marshal(struct {
 		Account []*types.Account `json:"accounts"`
@@ -263,7 +264,7 @@ func accountIndexQuery(state *State, tx *types.AccountIndexQueryTx) tmsp.Result 
 	// Generate byte-to-byte signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !user.VerifySignature(signBytes, tx.Signature) {
-		return tmsp.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
+		return tmsp.ErrUnauthorized.AppendLog("signature doesn't match")
 	}
 	data, err := json.Marshal(accountIndex)
 	if err != nil {
@@ -316,7 +317,7 @@ func validateSender(acc *types.Account, entity *types.LegalEntity, u *types.User
 		return res
 	}
 	if !u.VerifySignature(signBytes, tx.Sender.Signature) {
-		return tmsp.ErrBaseInvalidSignature.AppendLog("Verification failed, sender's signature doesn't match")
+		return tmsp.ErrBaseInvalidSignature.AppendLog("sender's signature doesn't match")
 	}
 	return tmsp.OK
 }
@@ -347,7 +348,7 @@ func validateCounterSigners(state types.UserGetter, acc *types.Account, entity *
 		}
 		// Verify the signature
 		if !user.VerifySignature(signBytes, in.Signature) {
-			return tmsp.ErrBaseInvalidSignature.AppendLog(common.Fmt("Verification failed, countersigner's signature doesn't match, user: %s", user))
+			return tmsp.ErrBaseInvalidSignature.AppendLog(common.Fmt("countersigner's signature doesn't match, user: %s", user))
 		}
 	}
 
@@ -382,11 +383,11 @@ func applyChangesToInput(state types.AccountSetter, in types.TxTransferSender, a
 }
 
 // Apply changes to outputs
-func applyChangesToOutput(state types.AccountSetter, in types.TxTransferSender, out types.TxTransferRecipient, acc *types.Account, isCheckTx bool) {
-	applyChanges(acc, in.Currency, in.Amount, true)
+func applyChangesToOutput(state types.AccountSetter, in types.TxTransferSender, out types.TxTransferRecipient, account *types.Account, isCheckTx bool) {
+	applyChanges(account, in.Currency, in.Amount, true)
 
 	if !isCheckTx {
-		state.SetAccount(acc.ID, acc)
+		state.SetAccount(account.ID, account)
 	}
 }
 
@@ -394,7 +395,7 @@ func applyChanges(account *types.Account, currency string, amount int64, isBuy b
 
 	initialWallet := account.GetWallet(currency)
 	wal := initialWallet
-	
+
 	if wal == nil {
 		wal = &types.Wallet{Currency: currency}
 	}
@@ -485,7 +486,7 @@ func legalEntityQuery(state *State, tx *types.LegalEntityQueryTx) tmsp.Result {
 	// Generate byte-to-byte signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !user.VerifySignature(signBytes, tx.Signature) {
-		return tmsp.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
+		return tmsp.ErrUnauthorized.AppendLog("signature doesn't match")
 	}
 	data, err := json.Marshal(struct {
 		LegalEntities []*types.LegalEntity `json:"legalEntities"`
@@ -516,7 +517,7 @@ func legalEntityIndexQueryTx(state *State, tx *types.LegalEntityIndexQueryTx) tm
 	// Generate byte-to-byte signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !user.VerifySignature(signBytes, tx.Signature) {
-		return tmsp.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
+		return tmsp.ErrUnauthorized.AppendLog("signature doesn't match")
 	}
 	data, err := json.Marshal(legalEntities)
 	if err != nil {

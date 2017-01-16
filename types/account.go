@@ -58,9 +58,9 @@ func (acc *Account) BelongsTo(legalEntityID string) bool {
 
 // GetWallet retrieves the Account's wallet for the given currency.
 func (acc *Account) GetWallet(currency string) *Wallet {
-	for _, wal := range acc.Wallets {
+	for i, wal := range acc.Wallets {
 		if wal.Currency == currency {
-			return &wal
+			return &acc.Wallets[i]
 		}
 	}
 	return nil

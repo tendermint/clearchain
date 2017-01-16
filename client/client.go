@@ -20,7 +20,7 @@ type AccountsReturned struct {
 }
 
 type LegalEntitiesReturned struct {
-	LegalEntities []*types.LegalEntity `json:"legalEntities"`
+	LegalEntities []*types.LegalEntity `json:"legal_entities"`
 }
 
 var chainID string
@@ -83,19 +83,40 @@ func CreateLegalEntity(privateKey crypto.PrivKey,
 	log.Info("Created legal entity with ID: " + entityID)
 }
 
-//func TransferMoney(privateKey crypto.PrivKey) {
-//	//	Address: privateKey.PubKey().Address(),
-//	tx := &types.TransferTx{}
-//
-//	res := sendAppendTx(privateKey, tx)
-//
-//	if res.IsErr() {
-//		panic(fmt.Sprintf("Wrong response from server: %v", res))
-//	} else {
-//		Commit(client)
-//	}
-//	log.Info("Created transfer entry")
-//}
+//Creates money transfer entry in blockchain
+func TransferMoney(privateKey crypto.PrivKey, senderID string, recipientID string, counterSignerAddresses [][]byte, amount int64, currency string) {
+	senderAccount := GetAccounts(privateKey, []string{senderID}).Account[0]
+	newSequenceID := senderAccount.GetWallet(currency).Sequence + 1
+
+	sender := types.TxTransferSender{AccountID: senderID,
+		Amount:   amount,
+		Currency: currency,
+		Sequence: newSequenceID,
+		Address:  privateKey.PubKey().Address(),
+	}
+
+	recipient := types.TxTransferRecipient{AccountID: recipientID}
+
+	counterSigners := make([]types.TxTransferCounterSigner, len(counterSignerAddresses))
+	for i, address := range counterSignerAddresses {
+		counterSigners[i] = types.TxTransferCounterSigner{Address: address}
+	}
+
+	tx := &types.TransferTx{
+		Sender:         sender,
+		Recipient:      recipient,
+		CounterSigners: counterSigners,
+	}
+
+	res := sendAppendTx(privateKey, tx)
+
+	if res.IsErr() {
+		panic(fmt.Sprintf("Wrong response from server: %v", res))
+	} else {
+		Commit(client)
+	}
+	log.Info("Created transfer entry")
+}
 
 // GetAccounts makes a request to the ledger to returns a set of accounts
 func GetAccounts(privateKey crypto.PrivKey, accountsRequested []string) (returned AccountsReturned) {
