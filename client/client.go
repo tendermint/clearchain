@@ -13,7 +13,6 @@ import (
 )
 
 var log = logger.New("module", "client")
-
 var chainID string
 var client tmspcli.Client
 
