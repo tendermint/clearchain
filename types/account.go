@@ -101,6 +101,11 @@ func (w *Wallet) String() string {
 	return fmt.Sprintf("Wallet{%s %v %v}", w.Currency, w.Sequence, w.Balance)
 }
 
+// AccountsReturned defines the attributes of response's payload
+type AccountsReturned struct {
+	Account []*Account `json:"accounts"`
+}
+
 //-----------------------------------------
 
 // AccountGetter is implemented by any value that has a GetAccount

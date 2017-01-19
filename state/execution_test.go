@@ -5,14 +5,14 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/tendermint/clearchain/testutil"
-	"github.com/tendermint/clearchain/testutil/mocks/mock_account"
-	"github.com/tendermint/clearchain/testutil/mocks/mock_user"
-	"github.com/tendermint/clearchain/types"
 	"github.com/golang/mock/gomock"
 	"github.com/satori/go.uuid"
 	bctypes "github.com/tendermint/basecoin/types"
 	bscoin "github.com/tendermint/basecoin/types"
+	"github.com/tendermint/clearchain/testutil"
+	"github.com/tendermint/clearchain/testutil/mocks/mock_account"
+	"github.com/tendermint/clearchain/testutil/mocks/mock_user"
+	"github.com/tendermint/clearchain/types"
 	crypto "github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-events"
 	tmsp "github.com/tendermint/tmsp/types"
@@ -64,7 +64,9 @@ func TestExecTx(t *testing.T) {
 		counterSignersUsers := randUsers[2:]
 		counterSigners := []types.TxTransferCounterSigner{}
 		for _, u := range counterSignersUsers {
-			counterSigners = append(counterSigners, types.TxTransferCounterSigner{Address: u.User.PubKey.Address()})
+			cs := types.TxTransferCounterSigner{Address: u.User.PubKey.Address()}
+			cs.SignTx(u.PrivKey, s.GetChainID())
+			counterSigners = append(counterSigners, cs)
 		}
 		tx := types.TransferTx{
 			Sender: types.TxTransferSender{
@@ -79,16 +81,8 @@ func TestExecTx(t *testing.T) {
 				AccountID: recipientAccount.ID,
 			},
 		}
-		signBytes := tx.SignBytes(chainID)
-		counterSignatures := make([]crypto.Signature, len(counterSignersUsers))
-		for i, cs := range counterSignersUsers {
-			counterSignatures[i] = cs.PrivKey.Sign(signBytes)
-		}
-		// Sign it all
-		tx.Sender.Signature = senderUser.PrivKey.Sign(signBytes)
-		for i := range counterSignersUsers {
-			tx.CounterSigners[i].Signature = counterSignatures[i]
-		}
+		tx.SignTx(senderUser.PrivKey, s.GetChainID())
+
 		return tx
 	}()
 	tx3 := func() types.CreateAccountTx {
@@ -224,15 +218,15 @@ func TestExecTx(t *testing.T) {
 				senderWallet := senderAccount.GetWallet(ccy)
 				recipientWallet := recipientAccount.GetWallet(ccy)
 				transferCnt++
-				
-				balanceWanted := int64(transferCnt)*-amount
+
+				balanceWanted := int64(transferCnt) * -amount
 				if senderWallet.Balance != balanceWanted {
 					t.Errorf("%q. senderWallet.Balance = %v, want %v", tt.name, senderWallet.Balance, balanceWanted)
 				}
 				if senderWallet.Sequence != transferCnt {
 					t.Errorf("%q. senderWallet.Sequence = %v, want %v", tt.name, senderWallet.Sequence, transferCnt)
 				}
-				balanceWanted = int64(transferCnt)*amount
+				balanceWanted = int64(transferCnt) * amount
 				if recipientWallet.Balance != balanceWanted {
 					t.Errorf("%q. recipientWallet.Balance = %v, want %v", tt.name, recipientWallet.Balance, balanceWanted)
 				}
@@ -264,7 +258,7 @@ func TestExecTx(t *testing.T) {
 			concreteTx := tt.args.tx.(*types.CreateLegalEntityTx)
 			if got.IsOK() && !tt.args.isCheckTx {
 				newEntity := s.GetLegalEntity(concreteTx.EntityID)
-				want := types.NewLegalEntityByType(concreteTx.Type, concreteTx.EntityID, concreteTx.Name, concreteTx.Address,concreteTx.ParentID)
+				want := types.NewLegalEntityByType(concreteTx.Type, concreteTx.EntityID, concreteTx.Name, concreteTx.Address, concreteTx.ParentID)
 				if !newEntity.Equal(want) {
 					t.Errorf("%q. created %v, want %v", tt.name, newEntity, want)
 				}
@@ -556,6 +550,7 @@ func Test_applyChangesToOutput(t *testing.T) {
 func Test_validateCounterSignersAdvanced(t *testing.T) {
 	// Set up fixtures
 	s := NewState(bscoin.NewMemKVStore())
+	s.SetChainID("chainID")
 	ent := &types.LegalEntity{
 		ID:          uuid.NewV4().String(),
 		Permissions: types.PermTransferTx}
@@ -572,19 +567,32 @@ func Test_validateCounterSignersAdvanced(t *testing.T) {
 		}
 		return usersSlice
 	}(ent)
+	senderprivateKey:=crypto.GenPrivKeyEd25519()
 	transferTx := types.TransferTx{
 		Sender: types.TxTransferSender{
-			Address: crypto.GenPrivKeyEd25519().PubKey().Address()},
+			Address: senderprivateKey.PubKey().Address()},
 		CounterSigners: make([]types.TxTransferCounterSigner, 10)}
 	for i, u := range users {
 		s.SetUser(u.User.PubKey.Address(), &u.User)
 		transferTx.CounterSigners[i] = types.TxTransferCounterSigner{
 			Address: u.User.PubKey.Address()}
+		transferTx.CounterSigners[i].SignTx(u.PrivKey, s.GetChainID())
 	}
-	signBytes := transferTx.SignBytes("chainID")
+	transferTx.SignTx(senderprivateKey, s.GetChainID())
+
+	wrongSignatureTransferTx := types.TransferTx{
+		Sender: types.TxTransferSender{
+			Address: senderprivateKey.PubKey().Address()},
+		CounterSigners: make([]types.TxTransferCounterSigner, 10)}
 	for i, u := range users {
-		transferTx.CounterSigners[i].Signature = u.PrivKey.Sign(signBytes)
+		s.SetUser(u.User.PubKey.Address(), &u.User)
+		wrongSignatureTransferTx.CounterSigners[i] = types.TxTransferCounterSigner{
+			Address: u.User.PubKey.Address()}
+		wrongSignatureTransferTx.CounterSigners[i].SignTx(u.PrivKey, s.GetChainID())
 	}
+	wrongSignatureTransferTx.SignTx(senderprivateKey, s.GetChainID())
+	wrongSignatureTransferTx.CounterSigners[0].Signature = senderprivateKey.Sign([]byte("wrong_bytes"))
+
 	// Make sender a duplicate of a countersigner
 	dupSendertransferTx := types.TransferTx{
 		Sender: types.TxTransferSender{
@@ -597,10 +605,9 @@ func Test_validateCounterSignersAdvanced(t *testing.T) {
 			types.TxTransferCounterSigner{Address: []byte("non-existing")}}}
 
 	type args struct {
-		state     types.UserGetter
+		state     *State
 		acc       *types.Account
 		entity    *types.LegalEntity
-		signBytes []byte
 		tx        *types.TransferTx
 	}
 	tests := []struct {
@@ -609,28 +616,28 @@ func Test_validateCounterSignersAdvanced(t *testing.T) {
 		want tmsp.Result
 	}{
 		{"invalidUser",
-			args{s, &types.Account{}, ent, []byte(""), &nonExistUserSendertransferTx},
+			args{s, &types.Account{}, ent, &nonExistUserSendertransferTx},
 			tmsp.ErrBaseUnknownAddress,
 		},
 		{"duplicateAddress",
-			args{s, &types.Account{}, ent, []byte(""), &dupSendertransferTx},
+			args{s, &types.Account{}, ent, &dupSendertransferTx},
 			tmsp.ErrBaseDuplicateAddress,
 		},
 		{"invalidAccount",
-			args{s, &types.Account{}, ent, []byte(""), &transferTx},
+			args{s, &types.Account{}, ent, &transferTx},
 			tmsp.ErrUnauthorized,
 		},
 		{"invalidSignatures",
-			args{s, acc, ent, []byte("wrong_bytes"), &transferTx},
+			args{s, acc, ent, &wrongSignatureTransferTx},
 			tmsp.ErrBaseInvalidSignature,
 		},
 		{"validCounterSigners",
-			args{s, acc, ent, signBytes, &transferTx},
+			args{s, acc, ent, &transferTx},
 			tmsp.OK,
 		},
 	}
 	for _, tt := range tests {
-		if got := validateCounterSigners(tt.args.state, tt.args.acc, tt.args.entity, tt.args.signBytes, tt.args.tx); got.Code != tt.want.Code {
+		if got := validateCounterSigners(tt.args.state, tt.args.acc, tt.args.entity, tt.args.tx); got.Code != tt.want.Code {
 			t.Errorf("%q. validateCounterSigners() = %v, want %v", tt.name, got, tt.want)
 		}
 	}

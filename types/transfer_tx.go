@@ -85,13 +85,6 @@ func (tx *TransferTx) ValidateBasic() (res tmsp.Result) {
 
 // SignTx signs the transaction if its address and the privateKey's one match.
 func (tx *TransferTx) SignTx(privateKey crypto.PrivKey, chainID string) error {
-	for i := 0; i < len(tx.CounterSigners); i++ {
-		err := tx.CounterSigners[i].SignTx(privateKey, chainID)
-		if err != nil {
-			return err
-		}
-	}
-
 	sig, err := SignTx(tx.SignBytes(chainID), tx.Sender.Address, privateKey)
 	if err != nil {
 		return err
@@ -224,11 +217,6 @@ func (tx TxTransferCounterSigner) SignBytes(chainID string) []byte {
 
 // SignTx signs the transaction if its address and the privateKey's one match.
 func (tx *TxTransferCounterSigner) SignTx(privateKey crypto.PrivKey, chainID string) error {
-
-	sig, err := SignTx(tx.SignBytes(chainID), tx.Address, privateKey)
-	if err != nil {
-		return err
-	}
-	tx.Signature = sig
+	tx.Signature = privateKey.Sign(tx.SignBytes(chainID))
 	return nil
 }

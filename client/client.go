@@ -14,15 +14,6 @@ import (
 
 var log = logger.New("module", "client")
 
-// AccountsReturned defines the attributes of response's payload
-type AccountsReturned struct {
-	Account []*types.Account `json:"accounts"`
-}
-
-type LegalEntitiesReturned struct {
-	LegalEntities []*types.LegalEntity `json:"legal_entities"`
-}
-
 var chainID string
 var client tmspcli.Client
 
@@ -99,7 +90,17 @@ func TransferMoney(privateKey crypto.PrivKey, senderID string, recipientID strin
 
 	counterSigners := make([]types.TxTransferCounterSigner, len(counterSignerAddresses))
 	for i, address := range counterSignerAddresses {
-		counterSigners[i] = types.TxTransferCounterSigner{Address: address}
+		privKey, err := crypto.PrivKeyFromBytes(address)
+		if err != nil {
+			panic(fmt.Sprintf("counterSigner signing failed with: %v", err.Error()))
+		}
+		counterSigners[i] = types.TxTransferCounterSigner{Address: privKey.PubKey().Address()}
+
+		err = counterSigners[i].SignTx(privKey, chainID)
+		if err != nil {
+			panic(fmt.Sprintf("counterSigner signing failed with: %v", err.Error()))
+		}
+
 	}
 
 	tx := &types.TransferTx{
@@ -119,7 +120,7 @@ func TransferMoney(privateKey crypto.PrivKey, senderID string, recipientID strin
 }
 
 // GetAccounts makes a request to the ledger to returns a set of accounts
-func GetAccounts(privateKey crypto.PrivKey, accountsRequested []string) (returned AccountsReturned) {
+func GetAccounts(privateKey crypto.PrivKey, accountsRequested []string) (returned types.AccountsReturned) {
 	tx := &types.AccountQueryTx{Accounts: accountsRequested,
 		Address: privateKey.PubKey().Address()}
 
@@ -235,10 +236,9 @@ func printKey(key []byte, title string) {
 		fmt.Print(", ")
 	}
 	fmt.Println()
-
 }
 
-func GetLegalEntities(privateKey crypto.PrivKey, ids []string) (returned LegalEntitiesReturned) {
+func GetLegalEntities(privateKey crypto.PrivKey, ids []string) (returned types.LegalEntitiesReturned) {
 	tx := &types.LegalEntityQueryTx{Ids: ids,
 		Address: privateKey.PubKey().Address()}
 
@@ -246,6 +246,7 @@ func GetLegalEntities(privateKey crypto.PrivKey, ids []string) (returned LegalEn
 	if res.IsErr() {
 		panic(fmt.Sprintf("Error in tendermint response: %v ", res.Log))
 	}
+	
 	err := json.Unmarshal(res.Data, &returned)
 	if err != nil {
 		panic(fmt.Sprintf("JSON unmarshal for message %v failed with: %v ", res.Data, err))

@@ -2,6 +2,7 @@ package state
 
 import (
 	"encoding/json"
+	"fmt"
 
 	bctypes "github.com/tendermint/basecoin/types"
 	"github.com/tendermint/clearchain/types"
@@ -49,7 +50,7 @@ func transfer(state *State, tx *types.TransferTx, isCheckTx bool) tmsp.Result {
 		return res.PrependLog("in validateSender()")
 	}
 	// Validate counter signers
-	if res := validateCounterSigners(state, senderAccount, entity, signBytes, tx); res.IsErr() {
+	if res := validateCounterSigners(state, senderAccount, entity, tx); res.IsErr() {
 		return res.PrependLog("in validateCounterSigners()")
 	}
 
@@ -234,9 +235,7 @@ func accountQuery(state *State, tx *types.AccountQueryTx) tmsp.Result {
 	if !user.VerifySignature(signBytes, tx.Signature) {
 		return tmsp.ErrUnauthorized.AppendLog("signature doesn't match")
 	}
-	data, err := json.Marshal(struct {
-		Account []*types.Account `json:"accounts"`
-	}{accounts})
+	data, err := json.Marshal(types.AccountsReturned{Account: accounts})
 	if err != nil {
 		return tmsp.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
 	}
@@ -322,7 +321,7 @@ func validateSender(acc *types.Account, entity *types.LegalEntity, u *types.User
 }
 
 // Validate countersignatures
-func validateCounterSigners(state types.UserGetter, acc *types.Account, entity *types.LegalEntity, signBytes []byte, tx *types.TransferTx) tmsp.Result {
+func validateCounterSigners(state *State, acc *types.Account, entity *types.LegalEntity, tx *types.TransferTx) tmsp.Result {
 	var users = make(map[string]bool)
 
 	// Make sure users are not duplicated
@@ -346,7 +345,7 @@ func validateCounterSigners(state types.UserGetter, acc *types.Account, entity *
 			return res
 		}
 		// Verify the signature
-		if !user.VerifySignature(signBytes, in.Signature) {
+		if !user.VerifySignature(in.SignBytes(state.GetChainID()), in.Signature) {
 			return tmsp.ErrBaseInvalidSignature.AppendLog(common.Fmt("countersigner's signature doesn't match, user: %s", user))
 		}
 	}
@@ -484,9 +483,7 @@ func legalEntityQuery(state *State, tx *types.LegalEntityQueryTx) tmsp.Result {
 	if !user.VerifySignature(signBytes, tx.Signature) {
 		return tmsp.ErrUnauthorized.AppendLog("signature doesn't match")
 	}
-	data, err := json.Marshal(struct {
-		LegalEntities []*types.LegalEntity `json:"legalEntities"`
-	}{legalEntities})
+	data, err := json.Marshal(types.LegalEntitiesReturned{LegalEntities: legalEntities})
 	if err != nil {
 		return tmsp.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
 	}
