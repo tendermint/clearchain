@@ -7,9 +7,9 @@ import (
 	"fmt"
 
 	"github.com/satori/go.uuid"
+	abci "github.com/tendermint/abci/types"
 	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-wire"
-	tmsp "github.com/tendermint/tmsp/types"
 )
 
 func TestTransferTx_SignBytes(t *testing.T) {
@@ -111,24 +111,24 @@ func TestTransferTx_ValidateBasic(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   tmsp.Result
+		want   abci.Result
 	}{
-		{"emptySender", fields{Sender: TxTransferSender{}}, tmsp.ErrBaseInvalidInput},
-		{"invalidSender", fields{Sender: TxTransferSender{AccountID: uuid.NewV4().String()}}, tmsp.ErrBaseInvalidInput},
+		{"emptySender", fields{Sender: TxTransferSender{}}, abci.ErrBaseInvalidInput},
+		{"invalidSender", fields{Sender: TxTransferSender{AccountID: uuid.NewV4().String()}}, abci.ErrBaseInvalidInput},
 		{"invalidSequence", fields{Sender: TxTransferSender{
 			AccountID: uuid.NewV4().String(),
 			Address:   crypto.CRandBytes(20),
 			Currency:  "USD",
 			Amount:    100,
 			Signature: signature,
-		}}, tmsp.ErrBaseInvalidSequence},
+		}}, abci.ErrBaseInvalidSequence},
 		{"emptyRecipient", fields{Sender: TxTransferSender{
 			AccountID: uuid.NewV4().String(),
 			Address:   crypto.CRandBytes(20),
 			Currency:  "USD",
 			Amount:    100,
 			Signature: signature,
-			Sequence:  1}}, tmsp.ErrBaseInvalidOutput},
+			Sequence:  1}}, abci.ErrBaseInvalidOutput},
 		{"validWithoutConterSigners", fields{
 			Sender: TxTransferSender{
 				AccountID: uuid.NewV4().String(),
@@ -136,14 +136,14 @@ func TestTransferTx_ValidateBasic(t *testing.T) {
 				Currency:  "USD",
 				Amount:    100,
 				Signature: signature,
-				Sequence:  1}, Recipient: TxTransferRecipient{AccountID: uuid.NewV4().String()}}, tmsp.OK},
+				Sequence:  1}, Recipient: TxTransferRecipient{AccountID: uuid.NewV4().String()}}, abci.OK},
 		{"invalidCurrency", fields{Sender: TxTransferSender{
 			AccountID: uuid.NewV4().String(),
 			Address:   crypto.CRandBytes(20),
 			Currency:  "invalid",
 			Amount:    100,
 			Signature: signature,
-			Sequence:  1}, Recipient: TxTransferRecipient{AccountID: uuid.NewV4().String()}}, tmsp.ErrBaseInvalidInput},
+			Sequence:  1}, Recipient: TxTransferRecipient{AccountID: uuid.NewV4().String()}}, abci.ErrBaseInvalidInput},
 		{"emptyCounterSigner", fields{
 			Sender: TxTransferSender{
 				AccountID: uuid.NewV4().String(),
@@ -154,7 +154,7 @@ func TestTransferTx_ValidateBasic(t *testing.T) {
 				Sequence:  1,
 			},
 			CounterSigners: []TxTransferCounterSigner{TxTransferCounterSigner{}},
-			Recipient:      TxTransferRecipient{AccountID: uuid.NewV4().String()}}, tmsp.ErrBaseInvalidInput},
+			Recipient:      TxTransferRecipient{AccountID: uuid.NewV4().String()}}, abci.ErrBaseInvalidInput},
 		{"invalidCounterSignature", fields{
 			Sender: TxTransferSender{
 				AccountID: uuid.NewV4().String(),
@@ -165,7 +165,7 @@ func TestTransferTx_ValidateBasic(t *testing.T) {
 				Sequence:  3,
 			},
 			CounterSigners: []TxTransferCounterSigner{TxTransferCounterSigner{Address: crypto.CRandBytes(20)}},
-			Recipient:      TxTransferRecipient{AccountID: uuid.NewV4().String()}}, tmsp.ErrBaseInvalidSignature},
+			Recipient:      TxTransferRecipient{AccountID: uuid.NewV4().String()}}, abci.ErrBaseInvalidSignature},
 		{"validWithCounterSignatures", fields{
 			Sender: TxTransferSender{
 				AccountID: uuid.NewV4().String(),
@@ -177,7 +177,7 @@ func TestTransferTx_ValidateBasic(t *testing.T) {
 			}, CounterSigners: []TxTransferCounterSigner{TxTransferCounterSigner{
 				Address:   crypto.CRandBytes(20),
 				Signature: crypto.GenPrivKeyEd25519().Sign([]byte("test_content")),
-			}}, Recipient: TxTransferRecipient{AccountID: uuid.NewV4().String()}}, tmsp.OK},
+			}}, Recipient: TxTransferRecipient{AccountID: uuid.NewV4().String()}}, abci.OK},
 	}
 	for _, tt := range tests {
 		tx := TransferTx{
@@ -196,16 +196,16 @@ func TestTxTransferSender_ValidateBasic(t *testing.T) {
 	tests := []struct {
 		name string
 		tx   TxTransferSender
-		want tmsp.Result
+		want abci.Result
 	}{
 		{
-			"emptyInput", TxTransferSender{}, tmsp.ErrBaseInvalidInput,
+			"emptyInput", TxTransferSender{}, abci.ErrBaseInvalidInput,
 		},
 		{
-			"emptyAddress", TxTransferSender{AccountID: uuid.NewV4().String()}, tmsp.ErrBaseInvalidInput,
+			"emptyAddress", TxTransferSender{AccountID: uuid.NewV4().String()}, abci.ErrBaseInvalidInput,
 		},
 		{
-			"invalidAddress", TxTransferSender{Address: []byte{}}, tmsp.ErrBaseInvalidInput,
+			"invalidAddress", TxTransferSender{Address: []byte{}}, abci.ErrBaseInvalidInput,
 		},
 		{
 			"invalidAmount", TxTransferSender{
@@ -213,7 +213,7 @@ func TestTxTransferSender_ValidateBasic(t *testing.T) {
 				Address:   crypto.CRandBytes(20),
 				Amount:    0,
 				Signature: signature,
-			}, tmsp.ErrBaseInvalidInput,
+			}, abci.ErrBaseInvalidInput,
 		},
 		{
 			"invalidCurrency", TxTransferSender{
@@ -222,7 +222,7 @@ func TestTxTransferSender_ValidateBasic(t *testing.T) {
 				Amount:    10,
 				Currency:  "Invalid currency",
 				Signature: signature,
-			}, tmsp.ErrBaseInvalidInput,
+			}, abci.ErrBaseInvalidInput,
 		},
 		{
 			"invalidSignature", TxTransferSender{
@@ -231,7 +231,7 @@ func TestTxTransferSender_ValidateBasic(t *testing.T) {
 				Amount:    100,
 				Currency:  "USD",
 				Sequence:  0,
-			}, tmsp.ErrBaseInvalidSignature,
+			}, abci.ErrBaseInvalidSignature,
 		},
 		{
 			"invalidCurrency", TxTransferSender{
@@ -241,7 +241,7 @@ func TestTxTransferSender_ValidateBasic(t *testing.T) {
 				Currency:  "XXX",
 				Sequence:  1,
 				Signature: signature,
-			}, tmsp.ErrBaseInvalidInput,
+			}, abci.ErrBaseInvalidInput,
 		},
 		{
 			"invalidAccount", TxTransferSender{
@@ -250,7 +250,7 @@ func TestTxTransferSender_ValidateBasic(t *testing.T) {
 				Currency:  "USD",
 				Sequence:  1,
 				Signature: signature,
-			}, tmsp.ErrBaseInvalidInput,
+			}, abci.ErrBaseInvalidInput,
 		},
 		{
 			"validInput", TxTransferSender{
@@ -260,7 +260,7 @@ func TestTxTransferSender_ValidateBasic(t *testing.T) {
 				Currency:  "USD",
 				Sequence:  1,
 				Signature: signature,
-			}, tmsp.OK,
+			}, abci.OK,
 		},
 		{
 			"invalidSequence", TxTransferSender{
@@ -270,7 +270,7 @@ func TestTxTransferSender_ValidateBasic(t *testing.T) {
 				Currency:  "USD",
 				Sequence:  0,
 				Signature: signature,
-			}, tmsp.ErrBaseInvalidSequence,
+			}, abci.ErrBaseInvalidSequence,
 		},
 	}
 
@@ -285,11 +285,11 @@ func TestTxTransferRecipient_ValidateBasic(t *testing.T) {
 	tests := []struct {
 		name string
 		tx   TxTransferRecipient
-		want tmsp.Result
+		want abci.Result
 	}{
-		{"emptyTx", TxTransferRecipient{}, tmsp.ErrBaseInvalidOutput},
-		{"validUUID", TxTransferRecipient{AccountID: uuid.NewV4().String()}, tmsp.OK},
-		{"invalidUUID", TxTransferRecipient{AccountID: "invalid"}, tmsp.ErrBaseInvalidOutput},
+		{"emptyTx", TxTransferRecipient{}, abci.ErrBaseInvalidOutput},
+		{"validUUID", TxTransferRecipient{AccountID: uuid.NewV4().String()}, abci.OK},
+		{"invalidUUID", TxTransferRecipient{AccountID: "invalid"}, abci.ErrBaseInvalidOutput},
 	}
 
 	for _, tt := range tests {
@@ -309,11 +309,11 @@ func TestTxTransferCounterSigner_ValidateBasic(t *testing.T) {
 	tests := []struct {
 		name string
 		tx   TxTransferCounterSigner
-		want tmsp.Result
+		want abci.Result
 	}{
-		{"invalidAddress", TxTransferCounterSigner{}, tmsp.ErrBaseInvalidInput},
-		{"invalidSignature", TxTransferCounterSigner{Address: genAddr()}, tmsp.ErrBaseInvalidSignature},
-		{"validCounterSigner", TxTransferCounterSigner{Address: genAddr(), Signature: genSignature()}, tmsp.OK},
+		{"invalidAddress", TxTransferCounterSigner{}, abci.ErrBaseInvalidInput},
+		{"invalidSignature", TxTransferCounterSigner{Address: genAddr()}, abci.ErrBaseInvalidSignature},
+		{"validCounterSigner", TxTransferCounterSigner{Address: genAddr(), Signature: genSignature()}, abci.OK},
 	}
 
 	for _, tt := range tests {

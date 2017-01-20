@@ -4,10 +4,10 @@ import (
 	"bytes"
 
 	"github.com/satori/go.uuid"
+	abci "github.com/tendermint/abci/types"
 	"github.com/tendermint/go-common"
 	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-wire"
-	tmsp "github.com/tendermint/tmsp/types"
 )
 
 const (
@@ -65,7 +65,7 @@ func (tx *TransferTx) String() string {
 }
 
 // ValidateBasic validates Tx basic structure.
-func (tx *TransferTx) ValidateBasic() (res tmsp.Result) {
+func (tx *TransferTx) ValidateBasic() (res abci.Result) {
 	if res := tx.Sender.ValidateBasic(); res.IsErr() {
 		// Check the sender
 		return res
@@ -80,7 +80,7 @@ func (tx *TransferTx) ValidateBasic() (res tmsp.Result) {
 			return res
 		}
 	}
-	return tmsp.OK
+	return abci.OK
 }
 
 // TxTransferSender defines the attributes of a transfer's sender
@@ -94,36 +94,36 @@ type TxTransferSender struct {
 }
 
 // ValidateBasic performs basic validation on a TxInputTransfer
-func (t TxTransferSender) ValidateBasic() tmsp.Result {
+func (t TxTransferSender) ValidateBasic() abci.Result {
 	if len(t.Address) != 20 {
-		return tmsp.ErrBaseInvalidInput.AppendLog("Invalid address length")
+		return abci.ErrBaseInvalidInput.AppendLog("Invalid address length")
 	}
 	if t.Signature == nil {
-		return tmsp.ErrBaseInvalidSignature.AppendLog("The transaction must be signed")
+		return abci.ErrBaseInvalidSignature.AppendLog("The transaction must be signed")
 	}
 	if _, err := uuid.FromString(t.AccountID); err != nil {
-		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid account_id: %s", err))
+		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid account_id: %s", err))
 	}
 	if t.Amount <= 0 {
-		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Amount must be non-negative: %q", t.Amount))
+		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Amount must be non-negative: %q", t.Amount))
 	}
 	if len(t.Currency) != 3 {
-		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Currency must be either empty or a 3-letter ISO 4217 compliant code: %q", t.Currency))
+		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Currency must be either empty or a 3-letter ISO 4217 compliant code: %q", t.Currency))
 	}
 	// Validate currency and amount
 	currency, ok := Currencies[t.Currency]
 	if !ok {
-		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Unsupported currency: %q", t.Currency))
+		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Unsupported currency: %q", t.Currency))
 	}
 	// Validate the amount against the currency
 	if !currency.ValidateAmount(t.Amount) {
-		return tmsp.ErrBaseInvalidInput.AppendLog(
+		return abci.ErrBaseInvalidInput.AppendLog(
 			common.Fmt("Invalid amount %d for currency %s", t.Amount, currency.Symbol()))
 	}
 	if t.Sequence <= 0 {
-		return tmsp.ErrBaseInvalidSequence.AppendLog(common.Fmt("Sequence must be greater than 0"))
+		return abci.ErrBaseInvalidSequence.AppendLog(common.Fmt("Sequence must be greater than 0"))
 	}
-	return tmsp.OK
+	return abci.OK
 }
 
 // String returns a string representation of TxInputTransfer
@@ -139,11 +139,11 @@ type TxTransferRecipient struct {
 }
 
 // ValidateBasic performs basic validation on a TxTransferRecipient
-func (t TxTransferRecipient) ValidateBasic() tmsp.Result {
+func (t TxTransferRecipient) ValidateBasic() abci.Result {
 	if _, err := uuid.FromString(t.AccountID); err != nil {
-		return tmsp.ErrBaseInvalidOutput.AppendLog(common.Fmt("Invalid account_id: %s", err))
+		return abci.ErrBaseInvalidOutput.AppendLog(common.Fmt("Invalid account_id: %s", err))
 	}
-	return tmsp.OK
+	return abci.OK
 }
 
 // String returns a string representation of TxInputTransfer
@@ -160,14 +160,14 @@ type TxTransferCounterSigner struct {
 }
 
 // ValidateBasic performs basic validation on a TxTransferCounterSigner
-func (t TxTransferCounterSigner) ValidateBasic() tmsp.Result {
+func (t TxTransferCounterSigner) ValidateBasic() abci.Result {
 	if len(t.Address) != 20 {
-		return tmsp.ErrBaseInvalidInput.AppendLog("Invalid address length")
+		return abci.ErrBaseInvalidInput.AppendLog("Invalid address length")
 	}
 	if t.Signature == nil {
-		return tmsp.ErrBaseInvalidSignature.AppendLog("The transaction must be signed")
+		return abci.ErrBaseInvalidSignature.AppendLog("The transaction must be signed")
 	}
-	return tmsp.OK
+	return abci.OK
 }
 
 // String returns a string representation of TxTransferCounterSigner

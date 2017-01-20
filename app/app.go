@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 	"strings"
 
+	abci "github.com/tendermint/abci/types"
 	bctypes "github.com/tendermint/basecoin/types"
 	"github.com/tendermint/clearchain/state"
 	"github.com/tendermint/clearchain/types"
 	common "github.com/tendermint/go-common"
 	"github.com/tendermint/go-wire"
-	"github.com/tendermint/governmint/gov"
 	eyes "github.com/tendermint/merkleeyes/client"
-	tmsp "github.com/tendermint/tmsp/types"
 )
 
 const (
@@ -22,21 +21,16 @@ const (
 	PluginTypeByteBase = 0x01
 	// PluginTypeByteEyes defines the eyes plugin's byte code
 	PluginTypeByteEyes = 0x02
-	// PluginTypeByteGov defines the gov plugin's byte code
-	PluginTypeByteGov = 0x03
 
 	// PluginNameBase defines the base plugin's name
 	PluginNameBase = "base"
 	// PluginNameEyes defines the eyes plugin's name
 	PluginNameEyes = "eyes"
-	// PluginNameGov defines the gov plugin's name
-	PluginNameGov = "gov"
 )
 
 // Ledger defines the attributes of the app
 type Ledger struct {
 	eyesCli    *eyes.Client
-	govMint    *gov.Governmint
 	state      *state.State
 	cacheState *state.State
 	plugins    *bctypes.Plugins
@@ -44,13 +38,10 @@ type Ledger struct {
 
 // NewLedger creates a new instance of the app
 func NewLedger(eyesCli *eyes.Client) *Ledger {
-	govMint := gov.NewGovernmint()
 	state := state.NewState(eyesCli)
 	plugins := bctypes.NewPlugins()
-	plugins.RegisterPlugin(PluginTypeByteGov, PluginNameGov, govMint)
 	return &Ledger{
 		eyesCli:    eyesCli,
-		govMint:    govMint,
 		state:      state,
 		cacheState: nil,
 		plugins:    plugins,
@@ -58,8 +49,12 @@ func NewLedger(eyesCli *eyes.Client) *Ledger {
 }
 
 // Info returns app's generic information
-func (app *Ledger) Info() string {
-	return common.Fmt("Ledger v%v", version)
+func (app *Ledger) Info() abci.ResponseInfo {
+	return abci.ResponseInfo{Data: common.Fmt("Ledger v%v", version)}
+}
+
+func (app *Ledger) RegisterPlugin(plugin bctypes.Plugin) {
+	app.plugins.RegisterPlugin(plugin)
 }
 
 // SetOption modifies app's configuration
@@ -116,20 +111,20 @@ func (app *Ledger) SetOption(key string, value string) (log string) {
 	return "Unrecognized option key " + key
 }
 
-// AppendTx handles appendTx
-func (app *Ledger) AppendTx(txBytes []byte) (res tmsp.Result) {
+// DeliverTx handles deliverTx
+func (app *Ledger) DeliverTx(txBytes []byte) (res abci.Result) {
 	return app.executeTx(txBytes, false)
 }
 
 // CheckTx handles checkTx
-func (app *Ledger) CheckTx(txBytes []byte) (res tmsp.Result) {
+func (app *Ledger) CheckTx(txBytes []byte) (res abci.Result) {
 	return app.executeTx(txBytes, true)
 }
 
 // Query handles queryTx
-func (app *Ledger) Query(query []byte) (res tmsp.Result) {
+func (app *Ledger) Query(query []byte) (res abci.Result) {
 	if len(query) == 0 {
-		return tmsp.ErrEncodingError.SetLog("Query cannot be zero length")
+		return abci.ErrEncodingError.SetLog("Query cannot be zero length")
 	}
 	typeByte := query[0]
 	query = query[1:]
@@ -137,16 +132,16 @@ func (app *Ledger) Query(query []byte) (res tmsp.Result) {
 	case types.TxTypeQueryAccount, types.TxTypeQueryAccountIndex, types.TxTypeLegalEntity, types.TxTypeQueryLegalEntityIndex:
 		return app.executeQueryTx(query)
 	case PluginTypeByteBase:
-		return tmsp.OK.SetLog("This type of query not yet supported")
+		return abci.OK.SetLog("This type of query not yet supported")
 	case PluginTypeByteEyes:
 		return app.eyesCli.QuerySync(query)
 	}
-	return tmsp.ErrBaseUnknownPlugin.SetLog(
+	return abci.ErrBaseUnknownPlugin.SetLog(
 		common.Fmt("Unknown plugin with type byte %X", typeByte))
 }
 
 // Commit handles commitTx
-func (app *Ledger) Commit() (res tmsp.Result) {
+func (app *Ledger) Commit() (res abci.Result) {
 	// Commit eyes.
 	res = app.eyesCli.CommitSync()
 	if res.IsErr() {
@@ -156,56 +151,56 @@ func (app *Ledger) Commit() (res tmsp.Result) {
 }
 
 // InitChain initializes the chain
-func (app *Ledger) InitChain(validators []*tmsp.Validator) {
+func (app *Ledger) InitChain(validators []*abci.Validator) {
 	for _, plugin := range app.plugins.GetList() {
-		plugin.Plugin.InitChain(app.state, validators)
+		plugin.InitChain(app.state, validators)
 	}
 }
 
-// TMSP::BeginBlock
+// abci::BeginBlock
 func (app *Ledger) BeginBlock(height uint64) {
 	for _, plugin := range app.plugins.GetList() {
-		plugin.Plugin.BeginBlock(app.state, height)
+		plugin.BeginBlock(app.state, height)
 	}
 	app.cacheState = app.state.CacheWrap()
 }
 
-// TMSP::EndBlock
-func (app *Ledger) EndBlock(height uint64) (diffs []*tmsp.Validator) {
+// abci::EndBlock
+func (app *Ledger) EndBlock(height uint64) (diffs []*abci.Validator) {
 	for _, plugin := range app.plugins.GetList() {
-		moreDiffs := plugin.Plugin.EndBlock(app.state, height)
+		moreDiffs := plugin.EndBlock(app.state, height)
 		diffs = append(diffs, moreDiffs...)
 	}
 	return
 }
 
-func (app *Ledger) executeTx(txBytes []byte, simulate bool) (res tmsp.Result) {
+func (app *Ledger) executeTx(txBytes []byte, simulate bool) (res abci.Result) {
 	if len(txBytes) > maxTxSize {
-		return tmsp.ErrBaseEncodingError.AppendLog("Tx size exceeds maximum")
+		return abci.ErrBaseEncodingError.AppendLog("Tx size exceeds maximum")
 	}
 	// Decode tx
 	var tx types.Tx
 	err := wire.ReadBinaryBytes(txBytes, &tx)
 	if err != nil {
-		return tmsp.ErrBaseEncodingError.AppendLog("Error decoding tx: " + err.Error())
+		return abci.ErrBaseEncodingError.AppendLog("Error decoding tx: " + err.Error())
 	}
 	// Validate and exec tx
 	res = state.ExecTx(app.state, app.plugins, tx, simulate, nil)
 	if res.IsErr() {
-		return res.PrependLog("Error in AppendTx")
+		return res.PrependLog("Error in DeliverTx")
 	}
 	return res
 }
 
-func (app *Ledger) executeQueryTx(txBytes []byte) (res tmsp.Result) {
+func (app *Ledger) executeQueryTx(txBytes []byte) (res abci.Result) {
 	if len(txBytes) > maxTxSize {
-		return tmsp.ErrBaseEncodingError.AppendLog("Tx size exceeds maximum")
+		return abci.ErrBaseEncodingError.AppendLog("Tx size exceeds maximum")
 	}
 	// Decode tx
 	var tx types.Tx
 	err := wire.ReadBinaryBytes(txBytes, &tx)
 	if err != nil {
-		return tmsp.ErrBaseEncodingError.AppendLog("Error decoding tx: " + err.Error())
+		return abci.ErrBaseEncodingError.AppendLog("Error decoding tx: " + err.Error())
 	}
 	// Validate and exec tx
 	res = state.ExecQueryTx(app.state, tx)
