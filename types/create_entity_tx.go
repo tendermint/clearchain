@@ -2,10 +2,10 @@ package types
 
 import (
 	uuid "github.com/satori/go.uuid"
+	abci "github.com/tendermint/abci/types"
 	common "github.com/tendermint/go-common"
 	crypto "github.com/tendermint/go-crypto"
 	wire "github.com/tendermint/go-wire"
-	tmsp "github.com/tendermint/tmsp/types"
 )
 
 const (
@@ -49,24 +49,24 @@ func (tx *CreateLegalEntityTx) SignBytes(chainID string) []byte {
 }
 
 // ValidateBasic performs basic validation on the Tx.
-func (tx *CreateLegalEntityTx) ValidateBasic() tmsp.Result {
+func (tx *CreateLegalEntityTx) ValidateBasic() abci.Result {
 	if len(tx.Address) != 20 {
-		return tmsp.ErrBaseInvalidInput.AppendLog("Invalid address length")
+		return abci.ErrBaseInvalidInput.AppendLog("Invalid address length")
 	}
 	if tx.Signature == nil {
-		return tmsp.ErrBaseInvalidSignature.AppendLog("The transaction must be signed")
+		return abci.ErrBaseInvalidSignature.AppendLog("The transaction must be signed")
 	}
 	if _, err := uuid.FromString(tx.EntityID); err != nil {
-		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid entity_id: %s", err))
+		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid entity_id: %s", err))
 	}
 	if _, err := uuid.FromString(tx.ParentID); err != nil {
-		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid parent_id: %s", err))
+		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid parent_id: %s", err))
 	}
-	
+
 	if !IsValidEntityType(tx.Type) {
-		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid Type: %s", tx.Type))
+		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid Type: %s", tx.Type))
 	}
-	return tmsp.OK
+	return abci.OK
 }
 
 func (tx *CreateLegalEntityTx) String() string {

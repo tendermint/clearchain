@@ -2,10 +2,10 @@ package types
 
 import (
 	"github.com/satori/go.uuid"
+	abci "github.com/tendermint/abci/types"
 	common "github.com/tendermint/go-common"
 	crypto "github.com/tendermint/go-crypto"
 	wire "github.com/tendermint/go-wire"
-	tmsp "github.com/tendermint/tmsp/types"
 )
 
 const (
@@ -46,17 +46,17 @@ func (tx *CreateAccountTx) SignBytes(chainID string) []byte {
 }
 
 // ValidateBasic performs basic validation on the Tx.
-func (tx *CreateAccountTx) ValidateBasic() tmsp.Result {
+func (tx *CreateAccountTx) ValidateBasic() abci.Result {
 	if len(tx.Address) != 20 {
-		return tmsp.ErrBaseInvalidInput.AppendLog("Invalid address length")
+		return abci.ErrBaseInvalidInput.AppendLog("Invalid address length")
 	}
 	if tx.Signature == nil {
-		return tmsp.ErrBaseInvalidSignature.AppendLog("The transaction must be signed")
+		return abci.ErrBaseInvalidSignature.AppendLog("The transaction must be signed")
 	}
 	if _, err := uuid.FromString(tx.AccountID); err != nil {
-		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid account_id: %s", err))
+		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid account_id: %s", err))
 	}
-	return tmsp.OK
+	return abci.OK
 }
 
 func (tx *CreateAccountTx) String() string {

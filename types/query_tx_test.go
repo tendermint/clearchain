@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	uuid "github.com/satori/go.uuid"
+	abci "github.com/tendermint/abci/types"
 	crypto "github.com/tendermint/go-crypto"
-	tmsp "github.com/tendermint/tmsp/types"
 )
 
 func TestAccountQueryTx_String(t *testing.T) {
@@ -76,13 +76,13 @@ func TestAccountQueryTx_ValidateBasic(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   tmsp.Result
+		want   abci.Result
 	}{
-		{"invalidAddress", fields{[]string{}, []byte("addr"), nil}, tmsp.ErrBaseInvalidInput},
-		{"invalidSignature", fields{[]string{}, pubKeyAddr, nil}, tmsp.ErrBaseInvalidSignature},
-		{"emptyAccounts", fields{[]string{}, pubKeyAddr, signature}, tmsp.ErrBaseInvalidInput},
-		{"invalidAccounts", fields{[]string{""}, pubKeyAddr, signature}, tmsp.ErrBaseInvalidInput},
-		{"valid", fields{[]string{genUUID(), genUUID()}, pubKeyAddr, signature}, tmsp.OK},
+		{"invalidAddress", fields{[]string{}, []byte("addr"), nil}, abci.ErrBaseInvalidInput},
+		{"invalidSignature", fields{[]string{}, pubKeyAddr, nil}, abci.ErrBaseInvalidSignature},
+		{"emptyAccounts", fields{[]string{}, pubKeyAddr, signature}, abci.ErrBaseInvalidInput},
+		{"invalidAccounts", fields{[]string{""}, pubKeyAddr, signature}, abci.ErrBaseInvalidInput},
+		{"valid", fields{[]string{genUUID(), genUUID()}, pubKeyAddr, signature}, abci.OK},
 	}
 	for _, tt := range tests {
 		tx := AccountQueryTx{
@@ -144,11 +144,11 @@ func TestAccountIndexQueryTx_ValidateBasic(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   tmsp.Result
+		want   abci.Result
 	}{
-		{"invalidAddress", fields{[]byte("addr"), nil}, tmsp.ErrBaseInvalidInput},
-		{"invalidSignature", fields{pubKeyAddr, nil}, tmsp.ErrBaseInvalidSignature},
-		{"valid", fields{pubKeyAddr, signature}, tmsp.OK},
+		{"invalidAddress", fields{[]byte("addr"), nil}, abci.ErrBaseInvalidInput},
+		{"invalidSignature", fields{pubKeyAddr, nil}, abci.ErrBaseInvalidSignature},
+		{"valid", fields{pubKeyAddr, signature}, abci.OK},
 	}
 	for _, tt := range tests {
 		tx := AccountIndexQueryTx{

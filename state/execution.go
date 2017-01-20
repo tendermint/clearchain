@@ -3,14 +3,14 @@ package state
 import (
 	"encoding/json"
 
+	abci "github.com/tendermint/abci/types"
 	bctypes "github.com/tendermint/basecoin/types"
 	"github.com/tendermint/clearchain/types"
 	"github.com/tendermint/go-common"
 	"github.com/tendermint/go-events"
-	tmsp "github.com/tendermint/tmsp/types"
 )
 
-func transfer(state *State, tx *types.TransferTx, isCheckTx bool) tmsp.Result {
+func transfer(state *State, tx *types.TransferTx, isCheckTx bool) abci.Result {
 	// // Validate basic structure
 	if res := tx.ValidateBasic(); res.IsErr() {
 		return res.PrependLog("in ValidateBasic()")
@@ -19,21 +19,21 @@ func transfer(state *State, tx *types.TransferTx, isCheckTx bool) tmsp.Result {
 	// Retrieve Sender's data
 	user := state.GetUser(tx.Sender.Address)
 	if user == nil {
-		return tmsp.ErrBaseUnknownAddress.AppendLog("Sender's user is unknown")
+		return abci.ErrBaseUnknownAddress.AppendLog("Sender's user is unknown")
 	}
 	entity := state.GetLegalEntity(user.EntityID)
 	if entity == nil {
-		return tmsp.ErrUnauthorized.AppendLog("User's does not belong to any LegalEntity")
+		return abci.ErrUnauthorized.AppendLog("User's does not belong to any LegalEntity")
 	}
 
 	// Get the accounts
 	senderAccount := state.GetAccount(tx.Sender.AccountID)
 	if senderAccount == nil {
-		return tmsp.ErrBaseUnknownAddress.AppendLog("Sender's account is unknown")
+		return abci.ErrBaseUnknownAddress.AppendLog("Sender's account is unknown")
 	}
 	recipientAccount := state.GetAccount(tx.Recipient.AccountID)
 	if recipientAccount == nil {
-		return tmsp.ErrBaseUnknownAddress.AppendLog("Unknown recipient address")
+		return abci.ErrBaseUnknownAddress.AppendLog("Unknown recipient address")
 	}
 
 	// Validate sender's Account
@@ -57,11 +57,11 @@ func transfer(state *State, tx *types.TransferTx, isCheckTx bool) tmsp.Result {
 	applyChangesToInput(state, tx.Sender, senderAccount, isCheckTx)
 	applyChangesToOutput(state, tx.Sender, tx.Recipient, recipientAccount, isCheckTx)
 
-	return tmsp.OK
+	return abci.OK
 
 }
 
-func createAccount(state *State, tx *types.CreateAccountTx, isCheckTx bool) tmsp.Result {
+func createAccount(state *State, tx *types.CreateAccountTx, isCheckTx bool) abci.Result {
 	// // Validate basic structure
 	if res := tx.ValidateBasic(); res.IsErr() {
 		return res.PrependLog("in ValidateBasic()")
@@ -70,30 +70,30 @@ func createAccount(state *State, tx *types.CreateAccountTx, isCheckTx bool) tmsp
 	// Retrieve user data
 	user := state.GetUser(tx.Address)
 	if user == nil {
-		return tmsp.ErrBaseUnknownAddress.AppendLog("User is unknown")
+		return abci.ErrBaseUnknownAddress.AppendLog("User is unknown")
 	}
 	entity := state.GetLegalEntity(user.EntityID)
 	if entity == nil {
-		return tmsp.ErrUnauthorized.AppendLog("User's does not belong to any LegalEntity")
+		return abci.ErrUnauthorized.AppendLog("User's does not belong to any LegalEntity")
 	}
 	// Validate permissions
 	if !types.CanExecTx(user, tx) {
-		return tmsp.ErrUnauthorized.AppendLog(common.Fmt(
+		return abci.ErrUnauthorized.AppendLog(common.Fmt(
 			"User is not authorized to execute the Tx: %s", user.String()))
 	}
 	if !types.CanExecTx(entity, tx) {
-		return tmsp.ErrUnauthorized.AppendLog(common.Fmt(
+		return abci.ErrUnauthorized.AppendLog(common.Fmt(
 			"LegalEntity is not authorized to execute the Tx: %s", entity.String()))
 	}
 	// Generate byte-to-byte signature and validate the signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !user.VerifySignature(signBytes, tx.Signature) {
-		return tmsp.ErrBaseInvalidSignature.AppendLog("Verification failed, user's signature doesn't match")
+		return abci.ErrBaseInvalidSignature.AppendLog("Verification failed, user's signature doesn't match")
 	}
 
 	// Create the new account
 	if acc := state.GetAccount(tx.AccountID); acc != nil {
-		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Account already exists: %q", tx.AccountID))
+		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Account already exists: %q", tx.AccountID))
 	}
 	// Get or create the accounts index
 	if !isCheckTx {
@@ -102,10 +102,10 @@ func createAccount(state *State, tx *types.CreateAccountTx, isCheckTx bool) tmsp
 		return SetAccountInIndex(state, *acc)
 	}
 
-	return tmsp.OK
+	return abci.OK
 }
 
-func createLegalEntity(state *State, tx *types.CreateLegalEntityTx, isCheckTx bool) tmsp.Result {
+func createLegalEntity(state *State, tx *types.CreateLegalEntityTx, isCheckTx bool) abci.Result {
 	// // Validate basic structure
 	if res := tx.ValidateBasic(); res.IsErr() {
 		return res.PrependLog("in ValidateBasic()")
@@ -114,30 +114,30 @@ func createLegalEntity(state *State, tx *types.CreateLegalEntityTx, isCheckTx bo
 	// Retrieve user data
 	user := state.GetUser(tx.Address)
 	if user == nil {
-		return tmsp.ErrBaseUnknownAddress.AppendLog("User is unknown")
+		return abci.ErrBaseUnknownAddress.AppendLog("User is unknown")
 	}
 	entity := state.GetLegalEntity(user.EntityID)
 	if entity == nil {
-		return tmsp.ErrUnauthorized.AppendLog("User's does not belong to any LegalEntity")
+		return abci.ErrUnauthorized.AppendLog("User's does not belong to any LegalEntity")
 	}
 	// Validate permissions
 	if !types.CanExecTx(user, tx) {
-		return tmsp.ErrUnauthorized.AppendLog(common.Fmt(
+		return abci.ErrUnauthorized.AppendLog(common.Fmt(
 			"User is not authorized to execute the Tx: %s", user.String()))
 	}
 	if !types.CanExecTx(entity, tx) {
-		return tmsp.ErrUnauthorized.AppendLog(common.Fmt(
+		return abci.ErrUnauthorized.AppendLog(common.Fmt(
 			"LegalEntity is not authorized to execute the Tx: %s", entity.String()))
 	}
 	// Generate byte-to-byte signature and validate the signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !user.VerifySignature(signBytes, tx.Signature) {
-		return tmsp.ErrBaseInvalidSignature.AppendLog("Verification failed, user's signature doesn't match")
+		return abci.ErrBaseInvalidSignature.AppendLog("Verification failed, user's signature doesn't match")
 	}
 
 	// Create new legal entity
 	if ent := state.GetLegalEntity(tx.EntityID); ent != nil {
-		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("LegalEntity already exists: %q", tx.EntityID))
+		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("LegalEntity already exists: %q", tx.EntityID))
 	}
 	if !isCheckTx {
 		legalEntity := types.NewLegalEntityByType(tx.Type, tx.EntityID, tx.Name, user.PubKey.Address(), tx.ParentID)
@@ -145,10 +145,10 @@ func createLegalEntity(state *State, tx *types.CreateLegalEntityTx, isCheckTx bo
 		return SetLegalEntityInIndex(state, legalEntity)
 	}
 
-	return tmsp.OK
+	return abci.OK
 }
 
-func createUser(state *State, tx *types.CreateUserTx, isCheckTx bool) tmsp.Result {
+func createUser(state *State, tx *types.CreateUserTx, isCheckTx bool) abci.Result {
 	// // Validate basic structure
 	if res := tx.ValidateBasic(); res.IsErr() {
 		return res.PrependLog("in ValidateBasic()")
@@ -157,39 +157,39 @@ func createUser(state *State, tx *types.CreateUserTx, isCheckTx bool) tmsp.Resul
 	// Retrieve user data
 	creator := state.GetUser(tx.Address)
 	if creator == nil {
-		return tmsp.ErrBaseUnknownAddress.AppendLog("User is unknown")
+		return abci.ErrBaseUnknownAddress.AppendLog("User is unknown")
 	}
 	entity := state.GetLegalEntity(creator.EntityID)
 	if entity == nil {
-		return tmsp.ErrUnauthorized.AppendLog("User's does not belong to any LegalEntity")
+		return abci.ErrUnauthorized.AppendLog("User's does not belong to any LegalEntity")
 	}
 
 	// Validate permissions
 	if !types.CanExecTx(creator, tx) {
-		return tmsp.ErrUnauthorized.AppendLog(common.Fmt(
+		return abci.ErrUnauthorized.AppendLog(common.Fmt(
 			"User is not authorized to execute the Tx: %s", creator.String()))
 	}
 	if !types.CanExecTx(entity, tx) {
-		return tmsp.ErrUnauthorized.AppendLog(common.Fmt(
+		return abci.ErrUnauthorized.AppendLog(common.Fmt(
 			"LegalEntity is not authorized to execute the Tx: %s", entity.String()))
 	}
 	// Generate byte-to-byte signature and validate the signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !creator.VerifySignature(signBytes, tx.Signature) {
-		return tmsp.ErrBaseInvalidSignature.AppendLog("Verification failed, user's signature doesn't match")
+		return abci.ErrBaseInvalidSignature.AppendLog("Verification failed, user's signature doesn't match")
 	}
 	// Create new user
 	if usr := state.GetUser(tx.PubKey.Address()); usr != nil {
-		return tmsp.ErrBaseDuplicateAddress.AppendLog(common.Fmt("User already exists: %q", tx.PubKey.Address()))
+		return abci.ErrBaseDuplicateAddress.AppendLog(common.Fmt("User already exists: %q", tx.PubKey.Address()))
 	}
 	makeNewUser(state, creator, tx, isCheckTx)
 
-	return tmsp.OK
+	return abci.OK
 }
 
 // ExecTx actually executes a Tx
 func ExecTx(state *State, pgz *bctypes.Plugins, tx types.Tx,
-	isCheckTx bool, evc events.Fireable) tmsp.Result {
+	isCheckTx bool, evc events.Fireable) abci.Result {
 
 	// Execute transaction
 	switch tx := tx.(type) {
@@ -206,11 +206,11 @@ func ExecTx(state *State, pgz *bctypes.Plugins, tx types.Tx,
 		return createUser(state, tx, isCheckTx)
 
 	default:
-		return tmsp.ErrBaseEncodingError.SetLog("Unknown tx type")
+		return abci.ErrBaseEncodingError.SetLog("Unknown tx type")
 	}
 }
 
-func accountQuery(state *State, tx *types.AccountQueryTx) tmsp.Result {
+func accountQuery(state *State, tx *types.AccountQueryTx) abci.Result {
 	// Validate basic
 	if res := tx.ValidateBasic(); res.IsErr() {
 		return res.PrependLog("in ValidateBasic()")
@@ -218,13 +218,13 @@ func accountQuery(state *State, tx *types.AccountQueryTx) tmsp.Result {
 
 	user := state.GetUser(tx.Address)
 	if user == nil {
-		return tmsp.ErrBaseUnknownAddress.AppendLog(common.Fmt("Address is unknown: %v", tx.Address))
+		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("Address is unknown: %v", tx.Address))
 	}
 	accounts := make([]*types.Account, len(tx.Accounts))
 	for i, accountID := range tx.Accounts {
 		account := state.GetAccount(accountID)
 		if account == nil {
-			return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid account_id: %q", accountID))
+			return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid account_id: %q", accountID))
 		}
 		accounts[i] = account
 	}
@@ -232,18 +232,18 @@ func accountQuery(state *State, tx *types.AccountQueryTx) tmsp.Result {
 	// Generate byte-to-byte signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !user.VerifySignature(signBytes, tx.Signature) {
-		return tmsp.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
+		return abci.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
 	}
 	data, err := json.Marshal(struct {
 		Account []*types.Account `json:"accounts"`
 	}{accounts})
 	if err != nil {
-		return tmsp.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
+		return abci.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
 	}
-	return tmsp.OK.SetData(data)
+	return abci.OK.SetData(data)
 }
 
-func accountIndexQuery(state *State, tx *types.AccountIndexQueryTx) tmsp.Result {
+func accountIndexQuery(state *State, tx *types.AccountIndexQueryTx) abci.Result {
 	// Validate basic
 	if res := tx.ValidateBasic(); res.IsErr() {
 		return res.PrependLog("in ValidateBasic()")
@@ -251,29 +251,29 @@ func accountIndexQuery(state *State, tx *types.AccountIndexQueryTx) tmsp.Result 
 
 	user := state.GetUser(tx.Address)
 	if user == nil {
-		return tmsp.ErrBaseUnknownAddress.AppendLog(common.Fmt("Address is unknown: %v", tx.Address))
+		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("Address is unknown: %v", tx.Address))
 	}
 
 	// Check that the account index exists
 	accountIndex := state.GetAccountIndex()
 	if accountIndex == nil {
-		return tmsp.ErrInternalError.AppendLog("AccountIndex has not yet been initialized")
+		return abci.ErrInternalError.AppendLog("AccountIndex has not yet been initialized")
 	}
 
 	// Generate byte-to-byte signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !user.VerifySignature(signBytes, tx.Signature) {
-		return tmsp.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
+		return abci.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
 	}
 	data, err := json.Marshal(accountIndex)
 	if err != nil {
-		return tmsp.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
+		return abci.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
 	}
-	return tmsp.OK.SetData(data)
+	return abci.OK.SetData(data)
 }
 
 // ExecQueryTx handles queries.
-func ExecQueryTx(state *State, tx types.Tx) tmsp.Result {
+func ExecQueryTx(state *State, tx types.Tx) abci.Result {
 
 	// Execute transaction
 	switch tx := tx.(type) {
@@ -290,39 +290,39 @@ func ExecQueryTx(state *State, tx types.Tx) tmsp.Result {
 		return legalEntityIndexQueryTx(state, tx)
 
 	default:
-		return tmsp.ErrBaseEncodingError.SetLog("Unknown tx type")
+		return abci.ErrBaseEncodingError.SetLog("Unknown tx type")
 	}
 }
 
 //--------------------------------------------------------------------------------
 
-func validateWalletSequence(acc *types.Account, in types.TxTransferSender) tmsp.Result {
+func validateWalletSequence(acc *types.Account, in types.TxTransferSender) abci.Result {
 	wal := acc.GetWallet(in.Currency)
 	// Wallet does not exist, Sequence must be 1
 	if wal == nil {
 		if in.Sequence != 1 {
-			return tmsp.ErrBaseInvalidSequence.AppendLog(common.Fmt("Invalid sequence: got: %v, want: 1", in.Sequence))
+			return abci.ErrBaseInvalidSequence.AppendLog(common.Fmt("Invalid sequence: got: %v, want: 1", in.Sequence))
 		}
-		return tmsp.OK
+		return abci.OK
 	}
 	if in.Sequence != wal.Sequence+1 {
-		return tmsp.ErrBaseInvalidSequence.AppendLog(common.Fmt("Invalid sequence: got: %v, want: %v", in.Sequence, wal.Sequence+1))
+		return abci.ErrBaseInvalidSequence.AppendLog(common.Fmt("Invalid sequence: got: %v, want: %v", in.Sequence, wal.Sequence+1))
 	}
-	return tmsp.OK
+	return abci.OK
 }
 
-func validateSender(acc *types.Account, entity *types.LegalEntity, u *types.User, signBytes []byte, tx *types.TransferTx) tmsp.Result {
+func validateSender(acc *types.Account, entity *types.LegalEntity, u *types.User, signBytes []byte, tx *types.TransferTx) abci.Result {
 	if res := validatePermissions(u, entity, acc, tx); res.IsErr() {
 		return res
 	}
 	if !u.VerifySignature(signBytes, tx.Sender.Signature) {
-		return tmsp.ErrBaseInvalidSignature.AppendLog("Verification failed, sender's signature doesn't match")
+		return abci.ErrBaseInvalidSignature.AppendLog("Verification failed, sender's signature doesn't match")
 	}
-	return tmsp.OK
+	return abci.OK
 }
 
 // Validate countersignatures
-func validateCounterSigners(state types.UserGetter, acc *types.Account, entity *types.LegalEntity, signBytes []byte, tx *types.TransferTx) tmsp.Result {
+func validateCounterSigners(state types.UserGetter, acc *types.Account, entity *types.LegalEntity, signBytes []byte, tx *types.TransferTx) abci.Result {
 	var users = make(map[string]bool)
 
 	// Make sure users are not duplicated
@@ -331,14 +331,14 @@ func validateCounterSigners(state types.UserGetter, acc *types.Account, entity *
 	for _, in := range tx.CounterSigners {
 		// Users must not be duplicated either
 		if _, ok := users[string(in.Address)]; ok {
-			return tmsp.ErrBaseDuplicateAddress
+			return abci.ErrBaseDuplicateAddress
 		}
 		users[string(in.Address)] = true
 
 		// User must exist
 		user := state.GetUser(in.Address)
 		if user == nil {
-			return tmsp.ErrBaseUnknownAddress
+			return abci.ErrBaseUnknownAddress
 		}
 
 		// Validate the permissions
@@ -347,29 +347,29 @@ func validateCounterSigners(state types.UserGetter, acc *types.Account, entity *
 		}
 		// Verify the signature
 		if !user.VerifySignature(signBytes, in.Signature) {
-			return tmsp.ErrBaseInvalidSignature.AppendLog(common.Fmt("Verification failed, countersigner's signature doesn't match, user: %s", user))
+			return abci.ErrBaseInvalidSignature.AppendLog(common.Fmt("Verification failed, countersigner's signature doesn't match, user: %s", user))
 		}
 	}
 
-	return tmsp.OK
+	return abci.OK
 }
 
-func validatePermissions(u *types.User, e *types.LegalEntity, a *types.Account, tx types.Tx) tmsp.Result {
+func validatePermissions(u *types.User, e *types.LegalEntity, a *types.Account, tx types.Tx) abci.Result {
 	// Verify user belongs to the legal entity
 	if !a.BelongsTo(u.EntityID) {
-		return tmsp.ErrUnauthorized.AppendLog(common.Fmt(
+		return abci.ErrUnauthorized.AppendLog(common.Fmt(
 			"Access forbidden for user %s to account %s", u.Name, a.String()))
 	}
 	// Valdate permissions
 	if !types.CanExecTx(u, tx) {
-		return tmsp.ErrUnauthorized.AppendLog(common.Fmt(
+		return abci.ErrUnauthorized.AppendLog(common.Fmt(
 			"User is not authorized to execute the Tx: %s", u.String()))
 	}
 	if !types.CanExecTx(e, tx) {
-		return tmsp.ErrUnauthorized.AppendLog(common.Fmt(
+		return abci.ErrUnauthorized.AppendLog(common.Fmt(
 			"LegalEntity is not authorized to execute the Tx: %s", e.String()))
 	}
-	return tmsp.OK
+	return abci.OK
 }
 
 // Apply changes to inputs
@@ -421,7 +421,7 @@ func makeNewUser(state types.UserSetter, creator *types.User, tx *types.CreateUs
 	}
 }
 
-//Returns existing AccountIndex from store or creates new empty one 
+//Returns existing AccountIndex from store or creates new empty one
 func GetOrMakeAccountIndex(state types.AccountIndexGetter) *types.AccountIndex {
 	if index := state.GetAccountIndex(); index != nil {
 		return index
@@ -429,19 +429,19 @@ func GetOrMakeAccountIndex(state types.AccountIndexGetter) *types.AccountIndex {
 	return types.NewAccountIndex()
 }
 
-//Sets Account in AccountIndex in store 
-func SetAccountInIndex(state *State, account types.Account) tmsp.Result {
+//Sets Account in AccountIndex in store
+func SetAccountInIndex(state *State, account types.Account) abci.Result {
 	accountIndex := GetOrMakeAccountIndex(state)
 	if accountIndex.Has(account.ID) {
-		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Account already exists in the account index: %q", account.ID))
+		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Account already exists in the account index: %q", account.ID))
 	}
 	accountIndex.Add(account.ID)
 	state.SetAccountIndex(accountIndex)
-	return tmsp.OK
+	return abci.OK
 }
 
-//Sets LegalEntity in LegalEntityIndex in store 
-func SetLegalEntityInIndex(state *State, legalEntity *types.LegalEntity) tmsp.Result {
+//Sets LegalEntity in LegalEntityIndex in store
+func SetLegalEntityInIndex(state *State, legalEntity *types.LegalEntity) abci.Result {
 	legalEntities := state.GetLegalEntityIndex()
 
 	if legalEntities == nil {
@@ -449,16 +449,16 @@ func SetLegalEntityInIndex(state *State, legalEntity *types.LegalEntity) tmsp.Re
 	}
 
 	if legalEntities.Has(legalEntity.ID) {
-		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("LegalEntity already exists in the LegalEntity index: %q", legalEntity.ID))
+		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("LegalEntity already exists in the LegalEntity index: %q", legalEntity.ID))
 	}
 	legalEntities.Add(legalEntity.ID)
 
 	state.SetLegalEntityIndex(legalEntities)
 
-	return tmsp.OK
+	return abci.OK
 }
 
-func legalEntityQuery(state *State, tx *types.LegalEntityQueryTx) tmsp.Result {
+func legalEntityQuery(state *State, tx *types.LegalEntityQueryTx) abci.Result {
 	// Validate basic
 	if res := tx.ValidateBasic(); res.IsErr() {
 		return res.PrependLog("in ValidateBasic()")
@@ -466,13 +466,13 @@ func legalEntityQuery(state *State, tx *types.LegalEntityQueryTx) tmsp.Result {
 
 	user := state.GetUser(tx.Address)
 	if user == nil {
-		return tmsp.ErrBaseUnknownAddress.AppendLog(common.Fmt("Address is unknown: %v", tx.Address))
+		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("Address is unknown: %v", tx.Address))
 	}
 	legalEntities := make([]*types.LegalEntity, len(tx.Ids))
 	for i, id := range tx.Ids {
 		legalEntity := state.GetLegalEntity(id)
 		if legalEntity == nil {
-			return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid legalEntity id: %q", id))
+			return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid legalEntity id: %q", id))
 		}
 		legalEntities[i] = legalEntity
 	}
@@ -480,18 +480,18 @@ func legalEntityQuery(state *State, tx *types.LegalEntityQueryTx) tmsp.Result {
 	// Generate byte-to-byte signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !user.VerifySignature(signBytes, tx.Signature) {
-		return tmsp.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
+		return abci.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
 	}
 	data, err := json.Marshal(struct {
 		LegalEntities []*types.LegalEntity `json:"legalEntities"`
 	}{legalEntities})
 	if err != nil {
-		return tmsp.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
+		return abci.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
 	}
-	return tmsp.OK.SetData(data)
+	return abci.OK.SetData(data)
 }
 
-func legalEntityIndexQueryTx(state *State, tx *types.LegalEntityIndexQueryTx) tmsp.Result {
+func legalEntityIndexQueryTx(state *State, tx *types.LegalEntityIndexQueryTx) abci.Result {
 	// Validate basic
 	if res := tx.ValidateBasic(); res.IsErr() {
 		return res.PrependLog("in ValidateBasic()")
@@ -499,23 +499,23 @@ func legalEntityIndexQueryTx(state *State, tx *types.LegalEntityIndexQueryTx) tm
 
 	user := state.GetUser(tx.Address)
 	if user == nil {
-		return tmsp.ErrBaseUnknownAddress.AppendLog(common.Fmt("Address is unknown: %v", tx.Address))
+		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("Address is unknown: %v", tx.Address))
 	}
 
 	// Check that the account index exists
 	legalEntities := state.GetLegalEntityIndex()
 	if legalEntities == nil {
-		return tmsp.ErrInternalError.AppendLog("LegalEntities has not yet been initialized")
+		return abci.ErrInternalError.AppendLog("LegalEntities has not yet been initialized")
 	}
 
 	// Generate byte-to-byte signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !user.VerifySignature(signBytes, tx.Signature) {
-		return tmsp.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
+		return abci.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
 	}
 	data, err := json.Marshal(legalEntities)
 	if err != nil {
-		return tmsp.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
+		return abci.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
 	}
-	return tmsp.OK.SetData(data)
+	return abci.OK.SetData(data)
 }

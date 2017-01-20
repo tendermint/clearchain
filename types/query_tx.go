@@ -2,19 +2,19 @@ package types
 
 import (
 	uuid "github.com/satori/go.uuid"
+	abci "github.com/tendermint/abci/types"
 	common "github.com/tendermint/go-common"
 	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-wire"
-	tmsp "github.com/tendermint/tmsp/types"
 )
 
 const (
 	// TxTypeQueryAccount defines AccountQueryTx's code
 	TxTypeQueryAccount = byte(0x11)
 	// TxTypeQueryAccountIndex defines AccountIndexQueryTx's code
-	TxTypeQueryAccountIndex = byte(0x12)
+	TxTypeQueryAccountIndex     = byte(0x12)
 	TxTypeQueryLegalEntityIndex = byte(0x13)
-	TxTypeLegalEntity = byte(0x14)
+	TxTypeLegalEntity           = byte(0x14)
 )
 
 // AccountQueryTx defines the attribute of an accounts query
@@ -34,22 +34,22 @@ func (tx AccountQueryTx) TxType() byte {
 }
 
 // ValidateBasic performs basic validation.
-func (tx AccountQueryTx) ValidateBasic() tmsp.Result {
+func (tx AccountQueryTx) ValidateBasic() abci.Result {
 	if len(tx.Address) != 20 {
-		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid address length: %v", len(tx.Address)))
+		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid address length: %v", len(tx.Address)))
 	}
 	if tx.Signature == nil {
-		return tmsp.ErrBaseInvalidSignature.AppendLog("The query must be signed")
+		return abci.ErrBaseInvalidSignature.AppendLog("The query must be signed")
 	}
 	if len(tx.Accounts) == 0 {
-		return tmsp.ErrBaseInvalidInput.AppendLog("Accounts must not be empty")
+		return abci.ErrBaseInvalidInput.AppendLog("Accounts must not be empty")
 	}
 	for _, accountID := range tx.Accounts {
 		if _, err := uuid.FromString(accountID); err != nil {
-			return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid account_id %q: %s", accountID, err))
+			return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid account_id %q: %s", accountID, err))
 		}
 	}
-	return tmsp.OK
+	return abci.OK
 }
 
 // SignBytes generates a byte-to-byte signature.
@@ -90,14 +90,14 @@ func (tx AccountIndexQueryTx) TxType() byte {
 }
 
 // ValidateBasic performs basic validation.
-func (tx AccountIndexQueryTx) ValidateBasic() tmsp.Result {
+func (tx AccountIndexQueryTx) ValidateBasic() abci.Result {
 	if len(tx.Address) != 20 {
-		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid address length: %v", len(tx.Address)))
+		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid address length: %v", len(tx.Address)))
 	}
 	if tx.Signature == nil {
-		return tmsp.ErrBaseInvalidSignature.AppendLog("The query must be signed")
+		return abci.ErrBaseInvalidSignature.AppendLog("The query must be signed")
 	}
-	return tmsp.OK
+	return abci.OK
 }
 
 // SignBytes generates a byte-to-byte signature.
@@ -150,19 +150,19 @@ func (tx *LegalEntityIndexQueryTx) SignTx(privateKey crypto.PrivKey, chainID str
 	return nil
 }
 
-func (tx LegalEntityIndexQueryTx) ValidateBasic() tmsp.Result {
+func (tx LegalEntityIndexQueryTx) ValidateBasic() abci.Result {
 	if len(tx.Address) != 20 {
-		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid address length: %v", len(tx.Address)))
+		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid address length: %v", len(tx.Address)))
 	}
 	if tx.Signature == nil {
-		return tmsp.ErrBaseInvalidSignature.AppendLog("The query must be signed")
+		return abci.ErrBaseInvalidSignature.AppendLog("The query must be signed")
 	}
 
-	return tmsp.OK
+	return abci.OK
 }
 
 type LegalEntityQueryTx struct {
-	Ids  []string         `json:"ids"`
+	Ids       []string         `json:"ids"`
 	Address   []byte           `json:"address"` // Hash of the user's PubKey
 	Signature crypto.Signature `json:"signature"`
 }
@@ -177,22 +177,22 @@ func (tx LegalEntityQueryTx) TxType() byte {
 }
 
 // ValidateBasic performs basic validation.
-func (tx LegalEntityQueryTx) ValidateBasic() tmsp.Result {
+func (tx LegalEntityQueryTx) ValidateBasic() abci.Result {
 	if len(tx.Address) != 20 {
-		return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid address length: %v", len(tx.Address)))
+		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid address length: %v", len(tx.Address)))
 	}
 	if tx.Signature == nil {
-		return tmsp.ErrBaseInvalidSignature.AppendLog("The query must be signed")
+		return abci.ErrBaseInvalidSignature.AppendLog("The query must be signed")
 	}
 	if len(tx.Ids) == 0 {
-		return tmsp.ErrBaseInvalidInput.AppendLog("Ids must not be empty")
+		return abci.ErrBaseInvalidInput.AppendLog("Ids must not be empty")
 	}
 	for _, accountID := range tx.Ids {
 		if _, err := uuid.FromString(accountID); err != nil {
-			return tmsp.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid id %q: %s", accountID, err))
+			return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid id %q: %s", accountID, err))
 		}
 	}
-	return tmsp.OK
+	return abci.OK
 }
 
 // SignBytes generates a byte-to-byte signature.
