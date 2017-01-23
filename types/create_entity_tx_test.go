@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	uuid "github.com/satori/go.uuid"
+	abci "github.com/tendermint/abci/types"
 	crypto "github.com/tendermint/go-crypto"
 	wire "github.com/tendermint/go-wire"
-	tmsp "github.com/tendermint/tmsp/types"
 )
 
 func TestCreateLegalEntityTx_TxType(t *testing.T) {
@@ -68,15 +68,15 @@ func TestCreateLegalEntityTx_ValidateBasic(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   tmsp.Result
+		want   abci.Result
 	}{
-		{"emptyTx", fields{}, tmsp.ErrBaseInvalidInput},
-		{"invalidAddress", fields{Address: []byte("")}, tmsp.ErrBaseInvalidInput},
-		{"invalidSignature", fields{Address: randBytes(), EntityID: genID()}, tmsp.ErrBaseInvalidSignature},
-		{"invalidEntityID", fields{Address: randBytes(), EntityID: "", Signature: genSig()}, tmsp.ErrBaseInvalidInput},
-		{"invalidEntityType", fields{Address: randBytes(), EntityID: genID(), Signature: genSig(), Type: byte(0xFF)}, tmsp.ErrBaseInvalidInput},
-		{"valid", fields{randBytes(), genID(), byte(0xFF), "", genSig()}, tmsp.ErrBaseInvalidInput},
-		//		{"valid", fields{randBytes(), uuid.NewV4().String(), crypto.GenPrivKeyEd25519().Sign(crypto.CRandBytes(20))}, tmsp.OK},
+		{"emptyTx", fields{}, abci.ErrBaseInvalidInput},
+		{"invalidAddress", fields{Address: []byte("")}, abci.ErrBaseInvalidInput},
+		{"invalidSignature", fields{Address: randBytes(), EntityID: genID()}, abci.ErrBaseInvalidSignature},
+		{"invalidEntityID", fields{Address: randBytes(), EntityID: "", Signature: genSig()}, abci.ErrBaseInvalidInput},
+		{"invalidEntityType", fields{Address: randBytes(), EntityID: genID(), Signature: genSig(), Type: byte(0xFF)}, abci.ErrBaseInvalidInput},
+		{"valid", fields{randBytes(), genID(), byte(0xFF), "", genSig()}, abci.ErrBaseInvalidInput},
+		//		{"valid", fields{randBytes(), uuid.NewV4().String(), crypto.GenPrivKeyEd25519().Sign(crypto.CRandBytes(20))}, abci.OK},
 	}
 	for _, tt := range tests {
 		tx := &CreateLegalEntityTx{

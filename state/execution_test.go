@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/satori/go.uuid"
+	abci "github.com/tendermint/abci/types"
 	bctypes "github.com/tendermint/basecoin/types"
 	bscoin "github.com/tendermint/basecoin/types"
 	"github.com/tendermint/clearchain/testutil"
@@ -15,7 +16,6 @@ import (
 	"github.com/tendermint/clearchain/types"
 	crypto "github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-events"
-	tmsp "github.com/tendermint/tmsp/types"
 )
 
 func TestExecTx(t *testing.T) {
@@ -185,24 +185,24 @@ func TestExecTx(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want tmsp.Result
+		want abci.Result
 	}{
-		{"checkTxTransferTxWithoutCounterSigners", args{s, nil, &tx1, true, nil}, tmsp.OK},
-		{"appendTxTransferTxWithoutCounterSigners", args{s, nil, &tx1, false, nil}, tmsp.OK},
-		{"checkTxTransferTxWithCounterSigners", args{s, nil, &tx2, true, nil}, tmsp.OK},
-		{"appendTxTransferTxWithCounterSigners", args{s, nil, &tx2, false, nil}, tmsp.OK},
-		{"checkTxCreateAccountTx", args{s, nil, &tx3, true, nil}, tmsp.OK},
-		{"appendTxCreateAccountTx", args{s, nil, &tx3, false, nil}, tmsp.OK},
-		{"checkTxCreateLegalEntityTx", args{s, nil, &tx4, true, nil}, tmsp.OK},
-		{"appendTxCreateLegalEntityTx", args{s, nil, &tx4, false, nil}, tmsp.OK},
-		{"checkTxCreateLegalEntityTxUnauthorized", args{s, nil, &tx5, true, nil}, tmsp.ErrUnauthorized},
-		{"appendTxCreateLegalEntityTxUnauthorized", args{s, nil, &tx5, false, nil}, tmsp.ErrUnauthorized},
-		{"checkTxCreateUserTx", args{s, nil, &tx6, true, nil}, tmsp.OK},
-		{"appendTxCreateUserTx", args{s, nil, &tx6, false, nil}, tmsp.OK},
-		{"checkTxCreateUserTxUnauthorized", args{s, nil, &tx7, true, nil}, tmsp.ErrUnauthorized},
-		{"appendTxCreateUserTxUnauthorized", args{s, nil, &tx7, false, nil}, tmsp.ErrUnauthorized},
-		{"checkTxCreateUserTx_CantCreate", args{s, nil, &tx8, true, nil}, tmsp.OK},
-		{"appendTxCreateUserTx_CantCreate", args{s, nil, &tx8, false, nil}, tmsp.OK},
+		{"checkTxTransferTxWithoutCounterSigners", args{s, nil, &tx1, true, nil}, abci.OK},
+		{"appendTxTransferTxWithoutCounterSigners", args{s, nil, &tx1, false, nil}, abci.OK},
+		{"checkTxTransferTxWithCounterSigners", args{s, nil, &tx2, true, nil}, abci.OK},
+		{"appendTxTransferTxWithCounterSigners", args{s, nil, &tx2, false, nil}, abci.OK},
+		{"checkTxCreateAccountTx", args{s, nil, &tx3, true, nil}, abci.OK},
+		{"appendTxCreateAccountTx", args{s, nil, &tx3, false, nil}, abci.OK},
+		{"checkTxCreateLegalEntityTx", args{s, nil, &tx4, true, nil}, abci.OK},
+		{"appendTxCreateLegalEntityTx", args{s, nil, &tx4, false, nil}, abci.OK},
+		{"checkTxCreateLegalEntityTxUnauthorized", args{s, nil, &tx5, true, nil}, abci.ErrUnauthorized},
+		{"appendTxCreateLegalEntityTxUnauthorized", args{s, nil, &tx5, false, nil}, abci.ErrUnauthorized},
+		{"checkTxCreateUserTx", args{s, nil, &tx6, true, nil}, abci.OK},
+		{"appendTxCreateUserTx", args{s, nil, &tx6, false, nil}, abci.OK},
+		{"checkTxCreateUserTxUnauthorized", args{s, nil, &tx7, true, nil}, abci.ErrUnauthorized},
+		{"appendTxCreateUserTxUnauthorized", args{s, nil, &tx7, false, nil}, abci.ErrUnauthorized},
+		{"checkTxCreateUserTx_CantCreate", args{s, nil, &tx8, true, nil}, abci.OK},
+		{"appendTxCreateUserTx_CantCreate", args{s, nil, &tx8, false, nil}, abci.OK},
 	}
 	transferCnt := 0
 	for _, tt := range tests {
@@ -350,15 +350,15 @@ func TestExecQueryTx(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want tmsp.Result
+		want abci.Result
 	}{
-		{"queryAccount", args{s, &validAccountQueryTx}, tmsp.NewResultOK(expectedJSON, "")},
-		{"invalidAccountID", args{s, &invalidAccountsQueryTx}, tmsp.ErrBaseInvalidInput},
+		{"queryAccount", args{s, &validAccountQueryTx}, abci.NewResultOK(expectedJSON, "")},
+		{"invalidAccountID", args{s, &invalidAccountsQueryTx}, abci.ErrBaseInvalidInput},
 		{"notExistingAccount", args{s, func(t types.AccountQueryTx) *types.AccountQueryTx {
 			t.Accounts = append(t.Accounts, uuid.NewV4().String())
 			return &t
-		}(invalidAccountsQueryTx)}, tmsp.ErrBaseInvalidInput},
-		{"queryAccountIndex", args{s, &validAccountIndexQueryTx}, tmsp.NewResultOK(validAccountIndexQueryTxExpectedJSON, "")},
+		}(invalidAccountsQueryTx)}, abci.ErrBaseInvalidInput},
+		{"queryAccountIndex", args{s, &validAccountIndexQueryTx}, abci.NewResultOK(validAccountIndexQueryTxExpectedJSON, "")},
 	}
 	for _, tt := range tests {
 		got := ExecQueryTx(tt.args.state, tt.args.tx)
@@ -391,27 +391,27 @@ func Test_validateSender(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want tmsp.Result
+		want abci.Result
 	}{
 		{
 			"unauthorizedUser",
 			args{validAccount, authorizedLegalEntity, &types.User{}, signBytes, validTx},
-			tmsp.ErrUnauthorized,
+			abci.ErrUnauthorized,
 		},
 		{
 			"unauthorizedEntity",
 			args{validAccount, &types.LegalEntity{}, authorizedUser, signBytes, validTx},
-			tmsp.ErrUnauthorized,
+			abci.ErrUnauthorized,
 		},
 		{
 			"invalidSignature",
 			args{validAccount, authorizedLegalEntity, authorizedUser, []byte{}, validTx},
-			tmsp.ErrBaseInvalidSignature,
+			abci.ErrBaseInvalidSignature,
 		},
 		{
 			"invalidSignature",
 			args{validAccount, authorizedLegalEntity, authorizedUser, signBytes, validTx},
-			tmsp.OK,
+			abci.OK,
 		},
 	}
 	for _, tt := range tests {
@@ -435,42 +435,42 @@ func Test_validatePermissions(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want tmsp.Result
+		want abci.Result
 	}{
 		{
 			"unauthorizedUser",
 			args{
 				&types.User{}, &types.LegalEntity{}, validAccount, &types.TransferTx{},
 			},
-			tmsp.ErrUnauthorized,
+			abci.ErrUnauthorized,
 		},
 		{
 			"legalEntityMismatch",
 			args{
 				authorizedUser, &types.LegalEntity{}, validAccount, &types.TransferTx{},
 			},
-			tmsp.ErrUnauthorized,
+			abci.ErrUnauthorized,
 		},
 		{
 			"accountMismatch",
 			args{
 				authorizedUser, authorizedLegalEntity, &types.Account{}, &types.TransferTx{},
 			},
-			tmsp.ErrUnauthorized,
+			abci.ErrUnauthorized,
 		},
 		{
 			"unauthorizedLegalEntity",
 			args{
 				authorizedUser, &types.LegalEntity{}, validAccount, &types.TransferTx{},
 			},
-			tmsp.ErrUnauthorized,
+			abci.ErrUnauthorized,
 		},
 		{
 			"authorizedUser",
 			args{
 				authorizedUser, authorizedLegalEntity, validAccount, &types.TransferTx{},
 			},
-			tmsp.OK,
+			abci.OK,
 		},
 	}
 	for _, tt := range tests {
@@ -613,7 +613,7 @@ func Test_validateCounterSignersAdvanced(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want tmsp.Result
+		want abci.Result
 	}{
 		{"invalidUser",
 			args{s, &types.Account{}, ent, &nonExistUserSendertransferTx},
@@ -651,12 +651,12 @@ func Test_validateWalletSequence(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want tmsp.Result
+		want abci.Result
 	}{
-		{"invalidInitialSequence", args{&types.Account{Wallets: []types.Wallet{}}, types.TxTransferSender{Currency: "USD", Sequence: 10}}, tmsp.ErrBaseInvalidSequence},
-		{"invalidSequence", args{&types.Account{Wallets: []types.Wallet{types.Wallet{Currency: "USD", Sequence: 10}}}, types.TxTransferSender{Currency: "USD", Sequence: 10}}, tmsp.ErrBaseInvalidSequence},
-		{"validInitialSequence", args{&types.Account{}, types.TxTransferSender{Currency: "USD", Sequence: 1}}, tmsp.OK},
-		{"validSequence", args{&types.Account{Wallets: []types.Wallet{types.Wallet{Currency: "USD", Sequence: 10}}}, types.TxTransferSender{Currency: "USD", Sequence: 11}}, tmsp.OK},
+		{"invalidInitialSequence", args{&types.Account{Wallets: []types.Wallet{}}, types.TxTransferSender{Currency: "USD", Sequence: 10}}, abci.ErrBaseInvalidSequence},
+		{"invalidSequence", args{&types.Account{Wallets: []types.Wallet{types.Wallet{Currency: "USD", Sequence: 10}}}, types.TxTransferSender{Currency: "USD", Sequence: 10}}, abci.ErrBaseInvalidSequence},
+		{"validInitialSequence", args{&types.Account{}, types.TxTransferSender{Currency: "USD", Sequence: 1}}, abci.OK},
+		{"validSequence", args{&types.Account{Wallets: []types.Wallet{types.Wallet{Currency: "USD", Sequence: 10}}}, types.TxTransferSender{Currency: "USD", Sequence: 11}}, abci.OK},
 	}
 	for _, tt := range tests {
 		if got := validateWalletSequence(tt.args.acc, tt.args.in); got.Code != tt.want.Code {

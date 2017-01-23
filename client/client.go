@@ -4,17 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 
+	abcicli "github.com/tendermint/abci/client"
+	abci "github.com/tendermint/abci/types"
 	"github.com/tendermint/clearchain/types"
 	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-logger"
 	"github.com/tendermint/go-wire"
-	"github.com/tendermint/tmsp/client"
-	tmsp "github.com/tendermint/tmsp/types"
 )
 
 var log = logger.New("module", "client")
 var chainID string
-var client tmspcli.Client
+var client abcicli.Client
 
 // SetChainID assigns and initializes the chain's ID
 func SetChainID(id string) {
@@ -30,7 +30,7 @@ func CreateUser(privateKey crypto.PrivKey,
 		PubKey:    newUsersPubKey,
 		CanCreate: newUserCanCreateLegalEntity}
 
-	res := sendAppendTx(privateKey, tx)
+	res := sendDeliverTxSync(privateKey, tx)
 
 	if res.IsErr() {
 		panic(fmt.Sprintf("Wrong response from server: %v", res))
@@ -44,7 +44,7 @@ func CreateAccount(privateKey crypto.PrivKey,
 	tx := &types.CreateAccountTx{Address: privateKey.PubKey().Address(),
 		AccountID: accountID}
 
-	res := sendAppendTx(privateKey, tx)
+	res := sendDeliverTxSync(privateKey, tx)
 
 	if res.IsErr() {
 		panic(fmt.Sprintf("Wrong response from server: %v", res))
@@ -63,7 +63,7 @@ func CreateLegalEntity(privateKey crypto.PrivKey,
 		Name:     name,
 		ParentID: parentID}
 
-	res := sendAppendTx(privateKey, tx)
+	res := sendDeliverTxSync(privateKey, tx)
 
 	if res.IsErr() {
 		panic(fmt.Sprintf("Wrong response from server: %v", res))
@@ -158,17 +158,17 @@ func GetAllLegalEntities(privateKey crypto.PrivKey) (returned types.LegalEntityI
 	return
 }
 
-func sendQuery(privateKey crypto.PrivKey, tx types.SignedTx) tmsp.Result {
+func sendQuery(privateKey crypto.PrivKey, tx types.SignedTx) abci.Result {
 	return sendToTendermint(privateKey, tx, client.QuerySync, true)
 }
 
-func sendAppendTx(privateKey crypto.PrivKey, tx types.SignedTx) tmsp.Result {
-	return sendToTendermint(privateKey, tx, client.AppendTxSync, false)
+func sendDeliverTxSync(privateKey crypto.PrivKey, tx types.SignedTx) abci.Result {
+	return sendToTendermint(privateKey, tx, client.DeliverTxSync, false)
 }
 
-func sendToTendermint(privateKey crypto.PrivKey, tx types.SignedTx, fn func(tx []byte) (res tmsp.Result), isQuery bool) tmsp.Result {
+func sendToTendermint(privateKey crypto.PrivKey, tx types.SignedTx, fn func(tx []byte) (res abci.Result), isQuery bool) abci.Result {
 	if err := tx.SignTx(privateKey, chainID); err != nil {
-		return tmsp.ErrBaseInvalidSignature.AppendLog(err.Error())
+		return abci.ErrBaseInvalidSignature.AppendLog(err.Error())
 	}
 
 	var txs []byte
@@ -185,9 +185,9 @@ func sendToTendermint(privateKey crypto.PrivKey, tx types.SignedTx, fn func(tx [
 // StartClient is a convenience function to start the client app
 func StartClient(serverAddress string) {
 	var err error
-	client, err = tmspcli.NewClient(serverAddress, "socket", true)
+	client, err = abcicli.NewClient(serverAddress, "socket", true)
 	if err != nil {
-		panic("connecting to tmsp_app: " + err.Error())
+		panic("connecting to abci_app: " + err.Error())
 	}
 
 	log.Info("Tendermint server connection established to " + serverAddress)
@@ -200,7 +200,7 @@ func SetOption(key, value string) {
 	}
 }
 
-func Commit(client tmspcli.Client) {
+func Commit(client abcicli.Client) {
 	res := client.CommitSync()
 
 	if res.IsErr() {
@@ -210,10 +210,10 @@ func Commit(client tmspcli.Client) {
 	log.Info("Committed tx")
 }
 
-func AppendTx(txBytes []byte) {
-	res := client.AppendTxSync(txBytes)
+func DeliverTxSync(txBytes []byte) {
+	res := client.DeliverTxSync(txBytes)
 	if res.IsErr() {
-		panic(fmt.Sprintf("AppendTx %X: %v\nlog: %v", txBytes, res, res.Log))
+		panic(fmt.Sprintf("DeliverTxSync %X: %v\nlog: %v", txBytes, res, res.Log))
 	}
 }
 
@@ -224,7 +224,7 @@ func CheckTx(txBytes []byte) {
 	}
 }
 
-func Query(txBytes []byte) (res tmsp.Result) {
+func Query(txBytes []byte) (res abci.Result) {
 	return client.QuerySync(txBytes)
 }
 

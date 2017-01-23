@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"testing"
 
+	abci "github.com/tendermint/abci/types"
 	crypto "github.com/tendermint/go-crypto"
 	wire "github.com/tendermint/go-wire"
-	tmsp "github.com/tendermint/tmsp/types"
 )
 
 func TestCreateUserTx_TxType(t *testing.T) {
@@ -67,14 +67,14 @@ func TestCreateUserTx_ValidateBasic(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   tmsp.Result
+		want   abci.Result
 	}{
-		{"emptyTx", fields{}, tmsp.ErrBaseInvalidInput},
-		{"invalidAddress", fields{Address: []byte("")}, tmsp.ErrBaseInvalidInput},
-		{"invalidUserAddr", fields{Address: randBytes()}, tmsp.ErrBaseInvalidPubKey},
-		{"invalidName", fields{Address: randBytes(), PubKey: randPubKey()}, tmsp.ErrBaseInvalidInput},
-		{"invalidSignature", fields{Address: randBytes(), PubKey: randPubKey(), Name: "name"}, tmsp.ErrBaseInvalidSignature},
-		{"valid", fields{Address: randBytes(), PubKey: randPubKey(), Name: "name", Signature: genSig()}, tmsp.OK},
+		{"emptyTx", fields{}, abci.ErrBaseInvalidInput},
+		{"invalidAddress", fields{Address: []byte("")}, abci.ErrBaseInvalidInput},
+		{"invalidUserAddr", fields{Address: randBytes()}, abci.ErrBaseInvalidPubKey},
+		{"invalidName", fields{Address: randBytes(), PubKey: randPubKey()}, abci.ErrBaseInvalidInput},
+		{"invalidSignature", fields{Address: randBytes(), PubKey: randPubKey(), Name: "name"}, abci.ErrBaseInvalidSignature},
+		{"valid", fields{Address: randBytes(), PubKey: randPubKey(), Name: "name", Signature: genSig()}, abci.OK},
 	}
 	for _, tt := range tests {
 		tx := &CreateUserTx{

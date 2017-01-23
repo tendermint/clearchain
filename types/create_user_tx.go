@@ -1,10 +1,10 @@
 package types
 
 import (
+	abci "github.com/tendermint/abci/types"
 	common "github.com/tendermint/go-common"
 	crypto "github.com/tendermint/go-crypto"
 	wire "github.com/tendermint/go-wire"
-	tmsp "github.com/tendermint/tmsp/types"
 )
 
 const (
@@ -47,20 +47,20 @@ func (tx *CreateUserTx) SignBytes(chainID string) []byte {
 }
 
 // ValidateBasic performs basic validation on the Tx.
-func (tx *CreateUserTx) ValidateBasic() tmsp.Result {
+func (tx *CreateUserTx) ValidateBasic() abci.Result {
 	if len(tx.Address) != 20 {
-		return tmsp.ErrBaseInvalidInput.AppendLog("Invalid address length")
+		return abci.ErrBaseInvalidInput.AppendLog("Invalid address length")
 	}
 	if tx.PubKey == nil {
-		return tmsp.ErrBaseInvalidPubKey.AppendLog("PubKey can't be nil")
+		return abci.ErrBaseInvalidPubKey.AppendLog("PubKey can't be nil")
 	}
 	if len(tx.Name) == 0 {
-		return tmsp.ErrBaseInvalidInput.AppendLog("Name cannot be empty")
+		return abci.ErrBaseInvalidInput.AppendLog("Name cannot be empty")
 	}
 	if tx.Signature == nil {
-		return tmsp.ErrBaseInvalidSignature.AppendLog("The transaction must be signed")
+		return abci.ErrBaseInvalidSignature.AppendLog("The transaction must be signed")
 	}
-	return tmsp.OK
+	return abci.OK
 }
 
 func (tx *CreateUserTx) String() string {

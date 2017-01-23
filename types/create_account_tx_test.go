@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	uuid "github.com/satori/go.uuid"
+	abci "github.com/tendermint/abci/types"
 	crypto "github.com/tendermint/go-crypto"
 	wire "github.com/tendermint/go-wire"
-	tmsp "github.com/tendermint/tmsp/types"
 )
 
 func TestCreateAccountTx_TxType(t *testing.T) {
@@ -59,13 +59,13 @@ func TestCreateAccountTx_ValidateBasic(t *testing.T) {
 	tests := []struct {
 		name   string
 		fields fields
-		want   tmsp.Result
+		want   abci.Result
 	}{
-		{"emptyTx", fields{}, tmsp.ErrBaseInvalidInput},
-		{"invalidAddress", fields{Address: []byte("")}, tmsp.ErrBaseInvalidInput},
-		{"invalidSignature", fields{crypto.CRandBytes(20), uuid.NewV4().String(), nil}, tmsp.ErrBaseInvalidSignature},
-		{"invalidAccountID", fields{crypto.CRandBytes(20), "", crypto.GenPrivKeyEd25519().Sign(crypto.CRandBytes(20))}, tmsp.ErrBaseInvalidInput},
-		{"valid", fields{crypto.CRandBytes(20), uuid.NewV4().String(), crypto.GenPrivKeyEd25519().Sign(crypto.CRandBytes(20))}, tmsp.OK},
+		{"emptyTx", fields{}, abci.ErrBaseInvalidInput},
+		{"invalidAddress", fields{Address: []byte("")}, abci.ErrBaseInvalidInput},
+		{"invalidSignature", fields{crypto.CRandBytes(20), uuid.NewV4().String(), nil}, abci.ErrBaseInvalidSignature},
+		{"invalidAccountID", fields{crypto.CRandBytes(20), "", crypto.GenPrivKeyEd25519().Sign(crypto.CRandBytes(20))}, abci.ErrBaseInvalidInput},
+		{"valid", fields{crypto.CRandBytes(20), uuid.NewV4().String(), crypto.GenPrivKeyEd25519().Sign(crypto.CRandBytes(20))}, abci.OK},
 	}
 	for _, tt := range tests {
 		tx := &CreateAccountTx{
