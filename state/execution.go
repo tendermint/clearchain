@@ -2,6 +2,7 @@ package state
 
 import (
 	"encoding/json"
+	"fmt"
 
 	abci "github.com/tendermint/abci/types"
 	bctypes "github.com/tendermint/basecoin/types"
@@ -49,7 +50,7 @@ func transfer(state *State, tx *types.TransferTx, isCheckTx bool) abci.Result {
 		return res.PrependLog("in validateSender()")
 	}
 	// Validate counter signers
-	if res := validateCounterSigners(state, senderAccount, entity, signBytes, tx); res.IsErr() {
+	if res := validateCounterSigners(state, senderAccount, entity, tx); res.IsErr() {
 		return res.PrependLog("in validateCounterSigners()")
 	}
 
@@ -88,7 +89,7 @@ func createAccount(state *State, tx *types.CreateAccountTx, isCheckTx bool) abci
 	// Generate byte-to-byte signature and validate the signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !user.VerifySignature(signBytes, tx.Signature) {
-		return abci.ErrBaseInvalidSignature.AppendLog("Verification failed, user's signature doesn't match")
+		return abci.ErrBaseInvalidSignature.AppendLog("user's signature doesn't match")
 	}
 
 	// Create the new account
@@ -132,7 +133,7 @@ func createLegalEntity(state *State, tx *types.CreateLegalEntityTx, isCheckTx bo
 	// Generate byte-to-byte signature and validate the signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !user.VerifySignature(signBytes, tx.Signature) {
-		return abci.ErrBaseInvalidSignature.AppendLog("Verification failed, user's signature doesn't match")
+		return abci.ErrBaseInvalidSignature.AppendLog("user's signature doesn't match")
 	}
 
 	// Create new legal entity
@@ -176,7 +177,7 @@ func createUser(state *State, tx *types.CreateUserTx, isCheckTx bool) abci.Resul
 	// Generate byte-to-byte signature and validate the signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !creator.VerifySignature(signBytes, tx.Signature) {
-		return abci.ErrBaseInvalidSignature.AppendLog("Verification failed, user's signature doesn't match")
+		return abci.ErrBaseInvalidSignature.AppendLog("user's signature doesn't match")
 	}
 	// Create new user
 	if usr := state.GetUser(tx.PubKey.Address()); usr != nil {
@@ -232,11 +233,9 @@ func accountQuery(state *State, tx *types.AccountQueryTx) abci.Result {
 	// Generate byte-to-byte signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !user.VerifySignature(signBytes, tx.Signature) {
-		return abci.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
+		return abci.ErrUnauthorized.AppendLog("signature doesn't match")
 	}
-	data, err := json.Marshal(struct {
-		Account []*types.Account `json:"accounts"`
-	}{accounts})
+	data, err := json.Marshal(types.AccountsReturned{Account: accounts})
 	if err != nil {
 		return abci.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
 	}
@@ -263,7 +262,7 @@ func accountIndexQuery(state *State, tx *types.AccountIndexQueryTx) abci.Result 
 	// Generate byte-to-byte signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !user.VerifySignature(signBytes, tx.Signature) {
-		return abci.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
+		return abci.ErrUnauthorized.AppendLog("signature doesn't match")
 	}
 	data, err := json.Marshal(accountIndex)
 	if err != nil {
@@ -316,13 +315,13 @@ func validateSender(acc *types.Account, entity *types.LegalEntity, u *types.User
 		return res
 	}
 	if !u.VerifySignature(signBytes, tx.Sender.Signature) {
-		return abci.ErrBaseInvalidSignature.AppendLog("Verification failed, sender's signature doesn't match")
+		return abci.ErrBaseInvalidSignature.AppendLog("sender's signature doesn't match")
 	}
 	return abci.OK
 }
 
 // Validate countersignatures
-func validateCounterSigners(state types.UserGetter, acc *types.Account, entity *types.LegalEntity, signBytes []byte, tx *types.TransferTx) abci.Result {
+func validateCounterSigners(state *State, acc *types.Account, entity *types.LegalEntity, tx *types.TransferTx) abci.Result {
 	var users = make(map[string]bool)
 
 	// Make sure users are not duplicated
@@ -346,8 +345,8 @@ func validateCounterSigners(state types.UserGetter, acc *types.Account, entity *
 			return res
 		}
 		// Verify the signature
-		if !user.VerifySignature(signBytes, in.Signature) {
-			return abci.ErrBaseInvalidSignature.AppendLog(common.Fmt("Verification failed, countersigner's signature doesn't match, user: %s", user))
+		if !user.VerifySignature(in.SignBytes(state.GetChainID()), in.Signature) {
+			return abci.ErrBaseInvalidSignature.AppendLog(common.Fmt("countersigner's signature doesn't match, user: %s", user))
 		}
 	}
 
@@ -373,38 +372,40 @@ func validatePermissions(u *types.User, e *types.LegalEntity, a *types.Account, 
 }
 
 // Apply changes to inputs
-func applyChangesToInput(state types.AccountSetter, in types.TxTransferSender, acc *types.Account, isCheckTx bool) {
-	wal := acc.GetWallet(in.Currency)
-	if wal == nil {
-		acc.Wallets = append(acc.Wallets, types.Wallet{
-			Currency: in.Currency,
-			Balance:  -in.Amount,
-			Sequence: 1})
-	} else {
-		wal.Balance -= in.Amount
-		wal.Sequence++
-	}
+func applyChangesToInput(state types.AccountSetter, in types.TxTransferSender, account *types.Account, isCheckTx bool) {
+	applyChanges(account, in.Currency, in.Amount, false)
+
 	if !isCheckTx {
-		state.SetAccount(in.AccountID, acc)
+		state.SetAccount(account.ID, account)
 	}
 }
 
 // Apply changes to outputs
-func applyChangesToOutput(state types.AccountSetter, in types.TxTransferSender, out types.TxTransferRecipient, acc *types.Account, isCheckTx bool) {
-	wal := acc.GetWallet(in.Currency)
-	if wal == nil {
-		acc.Wallets = append(acc.Wallets, types.Wallet{
-			Currency: in.Currency,
-			Balance:  in.Amount,
-			Sequence: 1})
+func applyChangesToOutput(state types.AccountSetter, in types.TxTransferSender, out types.TxTransferRecipient, account *types.Account, isCheckTx bool) {
+	applyChanges(account, in.Currency, in.Amount, true)
 
-	} else {
-		wal.Balance += in.Amount
-		wal.Sequence++
-	}
 	if !isCheckTx {
-		state.SetAccount(out.AccountID, acc)
+		state.SetAccount(account.ID, account)
 	}
+}
+
+func applyChanges(account *types.Account, currency string, amount int64, isBuy bool) {
+
+	wal := account.GetWallet(currency)
+
+	if wal == nil {
+		wal = &types.Wallet{Currency: currency}
+	}
+
+	if isBuy {
+		wal.Balance += amount
+	} else {
+		wal.Balance += -amount
+	}
+
+	wal.Sequence++
+
+	account.SetWallet(*wal)
 }
 
 func makeNewUser(state types.UserSetter, creator *types.User, tx *types.CreateUserTx, isCheckTx bool) {
@@ -480,11 +481,9 @@ func legalEntityQuery(state *State, tx *types.LegalEntityQueryTx) abci.Result {
 	// Generate byte-to-byte signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !user.VerifySignature(signBytes, tx.Signature) {
-		return abci.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
+		return abci.ErrUnauthorized.AppendLog("signature doesn't match")
 	}
-	data, err := json.Marshal(struct {
-		LegalEntities []*types.LegalEntity `json:"legalEntities"`
-	}{legalEntities})
+	data, err := json.Marshal(types.LegalEntitiesReturned{LegalEntities: legalEntities})
 	if err != nil {
 		return abci.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
 	}
@@ -511,7 +510,7 @@ func legalEntityIndexQueryTx(state *State, tx *types.LegalEntityIndexQueryTx) ab
 	// Generate byte-to-byte signature
 	signBytes := tx.SignBytes(state.GetChainID())
 	if !user.VerifySignature(signBytes, tx.Signature) {
-		return abci.ErrUnauthorized.AppendLog("Verification failed, signature doesn't match")
+		return abci.ErrUnauthorized.AppendLog("signature doesn't match")
 	}
 	data, err := json.Marshal(legalEntities)
 	if err != nil {

@@ -64,7 +64,9 @@ func TestExecTx(t *testing.T) {
 		counterSignersUsers := randUsers[2:]
 		counterSigners := []types.TxTransferCounterSigner{}
 		for _, u := range counterSignersUsers {
-			counterSigners = append(counterSigners, types.TxTransferCounterSigner{Address: u.User.PubKey.Address()})
+			cs := types.TxTransferCounterSigner{Address: u.User.PubKey.Address()}
+			cs.SignTx(u.PrivKey, s.GetChainID())
+			counterSigners = append(counterSigners, cs)
 		}
 		tx := types.TransferTx{
 			Sender: types.TxTransferSender{
@@ -79,16 +81,8 @@ func TestExecTx(t *testing.T) {
 				AccountID: recipientAccount.ID,
 			},
 		}
-		signBytes := tx.SignBytes(chainID)
-		counterSignatures := make([]crypto.Signature, len(counterSignersUsers))
-		for i, cs := range counterSignersUsers {
-			counterSignatures[i] = cs.PrivKey.Sign(signBytes)
-		}
-		// Sign it all
-		tx.Sender.Signature = senderUser.PrivKey.Sign(signBytes)
-		for i := range counterSignersUsers {
-			tx.CounterSigners[i].Signature = counterSignatures[i]
-		}
+		tx.SignTx(senderUser.PrivKey, s.GetChainID())
+
 		return tx
 	}()
 	tx3 := func() types.CreateAccountTx {
@@ -210,6 +204,7 @@ func TestExecTx(t *testing.T) {
 		{"checkTxCreateUserTx_CantCreate", args{s, nil, &tx8, true, nil}, abci.OK},
 		{"appendTxCreateUserTx_CantCreate", args{s, nil, &tx8, false, nil}, abci.OK},
 	}
+	transferCnt := 0
 	for _, tt := range tests {
 		got := ExecTx(tt.args.state, tt.args.pgz, tt.args.tx, tt.args.isCheckTx, tt.args.evc)
 		if got.Code != tt.want.Code {
@@ -222,17 +217,21 @@ func TestExecTx(t *testing.T) {
 				recipientAccount := s.GetAccount(recipientAccount.ID)
 				senderWallet := senderAccount.GetWallet(ccy)
 				recipientWallet := recipientAccount.GetWallet(ccy)
-				if senderWallet.Balance != -amount {
-					t.Errorf("%q. senderWallet.Balance = %v, want %v", tt.name, senderWallet.Balance, -amount)
+				transferCnt++
+
+				balanceWanted := int64(transferCnt) * -amount
+				if senderWallet.Balance != balanceWanted {
+					t.Errorf("%q. senderWallet.Balance = %v, want %v", tt.name, senderWallet.Balance, balanceWanted)
 				}
-				if senderWallet.Sequence != 1 {
-					t.Errorf("%q. senderWallet.Sequence = %v, want %v", tt.name, senderWallet.Sequence, 1)
+				if senderWallet.Sequence != transferCnt {
+					t.Errorf("%q. senderWallet.Sequence = %v, want %v", tt.name, senderWallet.Sequence, transferCnt)
 				}
-				if recipientWallet.Balance != amount {
-					t.Errorf("%q. recipientWallet.Balance = %v, want %v", tt.name, recipientWallet.Balance, amount)
+				balanceWanted = int64(transferCnt) * amount
+				if recipientWallet.Balance != balanceWanted {
+					t.Errorf("%q. recipientWallet.Balance = %v, want %v", tt.name, recipientWallet.Balance, balanceWanted)
 				}
-				if recipientWallet.Sequence != 1 {
-					t.Errorf("%q. recipientWallet.Sequence = %v, want %v", tt.name, recipientWallet.Sequence, 1)
+				if recipientWallet.Sequence != transferCnt {
+					t.Errorf("%q. recipientWallet.Sequence = %v, want %v", tt.name, recipientWallet.Sequence, transferCnt)
 				}
 			}
 		case *types.CreateAccountTx:
@@ -485,8 +484,9 @@ func Test_applyChangesToInput(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 	mockObj := mock_account.NewMockAccountSetter(mockCtrl)
+	accountID := uuid.NewV4().String()
 	genTxTransferSender := func() types.TxTransferSender {
-		return types.TxTransferSender{AccountID: uuid.NewV4().String(), Amount: 15, Currency: "USD"}
+		return types.TxTransferSender{AccountID: accountID, Amount: 15, Currency: "USD"}
 	}
 
 	type args struct {
@@ -499,8 +499,8 @@ func Test_applyChangesToInput(t *testing.T) {
 		name string
 		args args
 	}{
-		{"appendTx", args{mockObj, genTxTransferSender(), &types.Account{}, false}},
-		{"checkTx", args{mockObj, genTxTransferSender(), &types.Account{}, true}},
+		{"appendTx", args{mockObj, genTxTransferSender(), &types.Account{ID: accountID}, false}},
+		{"checkTx", args{mockObj, genTxTransferSender(), &types.Account{ID: accountID}, true}},
 	}
 	for _, tt := range tests {
 		ntimes := 0
@@ -519,8 +519,9 @@ func Test_applyChangesToOutput(t *testing.T) {
 	genTxTransferSender := func() types.TxTransferSender {
 		return types.TxTransferSender{Amount: 100, Currency: "USD"}
 	}
+	accountID := uuid.NewV4().String()
 	genTxTransferRecipient := func() types.TxTransferRecipient {
-		return types.TxTransferRecipient{AccountID: uuid.NewV4().String()}
+		return types.TxTransferRecipient{AccountID: accountID}
 	}
 	type args struct {
 		state     types.AccountSetter
@@ -533,8 +534,8 @@ func Test_applyChangesToOutput(t *testing.T) {
 		name string
 		args args
 	}{
-		{"appendTx", args{mockObj, genTxTransferSender(), genTxTransferRecipient(), testutil.RandAccount(nil), false}},
-		{"checkTx", args{mockObj, genTxTransferSender(), genTxTransferRecipient(), testutil.RandAccount(nil), true}},
+		{"appendTx", args{mockObj, genTxTransferSender(), genTxTransferRecipient(), &types.Account{ID: accountID}, false}},
+		{"checkTx", args{mockObj, genTxTransferSender(), genTxTransferRecipient(), &types.Account{ID: accountID}, true}},
 	}
 	for _, tt := range tests {
 		ntimes := 0
@@ -549,6 +550,7 @@ func Test_applyChangesToOutput(t *testing.T) {
 func Test_validateCounterSignersAdvanced(t *testing.T) {
 	// Set up fixtures
 	s := NewState(bscoin.NewMemKVStore())
+	s.SetChainID("chainID")
 	ent := &types.LegalEntity{
 		ID:          uuid.NewV4().String(),
 		Permissions: types.PermTransferTx}
@@ -565,19 +567,32 @@ func Test_validateCounterSignersAdvanced(t *testing.T) {
 		}
 		return usersSlice
 	}(ent)
+	senderprivateKey:=crypto.GenPrivKeyEd25519()
 	transferTx := types.TransferTx{
 		Sender: types.TxTransferSender{
-			Address: crypto.GenPrivKeyEd25519().PubKey().Address()},
+			Address: senderprivateKey.PubKey().Address()},
 		CounterSigners: make([]types.TxTransferCounterSigner, 10)}
 	for i, u := range users {
 		s.SetUser(u.User.PubKey.Address(), &u.User)
 		transferTx.CounterSigners[i] = types.TxTransferCounterSigner{
 			Address: u.User.PubKey.Address()}
+		transferTx.CounterSigners[i].SignTx(u.PrivKey, s.GetChainID())
 	}
-	signBytes := transferTx.SignBytes("chainID")
+	transferTx.SignTx(senderprivateKey, s.GetChainID())
+
+	wrongSignatureTransferTx := types.TransferTx{
+		Sender: types.TxTransferSender{
+			Address: senderprivateKey.PubKey().Address()},
+		CounterSigners: make([]types.TxTransferCounterSigner, 10)}
 	for i, u := range users {
-		transferTx.CounterSigners[i].Signature = u.PrivKey.Sign(signBytes)
+		s.SetUser(u.User.PubKey.Address(), &u.User)
+		wrongSignatureTransferTx.CounterSigners[i] = types.TxTransferCounterSigner{
+			Address: u.User.PubKey.Address()}
+		wrongSignatureTransferTx.CounterSigners[i].SignTx(u.PrivKey, s.GetChainID())
 	}
+	wrongSignatureTransferTx.SignTx(senderprivateKey, s.GetChainID())
+	wrongSignatureTransferTx.CounterSigners[0].Signature = senderprivateKey.Sign([]byte("wrong_bytes"))
+
 	// Make sender a duplicate of a countersigner
 	dupSendertransferTx := types.TransferTx{
 		Sender: types.TxTransferSender{
@@ -590,10 +605,9 @@ func Test_validateCounterSignersAdvanced(t *testing.T) {
 			types.TxTransferCounterSigner{Address: []byte("non-existing")}}}
 
 	type args struct {
-		state     types.UserGetter
+		state     *State
 		acc       *types.Account
 		entity    *types.LegalEntity
-		signBytes []byte
 		tx        *types.TransferTx
 	}
 	tests := []struct {
@@ -602,28 +616,28 @@ func Test_validateCounterSignersAdvanced(t *testing.T) {
 		want abci.Result
 	}{
 		{"invalidUser",
-			args{s, &types.Account{}, ent, []byte(""), &nonExistUserSendertransferTx},
-			abci.ErrBaseUnknownAddress,
+			args{s, &types.Account{}, ent, &nonExistUserSendertransferTx},
+			tmsp.ErrBaseUnknownAddress,
 		},
 		{"duplicateAddress",
-			args{s, &types.Account{}, ent, []byte(""), &dupSendertransferTx},
-			abci.ErrBaseDuplicateAddress,
+			args{s, &types.Account{}, ent, &dupSendertransferTx},
+			tmsp.ErrBaseDuplicateAddress,
 		},
 		{"invalidAccount",
-			args{s, &types.Account{}, ent, []byte(""), &transferTx},
-			abci.ErrUnauthorized,
+			args{s, &types.Account{}, ent, &transferTx},
+			tmsp.ErrUnauthorized,
 		},
 		{"invalidSignatures",
-			args{s, acc, ent, []byte("wrong_bytes"), &transferTx},
-			abci.ErrBaseInvalidSignature,
+			args{s, acc, ent, &wrongSignatureTransferTx},
+			tmsp.ErrBaseInvalidSignature,
 		},
 		{"validCounterSigners",
-			args{s, acc, ent, signBytes, &transferTx},
-			abci.OK,
+			args{s, acc, ent, &transferTx},
+			tmsp.OK,
 		},
 	}
 	for _, tt := range tests {
-		if got := validateCounterSigners(tt.args.state, tt.args.acc, tt.args.entity, tt.args.signBytes, tt.args.tx); got.Code != tt.want.Code {
+		if got := validateCounterSigners(tt.args.state, tt.args.acc, tt.args.entity, tt.args.tx); got.Code != tt.want.Code {
 			t.Errorf("%q. validateCounterSigners() = %v, want %v", tt.name, got, tt.want)
 		}
 	}

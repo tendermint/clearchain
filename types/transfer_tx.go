@@ -61,7 +61,7 @@ func (tx *TransferTx) SetSignature(addr []byte, sig crypto.Signature) bool {
 }
 
 func (tx *TransferTx) String() string {
-	return common.Fmt("TransferTx{%v->%v}", tx.Sender, tx.Recipient)
+	return common.Fmt("TransferTx{%v->%v, %v}", tx.Sender, tx.Recipient, tx.CounterSigners)
 }
 
 // ValidateBasic validates Tx basic structure.
@@ -83,6 +83,17 @@ func (tx *TransferTx) ValidateBasic() (res abci.Result) {
 	return abci.OK
 }
 
+// SignTx signs the transaction if its address and the privateKey's one match.
+func (tx *TransferTx) SignTx(privateKey crypto.PrivKey, chainID string) error {
+	sig, err := SignTx(tx.SignBytes(chainID), tx.Sender.Address, privateKey)
+	if err != nil {
+		return err
+	}
+	tx.Sender.Signature = sig
+
+	return nil
+}
+
 // TxTransferSender defines the attributes of a transfer's sender
 type TxTransferSender struct {
 	Address   []byte           `json:"address"`    // Hash of the user's PubKey
@@ -99,7 +110,7 @@ func (t TxTransferSender) ValidateBasic() abci.Result {
 		return abci.ErrBaseInvalidInput.AppendLog("Invalid address length")
 	}
 	if t.Signature == nil {
-		return abci.ErrBaseInvalidSignature.AppendLog("The transaction must be signed")
+		return abci.ErrBaseInvalidSignature.AppendLog("TxTransferSender transaction must be signed")
 	}
 	if _, err := uuid.FromString(t.AccountID); err != nil {
 		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid account_id: %s", err))
@@ -128,7 +139,28 @@ func (t TxTransferSender) ValidateBasic() abci.Result {
 
 // String returns a string representation of TxInputTransfer
 func (t TxTransferSender) String() string {
-	return common.Fmt("TxInputTransfer{%x,%v,%v,%v}", t.Address, t.Amount, t.Currency, t.Sequence)
+	return common.Fmt("TxTransferSender{%x,%v,%v,%v, %v}", t.Address, t.Amount, t.Currency, t.Sequence, t.Signature)
+}
+
+// SignBytes generates a byte-to-byte signature.
+func (tx TxTransferSender) SignBytes(chainID string) []byte {
+	signBytes := wire.BinaryBytes(chainID)
+	sig := tx.Signature
+	tx.Signature = nil
+	signBytes = append(signBytes, wire.BinaryBytes(tx)...)
+	tx.Signature = sig
+	return signBytes
+}
+
+// SignTx signs the transaction if its address and the privateKey's one match.
+func (tx *TxTransferSender) SignTx(privateKey crypto.PrivKey, chainID string) error {
+
+	sig, err := SignTx(tx.SignBytes(chainID), tx.Address, privateKey)
+	if err != nil {
+		return err
+	}
+	tx.Signature = sig
+	return nil
 }
 
 //-----------------------------------------------------------------------------
@@ -151,8 +183,6 @@ func (t TxTransferRecipient) String() string {
 	return common.Fmt("TxTransferRecipient{%s}", t.AccountID)
 }
 
-//-----------------------------------------------------------------------------
-
 // TxTransferCounterSigner defines the attributes of a transfer's counter signer
 type TxTransferCounterSigner struct {
 	Address   []byte           `json:"address"` // Hash of the user's PubKey
@@ -165,7 +195,7 @@ func (t TxTransferCounterSigner) ValidateBasic() abci.Result {
 		return abci.ErrBaseInvalidInput.AppendLog("Invalid address length")
 	}
 	if t.Signature == nil {
-		return abci.ErrBaseInvalidSignature.AppendLog("The transaction must be signed")
+		return abci.ErrBaseInvalidSignature.AppendLog("TxTransferCounterSigner transaction must be signed")
 	}
 	return abci.OK
 }
@@ -173,4 +203,20 @@ func (t TxTransferCounterSigner) ValidateBasic() abci.Result {
 // String returns a string representation of TxTransferCounterSigner
 func (t TxTransferCounterSigner) String() string {
 	return common.Fmt("TxTransferCounterSigner{%x,%v}", t.Address, t.Signature)
+}
+
+// SignBytes generates a byte-to-byte signature.
+func (tx TxTransferCounterSigner) SignBytes(chainID string) []byte {
+	signBytes := wire.BinaryBytes(chainID)
+	sig := tx.Signature
+	tx.Signature = nil
+	signBytes = append(signBytes, wire.BinaryBytes(tx)...)
+	tx.Signature = sig
+	return signBytes
+}
+
+// SignTx signs the transaction if its address and the privateKey's one match.
+func (tx *TxTransferCounterSigner) SignTx(privateKey crypto.PrivKey, chainID string) error {
+	tx.Signature = privateKey.Sign(tx.SignBytes(chainID))
+	return nil
 }

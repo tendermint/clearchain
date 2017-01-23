@@ -97,6 +97,11 @@ func (l *LegalEntity) String() string {
 	return fmt.Sprintf("LegalEntity{%x %s %q %v %x %v}", l.Type, l.ID, l.Name, l.Permissions, l.CreatorAddr, l.EntityID)
 }
 
+type LegalEntitiesReturned struct {
+	LegalEntities []*LegalEntity `json:"legal_entities"`
+}
+
+
 //--------------------------------------------
 
 // LegalEntityGetter is implemented by any value that has a GetLegalEntity

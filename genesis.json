@@ -17,5 +17,6 @@
   	"entity_id": "82bf8a78-2f8d-41f6-9f6c-5a1cf99956c2",
   	"wallets":[{"currency":"EUR","balance":1000000,"sequence":1},{"currency":"USD","balance":2000000,"sequence":1}]
   },
-  "base/user", {"pub_key":[1,"843878B932EE4908A42D24BFFC039EB8DFACD4340C83342310682094047FAFAB"],"name":"Name","entity_id":"b40cbf4e-5923-4ccd-beec-e22a9117b91b","permissions":31}
+  "base/user", {"pub_key":[1,"843878B932EE4908A42D24BFFC039EB8DFACD4340C83342310682094047FAFAB"],"name":"Name","entity_id":"b40cbf4e-5923-4ccd-beec-e22a9117b91b","permissions":31},
+  "base/user", {"pub_key":[1,"73862098C2B60B31B9C9380C3EF37212AE3E6F9178D6AEFDB51D0C2265AD6090"],"name":"userName2","entity_id":"b40cbf4e-5923-4ccd-beec-e22a9117b91b","permissions":31}
 ]

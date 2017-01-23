@@ -58,12 +58,23 @@ func (acc *Account) BelongsTo(legalEntityID string) bool {
 
 // GetWallet retrieves the Account's wallet for the given currency.
 func (acc *Account) GetWallet(currency string) *Wallet {
-	for _, wal := range acc.Wallets {
+	for i, wal := range acc.Wallets {
 		if wal.Currency == currency {
-			return &wal
+			return &acc.Wallets[i]
 		}
 	}
 	return nil
+}
+
+func (account *Account) SetWallet(wallet Wallet) {
+	for i, wal := range account.Wallets {
+		if wal.Currency == wallet.Currency {
+			account.Wallets[i] = wallet
+			return
+		}
+	}
+	
+	account.Wallets = append(account.Wallets, wallet)
 }
 
 //-----------------------------------------
@@ -88,6 +99,11 @@ func (w *Wallet) String() string {
 		return "nil-Wallet"
 	}
 	return fmt.Sprintf("Wallet{%s %v %v}", w.Currency, w.Sequence, w.Balance)
+}
+
+// AccountsReturned defines the attributes of response's payload
+type AccountsReturned struct {
+	Account []*Account `json:"accounts"`
 }
 
 //-----------------------------------------

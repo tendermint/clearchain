@@ -13,16 +13,6 @@ import (
 )
 
 var log = logger.New("module", "client")
-
-// AccountsReturned defines the attributes of response's payload
-type AccountsReturned struct {
-	Account []*types.Account `json:"accounts"`
-}
-
-type LegalEntitiesReturned struct {
-	LegalEntities []*types.LegalEntity `json:"legal_entities"`
-}
-
 var chainID string
 var client abcicli.Client
 
@@ -83,8 +73,53 @@ func CreateLegalEntity(privateKey crypto.PrivKey,
 	log.Info("Created legal entity with ID: " + entityID)
 }
 
+//Creates money transfer entry in blockchain
+func TransferMoney(privateKey crypto.PrivKey, senderID string, recipientID string, counterSignerAddresses [][]byte, amount int64, currency string) {
+	senderAccount := GetAccounts(privateKey, []string{senderID}).Account[0]
+	newSequenceID := senderAccount.GetWallet(currency).Sequence + 1
+
+	sender := types.TxTransferSender{AccountID: senderID,
+		Amount:   amount,
+		Currency: currency,
+		Sequence: newSequenceID,
+		Address:  privateKey.PubKey().Address(),
+	}
+
+	recipient := types.TxTransferRecipient{AccountID: recipientID}
+
+	counterSigners := make([]types.TxTransferCounterSigner, len(counterSignerAddresses))
+	for i, address := range counterSignerAddresses {
+		privKey, err := crypto.PrivKeyFromBytes(address)
+		if err != nil {
+			panic(fmt.Sprintf("counterSigner signing failed with: %v", err.Error()))
+		}
+		counterSigners[i] = types.TxTransferCounterSigner{Address: privKey.PubKey().Address()}
+
+		err = counterSigners[i].SignTx(privKey, chainID)
+		if err != nil {
+			panic(fmt.Sprintf("counterSigner signing failed with: %v", err.Error()))
+		}
+
+	}
+
+	tx := &types.TransferTx{
+		Sender:         sender,
+		Recipient:      recipient,
+		CounterSigners: counterSigners,
+	}
+
+	res := sendAppendTx(privateKey, tx)
+
+	if res.IsErr() {
+		panic(fmt.Sprintf("Wrong response from server: %v", res))
+	} else {
+		Commit(client)
+	}
+	log.Info("Created transfer entry")
+}
+
 // GetAccounts makes a request to the ledger to returns a set of accounts
-func GetAccounts(privateKey crypto.PrivKey, accountsRequested []string) (returned AccountsReturned) {
+func GetAccounts(privateKey crypto.PrivKey, accountsRequested []string) (returned types.AccountsReturned) {
 	tx := &types.AccountQueryTx{Accounts: accountsRequested,
 		Address: privateKey.PubKey().Address()}
 
@@ -200,10 +235,9 @@ func printKey(key []byte, title string) {
 		fmt.Print(", ")
 	}
 	fmt.Println()
-
 }
 
-func GetLegalEntities(privateKey crypto.PrivKey, ids []string) (returned LegalEntitiesReturned) {
+func GetLegalEntities(privateKey crypto.PrivKey, ids []string) (returned types.LegalEntitiesReturned) {
 	tx := &types.LegalEntityQueryTx{Ids: ids,
 		Address: privateKey.PubKey().Address()}
 
@@ -211,6 +245,7 @@ func GetLegalEntities(privateKey crypto.PrivKey, ids []string) (returned LegalEn
 	if res.IsErr() {
 		panic(fmt.Sprintf("Error in tendermint response: %v ", res.Log))
 	}
+	
 	err := json.Unmarshal(res.Data, &returned)
 	if err != nil {
 		panic(fmt.Sprintf("JSON unmarshal for message %v failed with: %v ", res.Data, err))
