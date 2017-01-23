@@ -108,7 +108,7 @@ func TransferMoney(privateKey crypto.PrivKey, senderID string, recipientID strin
 		CounterSigners: counterSigners,
 	}
 
-	res := sendAppendTx(privateKey, tx)
+	res := sendDeliverTxSync(privateKey, tx)
 
 	if res.IsErr() {
 		panic(fmt.Sprintf("Wrong response from server: %v", res))
