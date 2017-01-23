@@ -2,8 +2,6 @@ package state
 
 import (
 	"encoding/json"
-	"fmt"
-
 	abci "github.com/tendermint/abci/types"
 	bctypes "github.com/tendermint/basecoin/types"
 	"github.com/tendermint/clearchain/types"
