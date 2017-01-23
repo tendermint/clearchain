@@ -217,7 +217,7 @@ func accountQuery(state *State, tx *types.AccountQueryTx) abci.Result {
 
 	user := state.GetUser(tx.Address)
 	if user == nil {
-		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("Address is unknown: %v", tx.Address))
+		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("%v", tx.Address))
 	}
 	accounts := make([]*types.Account, len(tx.Accounts))
 	for i, accountID := range tx.Accounts {
@@ -248,7 +248,7 @@ func accountIndexQuery(state *State, tx *types.AccountIndexQueryTx) abci.Result 
 
 	user := state.GetUser(tx.Address)
 	if user == nil {
-		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("Address is unknown: %v", tx.Address))
+		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("%v", tx.Address))
 	}
 
 	// Check that the account index exists
@@ -465,7 +465,7 @@ func legalEntityQuery(state *State, tx *types.LegalEntityQueryTx) abci.Result {
 
 	user := state.GetUser(tx.Address)
 	if user == nil {
-		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("Address is unknown: %v", tx.Address))
+		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("%v", tx.Address))
 	}
 	legalEntities := make([]*types.LegalEntity, len(tx.Ids))
 	for i, id := range tx.Ids {
@@ -496,7 +496,7 @@ func legalEntityIndexQueryTx(state *State, tx *types.LegalEntityIndexQueryTx) ab
 
 	user := state.GetUser(tx.Address)
 	if user == nil {
-		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("Address is unknown: %v", tx.Address))
+		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("%v", tx.Address))
 	}
 
 	// Check that the account index exists
