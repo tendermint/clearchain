@@ -82,7 +82,7 @@ func (app *Ledger) SetOption(key string, value string) (log string) {
 		}
 		app.state.SetAccount(acc.ID, acc)
 		state.SetAccountInIndex(app.state, *acc)
-
+		app.Commit()
 		return "Success"
 	case "user":
 		var err error
@@ -93,6 +93,7 @@ func (app *Ledger) SetOption(key string, value string) (log string) {
 		}
 
 		app.state.SetUser(user.PubKey.Address(), user)
+		app.Commit()
 		return "Success"
 	case "legalEntity":
 		var legalEntity types.LegalEntity
@@ -105,6 +106,7 @@ func (app *Ledger) SetOption(key string, value string) (log string) {
 
 		app.state.SetLegalEntity(legalEntity.ID, &legalEntity)
 		state.SetLegalEntityInIndex(app.state, &legalEntity)
+		app.Commit()
 
 		return "Success"
 	}
