@@ -11,8 +11,8 @@ import (
 	"github.com/tendermint/go-crypto"
 )
 
-var serverAddress = "tcp://127.0.0.1:46658"
-var chainID = "test_chain_id"
+var serverAddress = "127.0.0.1:46657"
+var chainID = "test_chain_id" 
 var privateKeyInBase64 = "ATRXWwlJ6bvNRcNRT/EMmymjZvAGsLZp5a95t9HL5NRhhDh4uTLuSQikLSS//AOeuN+s1DQMgzQjEGgglAR/r6s="
 
 var privateKey crypto.PrivKey

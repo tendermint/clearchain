@@ -4,25 +4,24 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/gorilla/websocket"
-//	abcicli "github.com/tendermint/abci/client"
 	abci "github.com/tendermint/abci/types"
 	"github.com/tendermint/clearchain/types"
-	"github.com/tendermint/go-common"
+//	"github.com/tendermint/go-common"
 	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-logger"
-	"github.com/tendermint/go-rpc/client"
-	"github.com/tendermint/go-rpc/types"
+//	"github.com/tendermint/go-rpc/types"
 	"github.com/tendermint/go-wire"
-	_ "github.com/tendermint/tendermint/rpc/core/types" // Register RPCResponse > Result types
+	"github.com/tendermint/light-client/rpc"
+	//	abcicli "github.com/tendermint/abci/client"
+	//	"github.com/gorilla/websocket"
+	//	"github.com/tendermint/go-rpc/client"
+	//	_ "github.com/tendermint/tendermint/rpc/core/types" // Register RPCResponse > Result types
 )
 
 var log = logger.New("module", "client")
 var chainID string
 
-//var client abcicli.Client
-
-var ws *rpcclient.WSClient
+var httpClient *rpc.HTTPClient
 
 // SetChainID assigns and initializes the chain's ID
 func SetChainID(id string) {
@@ -167,29 +166,17 @@ func GetAllLegalEntities(privateKey crypto.PrivKey) (returned types.LegalEntityI
 }
 
 func sendQuery(privateKey crypto.PrivKey, tx types.SignedTx) abci.Result {
-	//	return sendToTendermint(privateKey, tx, client.QuerySync, true)
-
 	txBytes, result := getTXBytes(privateKey, tx, true)
 	if result.IsErr() {
 		return result
 	}
 
-	request := rpctypes.NewRPCRequest("RPCQueryRequestID", "query", common.Arr(txBytes))
-	reqBytes := wire.JSONBytes(request)
-	err := ws.WriteMessage(websocket.TextMessage, reqBytes)
+	resultABCI, err := httpClient.ABCIQuery(txBytes)
 	if err != nil {
-		panic("writing websocket request: " + err.Error())
+		panic(err.Error())
 	}
 
-	res, ok := <-ws.ResultsCh
-	if !ok {
-		panic("websocket read error: " + err.Error())
-	}
-	
-	returned := abci.OK
-	returned.SetData(res)
-	
-	return returned
+	return resultABCI.Result
 }
 
 func sendDeliverTxSync(privateKey crypto.PrivKey, tx types.SignedTx) abci.Result {
@@ -198,11 +185,10 @@ func sendDeliverTxSync(privateKey crypto.PrivKey, tx types.SignedTx) abci.Result
 		return result
 	}
 
-	request := rpctypes.NewRPCRequest("RPCRequestID", "broadcast_tx_sync", common.Arr(txBytes))
-	reqBytes := wire.JSONBytes(request)
-	err := ws.WriteMessage(websocket.TextMessage, reqBytes)
+	_, err := httpClient.BroadcastTxSync(txBytes)
+	
 	if err != nil {
-		panic("writing websocket request: " + err.Error())
+		panic(err.Error())
 	}
 
 	return abci.OK
@@ -235,30 +221,13 @@ func getTXBytes(privateKey crypto.PrivKey, tx types.SignedTx, isQuery bool) (txs
 
 // StartClient is a convenience function to start the client app
 func StartClient(serverAddress string) {
-	//serverAddress := "192.168.99.100:46657"
-	ws = rpcclient.NewWSClient(serverAddress, "/websocket")
-	_, err := ws.Start()
-	if err != nil {
-		panic(err.Error())
-	}
-
-//	var err error
-//	client, err = abcicli.NewClient(serverAddress, "socket", true)
-//	if err != nil {
-//		panic("connecting to abci_app: " + err.Error())
-//	}
+	//serverAddress := "127.0.0.1:46657"
+	httpClient = rpc.New(serverAddress, "")
 
 	log.Info("Tendermint server connection established to " + serverAddress)
 }
 
 func Commit() {
-//	res := client.CommitSync()
-//
-//	if res.IsErr() {
-//		panic(fmt.Sprintf("Commit error: %v", res.Log))
-//	}
-//
-//	log.Info("Committed tx")
 }
 
 func GetLegalEntities(privateKey crypto.PrivKey, ids []string) (returned types.LegalEntitiesReturned) {
