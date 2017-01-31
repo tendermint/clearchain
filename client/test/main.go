@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	serverAddress := "tcp://127.0.0.1:46658"
+	serverAddress := "127.0.0.1:46657"
 	chainID := "test_chain_id"
 
 	client.SetChainID(chainID)
