@@ -185,7 +185,7 @@ func sendDeliverTxSync(privateKey crypto.PrivKey, tx types.SignedTx) abci.Result
 		return result
 	}
 
-	_, err := httpClient.BroadcastTxSync(txBytes)
+	_, err := httpClient.BroadcastTxCommit(txBytes)
 	
 	if err != nil {
 		panic(err.Error())

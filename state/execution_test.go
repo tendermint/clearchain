@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"reflect"
 	"testing"
+	
+	"fmt"
+	"github.com/tendermint/clearchain/client"
+	"github.com/tendermint/go-wire"
 
 	"github.com/golang/mock/gomock"
 	"github.com/satori/go.uuid"
@@ -697,4 +701,74 @@ func Test_makeNewUser(t *testing.T) {
 		mockObj.EXPECT().SetUser(tt.args.tx.PubKey.Address(), u).Times(ntimes)
 		makeNewUser(tt.args.state, tt.args.creator, tt.args.tx, tt.args.isCheckTx)
 	}
+	
+}
+
+
+func Test_validateSignatureHash(t *testing.T) {
+	//ATRXWwlJ6bvNRcNRT/EMmymjZvAGsLZp5a95t9HL5NRhhDh4uTLuSQikLSS//AOeuN+s1DQMgzQjEGgglAR/r6s=
+	privateKeyBytes := []byte{1, 52, 87, 91, 9, 73, 233, 187, 205, 69, 195, 81, 79, 241, 12, 155, 41, 163, 102, 240, 6, 176, 182, 105, 229, 175, 121, 183, 209, 203, 228, 212, 97, 132, 56, 120, 185, 50, 238, 73, 8, 164, 45, 36, 191, 252, 3, 158, 184, 223, 172, 212, 52, 12, 131, 52, 35, 16, 104, 32, 148, 4, 127, 175, 171}
+	privateKey, _ := crypto.PrivKeyFromBytes(privateKeyBytes) //User{b40cbf4e-5923-4ccd-beec-e22a9117b91b "Name" 31}
+	signHexa := fmt.Sprintf("%X", privateKey.Sign([]byte("test")).Bytes())
+	signExpected :=  "0159180CFAEC7CA365BC487BECDDE47295FAACDB2E49C9236641A9FFBF98E5BACBFEAD06C838E06389A733D6D1BB33F720B41F68C7EDFC8655B57CFE78EC541F0E"
+	if !(signHexa == signExpected) {
+		t.Errorf("Sign() return %v, expected: %v", signHexa, signExpected)
+	}
+	signHexa = fmt.Sprintf("%X", privateKey.Sign([]byte("3b6a27bcceb6a42d62a3a8d02a6f0")).Bytes())
+	signExpected =  "016130B1064DBC0DDC39F7C97515B97A165B986BD47605A1E01E9097E9680E0AFF564DB2E554DD48A416526607BD1F7F49FEE1945E053C4BEAD490151D4C344607"
+	if !(signHexa == signExpected) {
+		t.Errorf("Sign() return %v, expected: %v", signHexa, signExpected)
+	}
+}
+
+
+func Test_validateTransferTxHash(t *testing.T) {
+	
+	chainID := "test_chain_id"
+	privateKeyParam := "ATRXWwlJ6bvNRcNRT/EMmymjZvAGsLZp5a95t9HL5NRhhDh4uTLuSQikLSS//AOeuN+s1DQMgzQjEGgglAR/r6s="
+	senderID := "1d2df1ae-accb-11e6-bbbb-00ff5244ae7f"
+	recipientID := "6b6d3a08-5527-4955-b4fd-f5ba7e083548"
+	counterSignerParam := "ASrNVL489e9TlRNmIqC+vRs96+ntDRkAi1+jWnf89Nrdc4YgmMK2CzG5yTgMPvNyEq4+b5F41q79tR0MImWtYJA="
+	amount := int64(10000)
+	currency := "EUR"
+	
+	privateKey, _ := crypto.PrivKeyFromBytes(client.Decode(privateKeyParam))
+	counterSignerAddresses := make([][]byte, 1)
+	counterSignerAddresses[0] = client.Decode(counterSignerParam)
+	newSequenceID := 1
+
+	sender := types.TxTransferSender{AccountID: senderID,
+		Amount:   amount,
+		Currency: currency,
+		Sequence: newSequenceID,
+		Address:  privateKey.PubKey().Address(),
+	}
+	
+	recipient := types.TxTransferRecipient{AccountID: recipientID}
+	
+	counterSigners := make([]types.TxTransferCounterSigner, len(counterSignerAddresses))
+	for i, address := range counterSignerAddresses {
+		privKey, _ := crypto.PrivKeyFromBytes(address)
+		counterSigners[i] = types.TxTransferCounterSigner{Address: privKey.PubKey().Address()}
+		_ = counterSigners[i].SignTx(privKey, chainID)
+	}
+	
+	tx := &types.TransferTx{
+		Sender:         sender,
+		Recipient:      recipient,
+		CounterSigners: counterSigners,
+	}
+	
+	_ = tx.SignTx(privateKey, chainID)
+	
+	txs := wire.BinaryBytes(struct{ types.Tx }{tx})
+	
+	binaryHexa := fmt.Sprintf("%X", txs)
+	binaryExpected :=  "010114A5211E797F5E5B16929F55C9D53F7327C173201C012431643264663161652D616363622D313165362D626262622D303066663532343461653766000000000000271001034555520101014ACDA1E0B67F0162BDBEA16423CC8577BF41E11906AE90735380D0A81917F5B8608D4A85FCA4FF9C27FEAA51F04732EFF19591D6D884BCAF2C05EF827AB05508012436623664336130382D353532372D343935352D623466642D66356261376530383335343801010114C74F63C7544631C05ECA679171D824B4250CEDD301FB0A52C4E75170AE29354C391A4CF8FE9CA0A141D67912315621E505B2357EF0261A4E97799F549ECAFAEEAF5EE0D578F79B9DA8010DD6E983512B5A3CDD5902"
+	if !(binaryHexa == binaryExpected) {
+		t.Errorf("Sign() return %v, expected: %v", binaryHexa, binaryExpected)
+	}
+	
+	
+
 }
