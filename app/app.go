@@ -160,18 +160,18 @@ func (app *Ledger) InitChain(validators []*abci.Validator) {
 }
 
 // abci::BeginBlock
-func (app *Ledger) BeginBlock(height uint64) {
+func (app *Ledger) BeginBlock(hash []byte, header *abci.Header) {
 	for _, plugin := range app.plugins.GetList() {
-		plugin.BeginBlock(app.state, height)
+		plugin.BeginBlock(app.state, hash, header)
 	}
 	app.cacheState = app.state.CacheWrap()
 }
 
 // abci::EndBlock
-func (app *Ledger) EndBlock(height uint64) (diffs []*abci.Validator) {
+func (app *Ledger) EndBlock(height uint64) (res abci.ResponseEndBlock) {
 	for _, plugin := range app.plugins.GetList() {
-		moreDiffs := plugin.EndBlock(app.state, height)
-		diffs = append(diffs, moreDiffs...)
+		pluginRes  := plugin.EndBlock(app.state, height)
+		res.Diffs = append(res.Diffs, pluginRes.Diffs...)
 	}
 	return
 }
