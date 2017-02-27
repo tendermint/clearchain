@@ -3,9 +3,9 @@ package state
 import (
 	"testing"
 
-	"github.com/tendermint/clearchain/types"
 	uuid "github.com/satori/go.uuid"
 	bscoin "github.com/tendermint/basecoin/types"
+	"github.com/tendermint/clearchain/types"
 )
 
 func TestNewState(t *testing.T) {

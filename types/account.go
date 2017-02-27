@@ -73,7 +73,7 @@ func (account *Account) SetWallet(wallet Wallet) {
 			return
 		}
 	}
-	
+
 	account.Wallets = append(account.Wallets, wallet)
 }
 

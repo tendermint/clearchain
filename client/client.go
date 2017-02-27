@@ -6,10 +6,10 @@ import (
 
 	abci "github.com/tendermint/abci/types"
 	"github.com/tendermint/clearchain/types"
-//	"github.com/tendermint/go-common"
+	//	"github.com/tendermint/go-common"
 	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-logger"
-//	"github.com/tendermint/go-rpc/types"
+	//	"github.com/tendermint/go-rpc/types"
 	"github.com/tendermint/go-wire"
 	"github.com/tendermint/light-client/rpc"
 	//	abcicli "github.com/tendermint/abci/client"
@@ -186,7 +186,7 @@ func sendDeliverTxSync(privateKey crypto.PrivKey, tx types.SignedTx) abci.Result
 	}
 
 	_, err := httpClient.BroadcastTxCommit(txBytes)
-	
+
 	if err != nil {
 		panic(err.Error())
 	}

@@ -1,8 +1,8 @@
 package state
 
 import (
-	"github.com/tendermint/clearchain/types"
 	basecoin "github.com/tendermint/basecoin/types"
+	"github.com/tendermint/clearchain/types"
 	common "github.com/tendermint/go-common"
 	"github.com/tendermint/go-wire"
 )
@@ -86,7 +86,7 @@ func (s *State) SetAccountIndex(index *types.AccountIndex) {
 	s.store.Set(AccountIndexKey(), accBytes)
 }
 
-//Gets existing LegalEntityIndex from store or nil if nonexistent. Can panic if store's data is corrupt. 
+//Gets existing LegalEntityIndex from store or nil if nonexistent. Can panic if store's data is corrupt.
 func (s *State) GetLegalEntityIndex() *types.LegalEntityIndex {
 	data := s.store.Get(legalEntityIndexKey())
 	if len(data) == 0 {
@@ -101,7 +101,7 @@ func (s *State) GetLegalEntityIndex() *types.LegalEntityIndex {
 	return LegalEntityIndex
 }
 
-//Sets LegalEntityIndex in store 
+//Sets LegalEntityIndex in store
 func (s *State) SetLegalEntityIndex(LegalEntityIndex *types.LegalEntityIndex) {
 	LegalEntityIndexBytes := wire.BinaryBytes(LegalEntityIndex)
 	s.store.Set(legalEntityIndexKey(), LegalEntityIndexBytes)
@@ -217,7 +217,6 @@ func AccountIndexKey() []byte {
 func legalEntityIndexKey() []byte {
 	return []byte("base/i/l")
 }
-
 
 // GetAccountIndex retrieves a AccountIndex from the given store
 func GetAccountIndex(store basecoin.KVStore) *types.AccountIndex {

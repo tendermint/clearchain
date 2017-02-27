@@ -12,7 +12,7 @@ import (
 )
 
 var serverAddress = "127.0.0.1:46657"
-var chainID = "test_chain_id" 
+var chainID = "test_chain_id"
 var privateKeyInBase64 = "ATRXWwlJ6bvNRcNRT/EMmymjZvAGsLZp5a95t9HL5NRhhDh4uTLuSQikLSS//AOeuN+s1DQMgzQjEGgglAR/r6s="
 
 var privateKey crypto.PrivKey
@@ -90,10 +90,10 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 
 	accountsRequested := client.GetAllAccounts(privateKey).Accounts
 	accounts := client.GetAccounts(privateKey, accountsRequested).Account
-	
+
 	legalEntityIds := client.GetAllLegalEntities(privateKey).Ids
 	legalEntities := client.GetLegalEntities(privateKey, legalEntityIds).LegalEntities
-	
+
 	jsonBytes, err := json.Marshal(struct {
 		LegalEntities []*types.LegalEntity `json:"legalEntities"`
 		Account       []*types.Account     `json:"accounts"`

@@ -170,7 +170,7 @@ func (app *Ledger) BeginBlock(hash []byte, header *abci.Header) {
 // abci::EndBlock
 func (app *Ledger) EndBlock(height uint64) (res abci.ResponseEndBlock) {
 	for _, plugin := range app.plugins.GetList() {
-		pluginRes  := plugin.EndBlock(app.state, height)
+		pluginRes := plugin.EndBlock(app.state, height)
 		res.Diffs = append(res.Diffs, pluginRes.Diffs...)
 	}
 	return

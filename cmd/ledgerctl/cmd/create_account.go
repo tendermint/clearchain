@@ -15,7 +15,7 @@ func init() {
 			accountID := readParameter("accountID")
 			entityID := readParameter("entityID")
 
-			account:= types.NewAccount(accountID, entityID)
+			account := types.NewAccount(accountID, entityID)
 
 			fmt.Println(string(wire.JSONBytes(account)))
 		},
