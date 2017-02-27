@@ -1,14 +1,14 @@
 package main
 
 import (
-	"fmt"
 	"encoding/json"
+	"fmt"
 
 	"github.com/tendermint/clearchain/types"
 	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-wire"
 	"github.com/tendermint/light-client/rpc"
-//	_ "github.com/tendermint/tendermint/rpc/core/types" // Register RPCResponse > Result types
+	//	_ "github.com/tendermint/tendermint/rpc/core/types" // Register RPCResponse > Result types
 )
 
 func main() {

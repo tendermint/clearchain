@@ -18,11 +18,11 @@ func init() {
 			var chainID, serverAddress, privateKeyParam, accountID string
 
 			if len(args) == 4 {
-//TMSP version				
-//ledgerctl get_wallet test_chain_id tcp://127.0.0.1:46658 ATRXWwlJ6bvNRcNRT/EMmymjZvAGsLZp5a95t9HL5NRhhDh4uTLuSQikLSS//AOeuN+s1DQMgzQjEGgglAR/r6s= 1d2df1ae-accb-11e6-bbbb-00ff5244ae7f
-//Websocket version
-//ledgerctl get_wallet test_chain_id 127.0.0.1:46657 ATRXWwlJ6bvNRcNRT/EMmymjZvAGsLZp5a95t9HL5NRhhDh4uTLuSQikLSS//AOeuN+s1DQMgzQjEGgglAR/r6s= 1d2df1ae-accb-11e6-bbbb-00ff5244ae7f
-				
+				//TMSP version
+				//ledgerctl get_wallet test_chain_id tcp://127.0.0.1:46658 ATRXWwlJ6bvNRcNRT/EMmymjZvAGsLZp5a95t9HL5NRhhDh4uTLuSQikLSS//AOeuN+s1DQMgzQjEGgglAR/r6s= 1d2df1ae-accb-11e6-bbbb-00ff5244ae7f
+				//Websocket version
+				//ledgerctl get_wallet test_chain_id 127.0.0.1:46657 ATRXWwlJ6bvNRcNRT/EMmymjZvAGsLZp5a95t9HL5NRhhDh4uTLuSQikLSS//AOeuN+s1DQMgzQjEGgglAR/r6s= 1d2df1ae-accb-11e6-bbbb-00ff5244ae7f
+
 				chainID = args[0]
 				serverAddress = args[1]
 				privateKeyParam = args[2]
@@ -41,7 +41,7 @@ func init() {
 
 			client.SetChainID(chainID)
 			client.StartClient(serverAddress)
-			fmt.Println(string(wire.JSONBytes(client.GetAccounts(privateKey, []string{accountID}).Account[0])))			
+			fmt.Println(string(wire.JSONBytes(client.GetAccounts(privateKey, []string{accountID}).Account[0])))
 		},
 	})
 }

@@ -101,7 +101,6 @@ type LegalEntitiesReturned struct {
 	LegalEntities []*LegalEntity `json:"legal_entities"`
 }
 
-
 //--------------------------------------------
 
 // LegalEntityGetter is implemented by any value that has a GetLegalEntity

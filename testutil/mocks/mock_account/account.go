@@ -4,8 +4,8 @@
 package mock_account
 
 import (
-	types "github.com/tendermint/clearchain/types"
 	gomock "github.com/golang/mock/gomock"
+	types "github.com/tendermint/clearchain/types"
 )
 
 // Mock of AccountGetter interface

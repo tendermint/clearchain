@@ -5,9 +5,9 @@ import (
 
 	"reflect"
 
-	"github.com/tendermint/clearchain/types"
 	"github.com/dustinkirkland/golang-petname"
 	"github.com/satori/go.uuid"
+	"github.com/tendermint/clearchain/types"
 	"github.com/tendermint/go-common"
 	"github.com/tendermint/go-crypto"
 )
