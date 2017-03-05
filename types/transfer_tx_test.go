@@ -2,9 +2,8 @@ package types
 
 import (
 	"bytes"
-	"testing"
-
 	"fmt"
+	"testing"
 
 	"github.com/satori/go.uuid"
 	abci "github.com/tendermint/abci/types"
@@ -16,13 +15,15 @@ func TestTransferTx_SignBytes(t *testing.T) {
 	chainID := "test_chain_id"
 	privKey := crypto.GenPrivKeyEd25519()
 	tx := &TransferTx{
-		Sender: TxTransferSender{
+		Committer: TxTransferCommitter{
 			Address:   []byte("test_sender_address"),
+			Signature: privKey.Sign(crypto.CRandBytes(128)),
+		},
+		Sender: TxTransferSender{
 			AccountID: uuid.NewV4().String(),
 			Amount:    99999999,
 			Currency:  "USD",
 			Sequence:  1,
-			Signature: privKey.Sign(crypto.CRandBytes(128)),
 		},
 		CounterSigners: []TxTransferCounterSigner{
 			TxTransferCounterSigner{
@@ -35,7 +36,7 @@ func TestTransferTx_SignBytes(t *testing.T) {
 		},
 	}
 	signedBytes := tx.SignBytes(chainID)
-	tx.Sender.Signature = nil
+	tx.Committer.Signature = nil
 	tx.CounterSigners[0].Signature = nil
 	expected := wire.BinaryBytes(chainID)
 	expected = append(expected, wire.BinaryBytes(tx)...)
@@ -56,8 +57,10 @@ func TestTransferTx_SetSignature(t *testing.T) {
 		crypto.GenPrivKeyEd25519().Sign(crypto.CRandBytes(128)),
 	}
 	tx := &TransferTx{
+		Committer: TxTransferCommitter{
+			Address: senderAddr,
+		},
 		Sender: TxTransferSender{
-			Address:   senderAddr,
 			AccountID: uuid.NewV4().String(),
 			Amount:    99999999,
 			Currency:  "USD",
@@ -104,6 +107,7 @@ func TestTransferTx_SetSignature(t *testing.T) {
 func TestTransferTx_ValidateBasic(t *testing.T) {
 	signature := crypto.GenPrivKeyEd25519().Sign([]byte("test_content"))
 	type fields struct {
+		Committer      TxTransferCommitter
 		Sender         TxTransferSender
 		Recipient      TxTransferRecipient
 		CounterSigners []TxTransferCounterSigner
@@ -115,72 +119,74 @@ func TestTransferTx_ValidateBasic(t *testing.T) {
 	}{
 		{"emptySender", fields{Sender: TxTransferSender{}}, abci.ErrBaseInvalidInput},
 		{"invalidSender", fields{Sender: TxTransferSender{AccountID: uuid.NewV4().String()}}, abci.ErrBaseInvalidInput},
-		{"invalidSequence", fields{Sender: TxTransferSender{
-			AccountID: uuid.NewV4().String(),
-			Address:   crypto.CRandBytes(20),
-			Currency:  "USD",
-			Amount:    100,
-			Signature: signature,
-		}}, abci.ErrBaseInvalidSequence},
-		{"emptyRecipient", fields{Sender: TxTransferSender{
-			AccountID: uuid.NewV4().String(),
-			Address:   crypto.CRandBytes(20),
-			Currency:  "USD",
-			Amount:    100,
-			Signature: signature,
-			Sequence:  1}}, abci.ErrBaseInvalidOutput},
+		{"invalidSequence", fields{
+			Sender: TxTransferSender{
+				AccountID: uuid.NewV4().String(),
+				Currency:  "USD",
+				Amount:    100,
+			},
+			Committer: TxTransferCommitter{Address: crypto.CRandBytes(20), Signature: signature},
+		}, abci.ErrBaseInvalidSequence},
+		{"emptyRecipient", fields{
+			Sender: TxTransferSender{
+				AccountID: uuid.NewV4().String(),
+				Currency:  "USD",
+				Amount:    100,
+				Sequence:  1},
+			Committer: TxTransferCommitter{Address: crypto.CRandBytes(20), Signature: signature},
+		}, abci.ErrBaseInvalidOutput},
 		{"validWithoutConterSigners", fields{
 			Sender: TxTransferSender{
 				AccountID: uuid.NewV4().String(),
-				Address:   crypto.CRandBytes(20),
 				Currency:  "USD",
 				Amount:    100,
-				Signature: signature,
-				Sequence:  1}, Recipient: TxTransferRecipient{AccountID: uuid.NewV4().String()}}, abci.OK},
-		{"invalidCurrency", fields{Sender: TxTransferSender{
-			AccountID: uuid.NewV4().String(),
-			Address:   crypto.CRandBytes(20),
-			Currency:  "invalid",
-			Amount:    100,
-			Signature: signature,
-			Sequence:  1}, Recipient: TxTransferRecipient{AccountID: uuid.NewV4().String()}}, abci.ErrBaseInvalidInput},
+				Sequence:  1},
+			Committer: TxTransferCommitter{Address: crypto.CRandBytes(20), Signature: signature},
+			Recipient: TxTransferRecipient{AccountID: uuid.NewV4().String()}}, abci.OK},
+		{"invalidCurrency", fields{
+			Sender: TxTransferSender{
+				AccountID: uuid.NewV4().String(),
+				Currency:  "invalid",
+				Amount:    100,
+				Sequence:  1},
+			Committer: TxTransferCommitter{Address: crypto.CRandBytes(20), Signature: signature},
+			Recipient: TxTransferRecipient{AccountID: uuid.NewV4().String()}}, abci.ErrBaseInvalidInput},
 		{"emptyCounterSigner", fields{
 			Sender: TxTransferSender{
 				AccountID: uuid.NewV4().String(),
-				Address:   crypto.CRandBytes(20),
 				Currency:  "USD",
 				Amount:    100,
-				Signature: signature,
 				Sequence:  1,
 			},
+			Committer:      TxTransferCommitter{Address: crypto.CRandBytes(20), Signature: signature},
 			CounterSigners: []TxTransferCounterSigner{TxTransferCounterSigner{}},
 			Recipient:      TxTransferRecipient{AccountID: uuid.NewV4().String()}}, abci.ErrBaseInvalidInput},
 		{"invalidCounterSignature", fields{
 			Sender: TxTransferSender{
 				AccountID: uuid.NewV4().String(),
-				Address:   crypto.CRandBytes(20),
 				Currency:  "USD",
 				Amount:    100,
-				Signature: signature,
 				Sequence:  3,
 			},
+			Committer:      TxTransferCommitter{Address: crypto.CRandBytes(20), Signature: signature},
 			CounterSigners: []TxTransferCounterSigner{TxTransferCounterSigner{Address: crypto.CRandBytes(20)}},
 			Recipient:      TxTransferRecipient{AccountID: uuid.NewV4().String()}}, abci.ErrBaseInvalidSignature},
 		{"validWithCounterSignatures", fields{
 			Sender: TxTransferSender{
 				AccountID: uuid.NewV4().String(),
-				Address:   crypto.CRandBytes(20),
 				Currency:  "USD",
 				Amount:    100,
-				Signature: signature,
 				Sequence:  3,
-			}, CounterSigners: []TxTransferCounterSigner{TxTransferCounterSigner{
+			},
+			Committer: TxTransferCommitter{Address: crypto.CRandBytes(20), Signature: signature},
+			CounterSigners: []TxTransferCounterSigner{TxTransferCounterSigner{
 				Address:   crypto.CRandBytes(20),
 				Signature: crypto.GenPrivKeyEd25519().Sign([]byte("test_content")),
 			}}, Recipient: TxTransferRecipient{AccountID: uuid.NewV4().String()}}, abci.OK},
 	}
 	for _, tt := range tests {
 		tx := TransferTx{
+			Committer:      tt.fields.Committer,
 			Sender:         tt.fields.Sender,
 			Recipient:      tt.fields.Recipient,
 			CounterSigners: tt.fields.CounterSigners,
@@ -192,7 +198,6 @@ func TestTransferTx_ValidateBasic(t *testing.T) {
 }
 
 func TestTxTransferSender_ValidateBasic(t *testing.T) {
-	signature := crypto.GenPrivKeyEd25519().Sign([]byte("test_content"))
 	tests := []struct {
 		name string
 		tx   TxTransferSender
@@ -202,74 +207,47 @@ func TestTxTransferSender_ValidateBasic(t *testing.T) {
 			"emptyInput", TxTransferSender{}, abci.ErrBaseInvalidInput,
 		},
 		{
-			"emptyAddress", TxTransferSender{AccountID: uuid.NewV4().String()}, abci.ErrBaseInvalidInput,
-		},
-		{
-			"invalidAddress", TxTransferSender{Address: []byte{}}, abci.ErrBaseInvalidInput,
-		},
-		{
 			"invalidAmount", TxTransferSender{
 				AccountID: uuid.NewV4().String(),
-				Address:   crypto.CRandBytes(20),
 				Amount:    0,
-				Signature: signature,
 			}, abci.ErrBaseInvalidInput,
 		},
 		{
 			"invalidCurrency", TxTransferSender{
 				AccountID: uuid.NewV4().String(),
-				Address:   crypto.CRandBytes(20),
 				Amount:    10,
 				Currency:  "Invalid currency",
-				Signature: signature,
 			}, abci.ErrBaseInvalidInput,
-		},
-		{
-			"invalidSignature", TxTransferSender{
-				AccountID: uuid.NewV4().String(),
-				Address:   crypto.CRandBytes(20),
-				Amount:    100,
-				Currency:  "USD",
-				Sequence:  0,
-			}, abci.ErrBaseInvalidSignature,
 		},
 		{
 			"invalidCurrency", TxTransferSender{
 				AccountID: uuid.NewV4().String(),
-				Address:   crypto.CRandBytes(20),
 				Amount:    100,
 				Currency:  "XXX",
 				Sequence:  1,
-				Signature: signature,
 			}, abci.ErrBaseInvalidInput,
 		},
 		{
 			"invalidAccount", TxTransferSender{
-				Address:   crypto.CRandBytes(20),
-				Amount:    100,
-				Currency:  "USD",
-				Sequence:  1,
-				Signature: signature,
+				Amount:   100,
+				Currency: "USD",
+				Sequence: 1,
 			}, abci.ErrBaseInvalidInput,
 		},
 		{
 			"validInput", TxTransferSender{
 				AccountID: uuid.NewV4().String(),
-				Address:   crypto.CRandBytes(20),
 				Amount:    100,
 				Currency:  "USD",
 				Sequence:  1,
-				Signature: signature,
 			}, abci.OK,
 		},
 		{
 			"invalidSequence", TxTransferSender{
 				AccountID: uuid.NewV4().String(),
-				Address:   crypto.CRandBytes(20),
 				Amount:    100,
 				Currency:  "USD",
 				Sequence:  0,
-				Signature: signature,
 			}, abci.ErrBaseInvalidSequence,
 		},
 	}
@@ -340,5 +318,166 @@ func TestTxTransferCounterSigner_String(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("%q. TxTransferCounterSigner.String() got = %v, want %v", tt.name, got, tt.want)
 		}
+	}
+}
+
+func TestTxTransferCommitter_ValidateBasic(t *testing.T) {
+	type fields struct {
+		Address   []byte
+		Signature crypto.Signature
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   abci.Result
+	}{
+		{
+			"emptyInput", fields{}, abci.ErrBaseInvalidInput,
+		},
+		{
+			"invalidAddress", fields{Address: []byte{}}, abci.ErrBaseInvalidInput,
+		},
+		{
+			"invalidSignature", fields{
+				Address: crypto.CRandBytes(20),
+			}, abci.ErrBaseInvalidSignature,
+		},
+		{
+			"validInput", fields{
+				Address:   crypto.CRandBytes(20),
+				Signature: crypto.GenPrivKeyEd25519().Sign([]byte("test_content")),
+			}, abci.OK,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tx := TxTransferCommitter{
+				Address:   tt.fields.Address,
+				Signature: tt.fields.Signature,
+			}
+			if got := tx.ValidateBasic(); got.Code != tt.want.Code {
+				t.Errorf("TxTransferCommitter.ValidateBasic() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTransferTx_SignTx(t *testing.T) {
+	privKey := crypto.GenPrivKeyEd25519()
+	addr := privKey.PubKey().Address()
+	type fields struct {
+		Committer      TxTransferCommitter
+		Sender         TxTransferSender
+		Recipient      TxTransferRecipient
+		CounterSigners []TxTransferCounterSigner
+	}
+	type args struct {
+		privateKey crypto.PrivKey
+		chainID    string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			"addressMismatch",
+			fields{TxTransferCommitter{Address: []byte{}}, TxTransferSender{}, TxTransferRecipient{}, nil},
+			args{privKey, "test"},
+			true,
+		},
+		{
+			"validSignature",
+			fields{TxTransferCommitter{Address: addr}, TxTransferSender{}, TxTransferRecipient{}, nil},
+			args{privKey, "test"},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tx := &TransferTx{
+				Committer:      tt.fields.Committer,
+				Sender:         tt.fields.Sender,
+				Recipient:      tt.fields.Recipient,
+				CounterSigners: tt.fields.CounterSigners,
+			}
+			if err := tx.SignTx(tt.args.privateKey, tt.args.chainID); (err != nil) != tt.wantErr {
+				t.Errorf("TransferTx.SignTx() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestTxTransferCommitter_SignTx(t *testing.T) {
+	privKey := crypto.GenPrivKeyEd25519()
+	addr := privKey.PubKey().Address()
+	type fields struct {
+		Address   []byte
+		Signature crypto.Signature
+	}
+	type args struct {
+		privateKey crypto.PrivKey
+		chainID    string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			"addressMismatch",
+			fields{[]byte{}, nil},
+			args{privKey, "test"},
+			true,
+		},
+		{
+			"validSignature",
+			fields{addr, nil},
+			args{privKey, "test"},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tx := &TxTransferCommitter{
+				Address:   tt.fields.Address,
+				Signature: tt.fields.Signature,
+			}
+			if err := tx.SignTx(tt.args.privateKey, tt.args.chainID); (err != nil) != tt.wantErr {
+				t.Errorf("TxTransferCommitter.SignTx() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestTxTransferCounterSigner_SignTx(t *testing.T) {
+	type fields struct {
+		Address   []byte
+		Signature crypto.Signature
+	}
+	type args struct {
+		privateKey crypto.PrivKey
+		chainID    string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{"alwaysOK", fields{}, args{crypto.GenPrivKeyEd25519(), "test"}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tx := &TxTransferCounterSigner{
+				Address:   tt.fields.Address,
+				Signature: tt.fields.Signature,
+			}
+			if err := tx.SignTx(tt.args.privateKey, tt.args.chainID); (err != nil) != tt.wantErr {
+				t.Errorf("TxTransferCounterSigner.SignTx() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }
