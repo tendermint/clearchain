@@ -2,6 +2,7 @@ package state
 
 import (
 	"encoding/json"
+
 	abci "github.com/tendermint/abci/types"
 	bctypes "github.com/tendermint/basecoin/types"
 	"github.com/tendermint/clearchain/types"
@@ -15,13 +16,13 @@ func transfer(state *State, tx *types.TransferTx, isCheckTx bool) abci.Result {
 		return res.PrependLog("in ValidateBasic()")
 	}
 
-	// Retrieve Sender's data
-	user := state.GetUser(tx.Sender.Address)
+	// Retrieve Committer's data
+	user := state.GetUser(tx.Committer.Address)
 	if user == nil {
 		return abci.ErrBaseUnknownAddress.AppendLog("Sender's user is unknown")
 	}
-	entity := state.GetLegalEntity(user.EntityID)
-	if entity == nil {
+	committerEntity := state.GetLegalEntity(user.EntityID)
+	if committerEntity == nil {
 		return abci.ErrUnauthorized.AppendLog("User's does not belong to any LegalEntity")
 	}
 
@@ -35,6 +36,16 @@ func transfer(state *State, tx *types.TransferTx, isCheckTx bool) abci.Result {
 		return abci.ErrBaseUnknownAddress.AppendLog("Unknown recipient address")
 	}
 
+	// Get legal entities
+	senderEntity := state.GetLegalEntity(senderAccount.EntityID)
+	if committerEntity == nil {
+		return abci.ErrUnauthorized.AppendLog("Sender's account does not belong to any LegalEntity")
+	}
+	recipientEntity := state.GetLegalEntity(recipientAccount.EntityID)
+	if recipientEntity == nil {
+		return abci.ErrUnauthorized.AppendLog("Recipient's account does not belong to any LegalEntity")
+	}
+
 	// Validate sender's Account
 	if res := validateWalletSequence(senderAccount, tx.Sender); res.IsErr() {
 		return res.PrependLog("in validateWalletSequence()")
@@ -43,12 +54,19 @@ func transfer(state *State, tx *types.TransferTx, isCheckTx bool) abci.Result {
 	// Generate byte-to-byte signature
 	signBytes := tx.SignBytes(state.GetChainID())
 
-	// Validate sender's permissions and signature
-	if res := validateSender(senderAccount, entity, user, signBytes, tx); res.IsErr() {
-		return res.PrependLog("in validateSender()")
+	// Validate committer's permissions and signature
+	if !user.VerifySignature(signBytes, tx.Committer.Signature) {
+		return abci.ErrBaseInvalidSignature.AppendLog("sender's signature doesn't match")
 	}
+	if res := validateExecPermissions(user, committerEntity, tx); res.IsErr() {
+		return res
+	}
+	if res := validateCommitter(user, committerEntity, senderEntity, recipientEntity, signBytes, tx); res.IsErr() {
+		return res.PrependLog("in validateCommitter()")
+	}
+
 	// Validate counter signers
-	if res := validateCounterSigners(state, senderAccount, entity, tx); res.IsErr() {
+	if res := validateCounterSigners(state, committerEntity, tx); res.IsErr() {
 		return res.PrependLog("in validateCounterSigners()")
 	}
 
@@ -308,22 +326,17 @@ func validateWalletSequence(acc *types.Account, in types.TxTransferSender) abci.
 	return abci.OK
 }
 
-func validateSender(acc *types.Account, entity *types.LegalEntity, u *types.User, signBytes []byte, tx *types.TransferTx) abci.Result {
-	if res := validatePermissions(u, entity, acc, tx); res.IsErr() {
-		return res
-	}
-	if !u.VerifySignature(signBytes, tx.Sender.Signature) {
-		return abci.ErrBaseInvalidSignature.AppendLog("sender's signature doesn't match")
-	}
+func validateCommitter(u *types.User, committerEntity, senderEntity, recipientEntity *types.LegalEntity, signBytes []byte, tx *types.TransferTx) abci.Result {
+	// TODO: apply business rules
 	return abci.OK
 }
 
 // Validate countersignatures
-func validateCounterSigners(state *State, acc *types.Account, entity *types.LegalEntity, tx *types.TransferTx) abci.Result {
+func validateCounterSigners(state *State, entity *types.LegalEntity, tx *types.TransferTx) abci.Result {
 	var users = make(map[string]bool)
 
 	// Make sure users are not duplicated
-	users[string(tx.Sender.Address)] = true
+	users[string(tx.Committer.Address)] = true
 
 	for _, in := range tx.CounterSigners {
 		// Users must not be duplicated either
@@ -339,7 +352,7 @@ func validateCounterSigners(state *State, acc *types.Account, entity *types.Lega
 		}
 
 		// Validate the permissions
-		if res := validatePermissions(user, entity, acc, tx); res.IsErr() {
+		if res := validateExecPermissions(user, entity, tx); res.IsErr() {
 			return res
 		}
 		// Verify the signature
@@ -351,13 +364,8 @@ func validateCounterSigners(state *State, acc *types.Account, entity *types.Lega
 	return abci.OK
 }
 
-func validatePermissions(u *types.User, e *types.LegalEntity, a *types.Account, tx types.Tx) abci.Result {
-	// Verify user belongs to the legal entity
-	if !a.BelongsTo(u.EntityID) {
-		return abci.ErrUnauthorized.AppendLog(common.Fmt(
-			"Access forbidden for user %s to account %s", u.Name, a.String()))
-	}
-	// Valdate permissions
+func validateExecPermissions(u *types.User, e *types.LegalEntity, tx types.Tx) abci.Result {
+	// Valdate exec permissions
 	if !types.CanExecTx(u, tx) {
 		return abci.ErrUnauthorized.AppendLog(common.Fmt(
 			"User is not authorized to execute the Tx: %s", u.String()))

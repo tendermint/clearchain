@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"fmt"
+
 	"github.com/tendermint/clearchain/client"
 	"github.com/tendermint/go-wire"
 
@@ -48,8 +49,10 @@ func TestExecTx(t *testing.T) {
 	amount := int64(10000000)
 	tx1 := func() types.TransferTx {
 		tx := types.TransferTx{
+			Committer: types.TxTransferCommitter{
+				Address: senderUser.User.PubKey.Address(),
+			},
 			Sender: types.TxTransferSender{
-				Address:   senderUser.User.PubKey.Address(),
 				AccountID: senderAccount.ID,
 				Amount:    amount,
 				Currency:  ccy,
@@ -60,7 +63,7 @@ func TestExecTx(t *testing.T) {
 			},
 		}
 		signBytes := tx.SignBytes(chainID)
-		tx.Sender.Signature = senderUser.PrivKey.Sign(signBytes)
+		tx.Committer.Signature = senderUser.PrivKey.Sign(signBytes)
 		return tx
 	}()
 	tx2 := func() types.TransferTx {
@@ -73,8 +76,10 @@ func TestExecTx(t *testing.T) {
 			counterSigners = append(counterSigners, cs)
 		}
 		tx := types.TransferTx{
+			Committer: types.TxTransferCommitter{
+				Address: senderUser.User.PubKey.Address(),
+			},
 			Sender: types.TxTransferSender{
-				Address:   senderUser.User.PubKey.Address(),
 				AccountID: senderAccount.ID,
 				Amount:    amount,
 				Currency:  ccy,
@@ -375,65 +380,13 @@ func TestExecQueryTx(t *testing.T) {
 	}
 }
 
-func Test_validateSender(t *testing.T) {
-	user := testutil.PrivUserFromSecret("")
-	authorizedUser := &user.User
-	authorizedUser.EntityID = uuid.NewV4().String()
-	authorizedUser.Permissions = types.PermTransferTx
-	authorizedLegalEntity := &types.LegalEntity{Permissions: types.PermTransferTx}
-	validAccount := &types.Account{EntityID: authorizedUser.EntityID}
-	validTx := &types.TransferTx{Sender: types.TxTransferSender{Address: authorizedUser.PubKey.Address()}}
-	signBytes := validTx.SignBytes("chainID")
-	validTx.Sender.Signature = user.PrivKey.Sign(signBytes)
-	type args struct {
-		acc       *types.Account
-		entity    *types.LegalEntity
-		u         *types.User
-		signBytes []byte
-		tx        *types.TransferTx
-	}
-	tests := []struct {
-		name string
-		args args
-		want abci.Result
-	}{
-		{
-			"unauthorizedUser",
-			args{validAccount, authorizedLegalEntity, &types.User{}, signBytes, validTx},
-			abci.ErrUnauthorized,
-		},
-		{
-			"unauthorizedEntity",
-			args{validAccount, &types.LegalEntity{}, authorizedUser, signBytes, validTx},
-			abci.ErrUnauthorized,
-		},
-		{
-			"invalidSignature",
-			args{validAccount, authorizedLegalEntity, authorizedUser, []byte{}, validTx},
-			abci.ErrBaseInvalidSignature,
-		},
-		{
-			"invalidSignature",
-			args{validAccount, authorizedLegalEntity, authorizedUser, signBytes, validTx},
-			abci.OK,
-		},
-	}
-	for _, tt := range tests {
-		if got := validateSender(tt.args.acc, tt.args.entity, tt.args.u, tt.args.signBytes, tt.args.tx); got.Code != tt.want.Code {
-			t.Errorf("%q. validateSender() = %v, want %v", tt.name, got, tt.want)
-		}
-	}
-}
-
-func Test_validatePermissions(t *testing.T) {
+func Test_validateExecPermissions(t *testing.T) {
 	authorizedUser := &types.User{EntityID: uuid.NewV4().String(), Permissions: types.PermTransferTx}
 	authorizedLegalEntity := &types.LegalEntity{Permissions: types.PermTransferTx}
-	validAccount := &types.Account{EntityID: authorizedUser.EntityID}
 
 	type args struct {
 		u  *types.User
 		e  *types.LegalEntity
-		a  *types.Account
 		tx *types.TransferTx
 	}
 	tests := []struct {
@@ -443,42 +396,27 @@ func Test_validatePermissions(t *testing.T) {
 	}{
 		{
 			"unauthorizedUser",
-			args{
-				&types.User{}, &types.LegalEntity{}, validAccount, &types.TransferTx{},
-			},
+			args{&types.User{}, &types.LegalEntity{}, &types.TransferTx{}},
 			abci.ErrUnauthorized,
 		},
 		{
 			"legalEntityMismatch",
-			args{
-				authorizedUser, &types.LegalEntity{}, validAccount, &types.TransferTx{},
-			},
-			abci.ErrUnauthorized,
-		},
-		{
-			"accountMismatch",
-			args{
-				authorizedUser, authorizedLegalEntity, &types.Account{}, &types.TransferTx{},
-			},
+			args{authorizedUser, &types.LegalEntity{}, &types.TransferTx{}},
 			abci.ErrUnauthorized,
 		},
 		{
 			"unauthorizedLegalEntity",
-			args{
-				authorizedUser, &types.LegalEntity{}, validAccount, &types.TransferTx{},
-			},
+			args{authorizedUser, &types.LegalEntity{}, &types.TransferTx{}},
 			abci.ErrUnauthorized,
 		},
 		{
 			"authorizedUser",
-			args{
-				authorizedUser, authorizedLegalEntity, validAccount, &types.TransferTx{},
-			},
+			args{authorizedUser, authorizedLegalEntity, &types.TransferTx{}},
 			abci.OK,
 		},
 	}
 	for _, tt := range tests {
-		if got := validatePermissions(tt.args.u, tt.args.e, tt.args.a, tt.args.tx); got.Code != tt.want.Code {
+		if got := validateExecPermissions(tt.args.u, tt.args.e, tt.args.tx); got.Code != tt.want.Code {
 			t.Errorf("%q. validatePermissions() = %v, want %v", tt.name, got, tt.want)
 		}
 	}
@@ -573,7 +511,7 @@ func Test_validateCounterSignersAdvanced(t *testing.T) {
 	}(ent)
 	senderprivateKey := crypto.GenPrivKeyEd25519()
 	transferTx := types.TransferTx{
-		Sender: types.TxTransferSender{
+		Committer: types.TxTransferCommitter{
 			Address: senderprivateKey.PubKey().Address()},
 		CounterSigners: make([]types.TxTransferCounterSigner, 10)}
 	for i, u := range users {
@@ -585,7 +523,7 @@ func Test_validateCounterSignersAdvanced(t *testing.T) {
 	transferTx.SignTx(senderprivateKey, s.GetChainID())
 
 	wrongSignatureTransferTx := types.TransferTx{
-		Sender: types.TxTransferSender{
+		Committer: types.TxTransferCommitter{
 			Address: senderprivateKey.PubKey().Address()},
 		CounterSigners: make([]types.TxTransferCounterSigner, 10)}
 	for i, u := range users {
@@ -599,18 +537,17 @@ func Test_validateCounterSignersAdvanced(t *testing.T) {
 
 	// Make sender a duplicate of a countersigner
 	dupSendertransferTx := types.TransferTx{
-		Sender: types.TxTransferSender{
+		Committer: types.TxTransferCommitter{
 			Address: transferTx.CounterSigners[0].Address},
 		CounterSigners: transferTx.CounterSigners}
 	// Non-existing user
 	nonExistUserSendertransferTx := types.TransferTx{
-		Sender: types.TxTransferSender{Address: crypto.CRandBytes(20)},
+		Committer: types.TxTransferCommitter{Address: crypto.CRandBytes(20)},
 		CounterSigners: []types.TxTransferCounterSigner{
 			types.TxTransferCounterSigner{Address: []byte("non-existing")}}}
 
 	type args struct {
 		state  *State
-		acc    *types.Account
 		entity *types.LegalEntity
 		tx     *types.TransferTx
 	}
@@ -619,29 +556,13 @@ func Test_validateCounterSignersAdvanced(t *testing.T) {
 		args args
 		want abci.Result
 	}{
-		{"invalidUser",
-			args{s, &types.Account{}, ent, &nonExistUserSendertransferTx},
-			abci.ErrBaseUnknownAddress,
-		},
-		{"duplicateAddress",
-			args{s, &types.Account{}, ent, &dupSendertransferTx},
-			abci.ErrBaseDuplicateAddress,
-		},
-		{"invalidAccount",
-			args{s, &types.Account{}, ent, &transferTx},
-			abci.ErrUnauthorized,
-		},
-		{"invalidSignatures",
-			args{s, acc, ent, &wrongSignatureTransferTx},
-			abci.ErrBaseInvalidSignature,
-		},
-		{"validCounterSigners",
-			args{s, acc, ent, &transferTx},
-			abci.OK,
-		},
+		{"invalidUser", args{s, ent, &nonExistUserSendertransferTx}, abci.ErrBaseUnknownAddress},
+		{"duplicateAddress", args{s, ent, &dupSendertransferTx}, abci.ErrBaseDuplicateAddress},
+		{"invalidSignatures", args{s, ent, &wrongSignatureTransferTx}, abci.ErrBaseInvalidSignature},
+		{"validCounterSigners", args{s, ent, &transferTx}, abci.OK},
 	}
 	for _, tt := range tests {
-		if got := validateCounterSigners(tt.args.state, tt.args.acc, tt.args.entity, tt.args.tx); got.Code != tt.want.Code {
+		if got := validateCounterSigners(tt.args.state, tt.args.entity, tt.args.tx); got.Code != tt.want.Code {
 			t.Errorf("%q. validateCounterSigners() = %v, want %v", tt.name, got, tt.want)
 		}
 	}
@@ -735,11 +656,11 @@ func Test_validateTransferTxHash(t *testing.T) {
 	counterSignerAddresses[0] = client.Decode(counterSignerParam)
 	newSequenceID := 1
 
+	committer := types.TxTransferCommitter{Address: privateKey.PubKey().Address()}
 	sender := types.TxTransferSender{AccountID: senderID,
 		Amount:   amount,
 		Currency: currency,
 		Sequence: newSequenceID,
-		Address:  privateKey.PubKey().Address(),
 	}
 
 	recipient := types.TxTransferRecipient{AccountID: recipientID}
@@ -752,6 +673,7 @@ func Test_validateTransferTxHash(t *testing.T) {
 	}
 
 	tx := &types.TransferTx{
+		Committer:      committer,
 		Sender:         sender,
 		Recipient:      recipient,
 		CounterSigners: counterSigners,
@@ -762,7 +684,7 @@ func Test_validateTransferTxHash(t *testing.T) {
 	txs := wire.BinaryBytes(struct{ types.Tx }{tx})
 
 	binaryHexa := fmt.Sprintf("%X", txs)
-	binaryExpected := "010114A5211E797F5E5B16929F55C9D53F7327C173201C012431643264663161652D616363622D313165362D626262622D303066663532343461653766000000000000271001034555520101014ACDA1E0B67F0162BDBEA16423CC8577BF41E11906AE90735380D0A81917F5B8608D4A85FCA4FF9C27FEAA51F04732EFF19591D6D884BCAF2C05EF827AB05508012436623664336130382D353532372D343935352D623466642D66356261376530383335343801010114C74F63C7544631C05ECA679171D824B4250CEDD301FB0A52C4E75170AE29354C391A4CF8FE9CA0A141D67912315621E505B2357EF0261A4E97799F549ECAFAEEAF5EE0D578F79B9DA8010DD6E983512B5A3CDD5902"
+	binaryExpected := "010114A5211E797F5E5B16929F55C9D53F7327C173201C010A7A7B726C67FCABA236A4E0E8138966D57E81DC11FE4F3129E785809A90A116DB98BFA0922A4866838025D12C794662B0C7256A1079A415B6B4C3F97531C809012431643264663161652D616363622D313165362D626262622D303066663532343461653766000000000000271001034555520101012436623664336130382D353532372D343935352D623466642D66356261376530383335343801010114C74F63C7544631C05ECA679171D824B4250CEDD301FB0A52C4E75170AE29354C391A4CF8FE9CA0A141D67912315621E505B2357EF0261A4E97799F549ECAFAEEAF5EE0D578F79B9DA8010DD6E983512B5A3CDD5902"
 	if !(binaryHexa == binaryExpected) {
 		t.Errorf("Sign() return %v, expected: %v", binaryHexa, binaryExpected)
 	}
