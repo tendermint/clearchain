@@ -9,51 +9,31 @@ import (
 )
 
 const (
-	// TxTypeQueryAccount defines AccountQueryTx's code
-	TxTypeQueryAccount = byte(0x11)
-	// TxTypeQueryAccountIndex defines AccountIndexQueryTx's code
-	TxTypeQueryAccountIndex     = byte(0x12)
-	TxTypeQueryLegalEntityIndex = byte(0x13)
-	TxTypeLegalEntity           = byte(0x14)
+	TxTypeQueryBase    = byte(0x11)
+	TxTypeQueryObjects = byte(0x12)
 )
 
-// AccountQueryTx defines the attribute of an accounts query
-type AccountQueryTx struct {
-	Accounts  []string         `json:"accounts"`
+// BaseQueryTx defines the attribute of an accounts query
+type BaseQueryTx struct {
 	Address   []byte           `json:"address"` // Hash of the user's PubKey
 	Signature crypto.Signature `json:"signature"`
 }
 
-func (tx AccountQueryTx) String() string {
-	return common.Fmt("AccountQueryTx{%x %s %v}", tx.Address, tx.Accounts, tx.Signature)
+// ObjectsQueryTx defines the attribute of an accounts query
+type ObjectsQueryTx struct {
+	BaseQueryTx
+	Ids []string `json:"ids"`
 }
+
+//--------------------------------------------
 
 // TxType returns the byte type of TransferTx.
-func (tx AccountQueryTx) TxType() byte {
-	return TxTypeQueryAccount
-}
-
-// ValidateBasic performs basic validation.
-func (tx AccountQueryTx) ValidateBasic() abci.Result {
-	if len(tx.Address) != 20 {
-		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid address length: %v", len(tx.Address)))
-	}
-	if tx.Signature == nil {
-		return abci.ErrBaseInvalidSignature.AppendLog("The query must be signed")
-	}
-	if len(tx.Accounts) == 0 {
-		return abci.ErrBaseInvalidInput.AppendLog("Accounts must not be empty")
-	}
-	for _, accountID := range tx.Accounts {
-		if _, err := uuid.FromString(accountID); err != nil {
-			return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid account_id %q: %s", accountID, err))
-		}
-	}
-	return abci.OK
+func (tx BaseQueryTx) TxType() byte {
+	return TxTypeQueryBase
 }
 
 // SignBytes generates a byte-to-byte signature.
-func (tx AccountQueryTx) SignBytes(chainID string) []byte {
+func (tx BaseQueryTx) SignBytes(chainID string) []byte {
 	signBytes := wire.BinaryBytes(chainID)
 	sig := tx.Signature
 	tx.Signature = nil
@@ -62,8 +42,19 @@ func (tx AccountQueryTx) SignBytes(chainID string) []byte {
 	return signBytes
 }
 
+// ValidateBasic performs basic validation.
+func (tx BaseQueryTx) ValidateBasic() abci.Result {
+	if len(tx.Address) != 20 {
+		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid address length: %v", len(tx.Address)))
+	}
+	if tx.Signature == nil {
+		return abci.ErrBaseInvalidSignature.AppendLog("The query must be signed")
+	}
+	return abci.OK
+}
+
 // SignTx signs the transaction if its address and the privateKey's one match.
-func (tx *AccountQueryTx) SignTx(privateKey crypto.PrivKey, chainID string) error {
+func (tx *BaseQueryTx) SignTx(privateKey crypto.PrivKey, chainID string) error {
 	sig, err := SignTx(tx.SignBytes(chainID), tx.Address, privateKey)
 	if err != nil {
 		return err
@@ -74,143 +65,37 @@ func (tx *AccountQueryTx) SignTx(privateKey crypto.PrivKey, chainID string) erro
 
 //--------------------------------------------
 
-// AccountIndexQueryTx defines the attribute of a wildcard query
-type AccountIndexQueryTx struct {
-	Address   []byte           `json:"address"` // Hash of the user's PubKey
-	Signature crypto.Signature `json:"signature"`
-}
-
-func (tx AccountIndexQueryTx) String() string {
-	return common.Fmt("AccountIndexQueryTx{%x %v}", tx.Address, tx.Signature)
-}
-
 // TxType returns the byte type of TransferTx.
-func (tx AccountIndexQueryTx) TxType() byte {
-	return TxTypeQueryAccountIndex
+func (tx ObjectsQueryTx) TxType() byte {
+	return TxTypeQueryObjects
+}
+
+func (tx ObjectsQueryTx) String() string {
+	return common.Fmt("ObjectsQueryTx{%x %s %v}", tx.Address, tx.Ids, tx.Signature)
 }
 
 // ValidateBasic performs basic validation.
-func (tx AccountIndexQueryTx) ValidateBasic() abci.Result {
-	if len(tx.Address) != 20 {
-		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid address length: %v", len(tx.Address)))
-	}
-	if tx.Signature == nil {
-		return abci.ErrBaseInvalidSignature.AppendLog("The query must be signed")
-	}
-	return abci.OK
-}
-
-// SignBytes generates a byte-to-byte signature.
-func (tx AccountIndexQueryTx) SignBytes(chainID string) []byte {
-	signBytes := wire.BinaryBytes(chainID)
-	sig := tx.Signature
-	tx.Signature = nil
-	signBytes = append(signBytes, wire.BinaryBytes(tx)...)
-	tx.Signature = sig
-	return signBytes
-}
-
-// SignTx signs the transaction if its address and the privateKey's one match.
-func (tx *AccountIndexQueryTx) SignTx(privateKey crypto.PrivKey, chainID string) error {
-	sig, err := SignTx(tx.SignBytes(chainID), tx.Address, privateKey)
-	if err != nil {
-		return err
-	}
-	tx.Signature = sig
-	return nil
-}
-
-type LegalEntityIndexQueryTx struct {
-	Address   []byte           `json:"address"` // Hash of the user's PubKey
-	Signature crypto.Signature `json:"signature"`
-}
-
-func (tx LegalEntityIndexQueryTx) String() string {
-	return common.Fmt("LegalEntityIndexQueryTx{%x %v}", tx.Address, tx.Signature)
-}
-
-func (tx LegalEntityIndexQueryTx) TxType() byte {
-	return TxTypeQueryLegalEntityIndex
-}
-func (tx LegalEntityIndexQueryTx) SignBytes(chainID string) []byte {
-	signBytes := wire.BinaryBytes(chainID)
-	sig := tx.Signature
-	tx.Signature = nil
-	signBytes = append(signBytes, wire.BinaryBytes(tx)...)
-	tx.Signature = sig
-	return signBytes
-}
-
-func (tx *LegalEntityIndexQueryTx) SignTx(privateKey crypto.PrivKey, chainID string) error {
-	sig, err := SignTx(tx.SignBytes(chainID), tx.Address, privateKey)
-	if err != nil {
-		return err
-	}
-	tx.Signature = sig
-	return nil
-}
-
-func (tx LegalEntityIndexQueryTx) ValidateBasic() abci.Result {
-	if len(tx.Address) != 20 {
-		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid address length: %v", len(tx.Address)))
-	}
-	if tx.Signature == nil {
-		return abci.ErrBaseInvalidSignature.AppendLog("The query must be signed")
-	}
-
-	return abci.OK
-}
-
-type LegalEntityQueryTx struct {
-	Ids       []string         `json:"ids"`
-	Address   []byte           `json:"address"` // Hash of the user's PubKey
-	Signature crypto.Signature `json:"signature"`
-}
-
-func (tx LegalEntityQueryTx) String() string {
-	return common.Fmt("LegalEntityQueryTx{%x %s %v}", tx.Address, tx.Ids, tx.Signature)
-}
-
-// TxType returns the byte type of TransferTx.
-func (tx LegalEntityQueryTx) TxType() byte {
-	return TxTypeLegalEntity
-}
-
-// ValidateBasic performs basic validation.
-func (tx LegalEntityQueryTx) ValidateBasic() abci.Result {
-	if len(tx.Address) != 20 {
-		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid address length: %v", len(tx.Address)))
-	}
-	if tx.Signature == nil {
-		return abci.ErrBaseInvalidSignature.AppendLog("The query must be signed")
+func (tx ObjectsQueryTx) ValidateBasic() abci.Result {
+	if res := tx.BaseQueryTx.ValidateBasic(); res.IsErr() {
+		return res
 	}
 	if len(tx.Ids) == 0 {
 		return abci.ErrBaseInvalidInput.AppendLog("Ids must not be empty")
 	}
-	for _, accountID := range tx.Ids {
-		if _, err := uuid.FromString(accountID); err != nil {
-			return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid id %q: %s", accountID, err))
+	for _, id := range tx.Ids {
+		if _, err := uuid.FromString(id); err != nil {
+			return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid UUID %q: %s", id, err))
 		}
 	}
 	return abci.OK
 }
 
 // SignBytes generates a byte-to-byte signature.
-func (tx LegalEntityQueryTx) SignBytes(chainID string) []byte {
+func (tx ObjectsQueryTx) SignBytes(chainID string) []byte {
 	signBytes := wire.BinaryBytes(chainID)
 	sig := tx.Signature
 	tx.Signature = nil
 	signBytes = append(signBytes, wire.BinaryBytes(tx)...)
 	tx.Signature = sig
 	return signBytes
-}
-
-// SignTx signs the transaction if its address and the privateKey's one match.
-func (tx *LegalEntityQueryTx) SignTx(privateKey crypto.PrivKey, chainID string) error {
-	sig, err := SignTx(tx.SignBytes(chainID), tx.Address, privateKey)
-	if err != nil {
-		return err
-	}
-	tx.Signature = sig
-	return nil
 }
