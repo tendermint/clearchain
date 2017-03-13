@@ -85,15 +85,6 @@ func TransferMoney(privateKey crypto.PrivKey, senderID string, recipientID strin
 	senderAccount := GetAccounts(privateKey, []string{senderID}).Account[0]
 	newSequenceID := senderAccount.GetWallet(currency).Sequence + 1
 
-	sender := types.TxTransferSender{AccountID: senderID,
-		Amount:   amount,
-		Currency: currency,
-		Sequence: newSequenceID,
-		Address:  privateKey.PubKey().Address(),
-	}
-
-	recipient := types.TxTransferRecipient{AccountID: recipientID}
-
 	counterSigners := make([]types.TxTransferCounterSigner, len(counterSignerAddresses))
 	for i, address := range counterSignerAddresses {
 		privKey, err := crypto.PrivKeyFromBytes(address)
@@ -110,8 +101,15 @@ func TransferMoney(privateKey crypto.PrivKey, senderID string, recipientID strin
 	}
 
 	tx := &types.TransferTx{
-		Sender:         sender,
-		Recipient:      recipient,
+		Committer: types.TxTransferCommitter{
+			Address: privateKey.PubKey().Address()},
+		Sender: types.TxTransferSender{
+			AccountID: senderID,
+			Amount:    amount,
+			Currency:  currency,
+			Sequence:  newSequenceID},
+		Recipient: types.TxTransferRecipient{
+			AccountID: recipientID},
 		CounterSigners: counterSigners,
 	}
 

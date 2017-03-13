@@ -17,10 +17,38 @@ const (
 
 // TransferTx defines the attributes of transfer transaction
 type TransferTx struct {
+	Committer      TxTransferCommitter       `json:"committer"`
 	Sender         TxTransferSender          `json:"sender"`
 	Recipient      TxTransferRecipient       `json:"recipient"`
 	CounterSigners []TxTransferCounterSigner `json:"counter_signers"`
 }
+
+// TxTransferCommitter defines the attributes of a transfer's sender
+type TxTransferCommitter struct {
+	Address   []byte           `json:"address"` // Hash of the user's PubKey
+	Signature crypto.Signature `json:"signature"`
+}
+
+// TxTransferSender defines the attributes of a transfer's sender
+type TxTransferSender struct {
+	AccountID string `json:"account_id"` // Sender's Account ID
+	Amount    int64  `json:"amount"`
+	Currency  string `json:"currency"` //3-letter ISO 4217 code or ""
+	Sequence  int    `json:"sequence"` // Must be 1 greater than the last committed TxInput or 0 if the account is just a countersigner
+}
+
+// TxTransferRecipient defines the attributes of a transfer's recipient
+type TxTransferRecipient struct {
+	AccountID string `json:"account_id"` // Recipient's Account ID
+}
+
+// TxTransferCounterSigner defines the attributes of a transfer's counter signer
+type TxTransferCounterSigner struct {
+	Address   []byte           `json:"address"` // Hash of the user's PubKey
+	Signature crypto.Signature `json:"signature"`
+}
+
+//-----------------------------------------------------------------------------
 
 // TxType returns the byte type of TransferTx
 func (tx *TransferTx) TxType() byte {
@@ -30,15 +58,15 @@ func (tx *TransferTx) TxType() byte {
 // SignBytes generates a byte-to-byte signature
 func (tx *TransferTx) SignBytes(chainID string) []byte {
 	signBytes := wire.BinaryBytes(chainID)
-	senderSig := tx.Sender.Signature
-	tx.Sender.Signature = nil
+	commiterSig := tx.Committer.Signature
+	tx.Committer.Signature = nil
 	sigz := make([]crypto.Signature, len(tx.CounterSigners))
-	for i, sender := range tx.CounterSigners {
-		sigz[i] = sender.Signature
+	for i, counterSig := range tx.CounterSigners {
+		sigz[i] = counterSig.Signature
 		tx.CounterSigners[i].Signature = nil
 	}
 	signBytes = append(signBytes, wire.BinaryBytes(tx)...)
-	tx.Sender.Signature = senderSig
+	tx.Committer.Signature = commiterSig
 	for i := range tx.CounterSigners {
 		tx.CounterSigners[i].Signature = sigz[i]
 	}
@@ -47,8 +75,8 @@ func (tx *TransferTx) SignBytes(chainID string) []byte {
 
 // SetSignature sets account's signature to the relevant TxInputTransfer
 func (tx *TransferTx) SetSignature(addr []byte, sig crypto.Signature) bool {
-	if bytes.Equal(tx.Sender.Address, addr) {
-		tx.Sender.Signature = sig
+	if bytes.Equal(tx.Committer.Address, addr) {
+		tx.Committer.Signature = sig
 		return true
 	}
 	for i, input := range tx.CounterSigners {
@@ -61,13 +89,17 @@ func (tx *TransferTx) SetSignature(addr []byte, sig crypto.Signature) bool {
 }
 
 func (tx *TransferTx) String() string {
-	return common.Fmt("TransferTx{%v->%v, %v}", tx.Sender, tx.Recipient, tx.CounterSigners)
+	return common.Fmt("TransferTx{%v: %v->%v, %v}", tx.Committer, tx.Sender, tx.Recipient, tx.CounterSigners)
 }
 
 // ValidateBasic validates Tx basic structure.
 func (tx *TransferTx) ValidateBasic() (res abci.Result) {
+	// Check the committer
+	if res := tx.Committer.ValidateBasic(); res.IsErr() {
+		return res
+	}
+	// Check the sender
 	if res := tx.Sender.ValidateBasic(); res.IsErr() {
-		// Check the sender
 		return res
 	}
 	// Check the recipient
@@ -85,33 +117,57 @@ func (tx *TransferTx) ValidateBasic() (res abci.Result) {
 
 // SignTx signs the transaction if its address and the privateKey's one match.
 func (tx *TransferTx) SignTx(privateKey crypto.PrivKey, chainID string) error {
-	sig, err := SignTx(tx.SignBytes(chainID), tx.Sender.Address, privateKey)
+	sig, err := SignTx(tx.SignBytes(chainID), tx.Committer.Address, privateKey)
 	if err != nil {
 		return err
 	}
-	tx.Sender.Signature = sig
+	tx.Committer.Signature = sig
 
 	return nil
 }
 
-// TxTransferSender defines the attributes of a transfer's sender
-type TxTransferSender struct {
-	Address   []byte           `json:"address"`    // Hash of the user's PubKey
-	AccountID string           `json:"account_id"` // Sender's Account ID
-	Amount    int64            `json:"amount"`
-	Currency  string           `json:"currency"` //3-letter ISO 4217 code or ""
-	Sequence  int              `json:"sequence"` // Must be 1 greater than the last committed TxInput or 0 if the account is just a countersigner
-	Signature crypto.Signature `json:"signature"`
-}
+//-----------------------------------------------------------------------------
 
 // ValidateBasic performs basic validation on a TxInputTransfer
-func (t TxTransferSender) ValidateBasic() abci.Result {
+func (t TxTransferCommitter) ValidateBasic() abci.Result {
 	if len(t.Address) != 20 {
 		return abci.ErrBaseInvalidInput.AppendLog("Invalid address length")
 	}
 	if t.Signature == nil {
-		return abci.ErrBaseInvalidSignature.AppendLog("TxTransferSender transaction must be signed")
+		return abci.ErrBaseInvalidSignature.AppendLog("TxTransferCommitter transaction must be signed")
 	}
+	return abci.OK
+}
+
+// SignBytes generates a byte-to-byte signature.
+func (t TxTransferCommitter) SignBytes(chainID string) []byte {
+	signBytes := wire.BinaryBytes(chainID)
+	sig := t.Signature
+	t.Signature = nil
+	signBytes = append(signBytes, wire.BinaryBytes(t)...)
+	t.Signature = sig
+	return signBytes
+}
+
+// SignTx signs the transaction if its address and the privateKey's one match.
+func (t *TxTransferCommitter) SignTx(privateKey crypto.PrivKey, chainID string) error {
+	sig, err := SignTx(t.SignBytes(chainID), t.Address, privateKey)
+	if err != nil {
+		return err
+	}
+	t.Signature = sig
+	return nil
+}
+
+// String returns a string representation of TxTransferCommitter
+func (t TxTransferCommitter) String() string {
+	return common.Fmt("TxTransferCommitter{%x, %v}", t.Address, t.Signature)
+}
+
+//-----------------------------------------------------------------------------
+
+// ValidateBasic performs basic validation on a TxInputTransfer
+func (t TxTransferSender) ValidateBasic() abci.Result {
 	if _, err := uuid.FromString(t.AccountID); err != nil {
 		return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid account_id: %s", err))
 	}
@@ -137,38 +193,12 @@ func (t TxTransferSender) ValidateBasic() abci.Result {
 	return abci.OK
 }
 
-// String returns a string representation of TxInputTransfer
+// String returns a string representation of TxTransferSender
 func (t TxTransferSender) String() string {
-	return common.Fmt("TxTransferSender{%x,%v,%v,%v, %v}", t.Address, t.Amount, t.Currency, t.Sequence, t.Signature)
-}
-
-// SignBytes generates a byte-to-byte signature.
-func (tx TxTransferSender) SignBytes(chainID string) []byte {
-	signBytes := wire.BinaryBytes(chainID)
-	sig := tx.Signature
-	tx.Signature = nil
-	signBytes = append(signBytes, wire.BinaryBytes(tx)...)
-	tx.Signature = sig
-	return signBytes
-}
-
-// SignTx signs the transaction if its address and the privateKey's one match.
-func (tx *TxTransferSender) SignTx(privateKey crypto.PrivKey, chainID string) error {
-
-	sig, err := SignTx(tx.SignBytes(chainID), tx.Address, privateKey)
-	if err != nil {
-		return err
-	}
-	tx.Signature = sig
-	return nil
+	return common.Fmt("TxTransferSender{%v,%v,%v}", t.Amount, t.Currency, t.Sequence)
 }
 
 //-----------------------------------------------------------------------------
-
-// TxTransferRecipient defines the attributes of a transfer's recipient
-type TxTransferRecipient struct {
-	AccountID string `json:"account_id"` // Recipient's Account ID
-}
 
 // ValidateBasic performs basic validation on a TxTransferRecipient
 func (t TxTransferRecipient) ValidateBasic() abci.Result {
@@ -183,11 +213,7 @@ func (t TxTransferRecipient) String() string {
 	return common.Fmt("TxTransferRecipient{%s}", t.AccountID)
 }
 
-// TxTransferCounterSigner defines the attributes of a transfer's counter signer
-type TxTransferCounterSigner struct {
-	Address   []byte           `json:"address"` // Hash of the user's PubKey
-	Signature crypto.Signature `json:"signature"`
-}
+//-----------------------------------------------------------------------------
 
 // ValidateBasic performs basic validation on a TxTransferCounterSigner
 func (t TxTransferCounterSigner) ValidateBasic() abci.Result {
@@ -206,17 +232,17 @@ func (t TxTransferCounterSigner) String() string {
 }
 
 // SignBytes generates a byte-to-byte signature.
-func (tx TxTransferCounterSigner) SignBytes(chainID string) []byte {
+func (t TxTransferCounterSigner) SignBytes(chainID string) []byte {
 	signBytes := wire.BinaryBytes(chainID)
-	sig := tx.Signature
-	tx.Signature = nil
-	signBytes = append(signBytes, wire.BinaryBytes(tx)...)
-	tx.Signature = sig
+	sig := t.Signature
+	t.Signature = nil
+	signBytes = append(signBytes, wire.BinaryBytes(t)...)
+	t.Signature = sig
 	return signBytes
 }
 
 // SignTx signs the transaction if its address and the privateKey's one match.
-func (tx *TxTransferCounterSigner) SignTx(privateKey crypto.PrivKey, chainID string) error {
-	tx.Signature = privateKey.Sign(tx.SignBytes(chainID))
+func (t *TxTransferCounterSigner) SignTx(privateKey crypto.PrivKey, chainID string) error {
+	t.Signature = privateKey.Sign(t.SignBytes(chainID))
 	return nil
 }
