@@ -2,7 +2,10 @@ package app
 
 import (
 	"encoding/json"
+	"regexp"
 	"strings"
+
+	"fmt"
 
 	abci "github.com/tendermint/abci/types"
 	bctypes "github.com/tendermint/basecoin/types"
@@ -124,22 +127,16 @@ func (app *Ledger) CheckTx(txBytes []byte) (res abci.Result) {
 }
 
 // Query handles queryTx
-func (app *Ledger) Query(query []byte) (res abci.Result) {
-	if len(query) == 0 {
-		return abci.ErrEncodingError.SetLog("Query cannot be zero length")
+func (app *Ledger) Query(req abci.RequestQuery) (res abci.Result) {
+	if len(req.Data) == 0 {
+		res.Log = "Query cannot be zero length"
+		res.Code = abci.CodeType_EncodingError
+		return
 	}
-	typeByte := query[0]
-	query = query[1:]
-	switch typeByte {
-	case types.TxTypeQueryAccount, types.TxTypeQueryAccountIndex, types.TxTypeLegalEntity, types.TxTypeQueryLegalEntityIndex:
-		return app.executeQueryTx(query)
-	case PluginTypeByteBase:
-		return abci.OK.SetLog("This type of query not yet supported")
-	case PluginTypeByteEyes:
-		return app.eyesCli.QuerySync(query)
+	if len(req.Data) > maxTxSize {
+		return abci.ErrBaseEncodingError.AppendLog("Tx size exceeds maximum")
 	}
-	return abci.ErrBaseUnknownPlugin.SetLog(
-		common.Fmt("Unknown plugin with type byte %X", typeByte))
+	return app.executeQuery(req)
 }
 
 // Commit handles commitTx
@@ -194,23 +191,37 @@ func (app *Ledger) executeTx(txBytes []byte, simulate bool) (res abci.Result) {
 	return res
 }
 
-func (app *Ledger) executeQueryTx(txBytes []byte) (res abci.Result) {
-	if len(txBytes) > maxTxSize {
-		return abci.ErrBaseEncodingError.AppendLog("Tx size exceeds maximum")
-	}
-	// Decode tx
+func (app *Ledger) executeQuery(req abci.RequestQuery) (res abci.Result) {
 	var tx types.Tx
-	err := wire.ReadBinaryBytes(txBytes, &tx)
-	if err != nil {
-		return abci.ErrBaseEncodingError.AppendLog("Error decoding tx: " + err.Error())
-	}
-	// Validate and exec tx
-	res = state.ExecQueryTx(app.state, tx)
-	if res.IsErr() {
-		return res.PrependLog("Error in QueryTx")
-	}
-	return res
 
+	_, _, err := splitQueryPath(req.Path)
+	if err != nil {
+		res.Code = abci.CodeType_UnknownRequest
+		res.Log = common.Fmt("in executeQuery(): %s", err)
+		return
+	}
+	if err := wire.ReadBinaryBytes(req.Data, &tx); err != nil {
+		res.Code = abci.CodeType_EncodingError
+		res.Log = common.Fmt("in executeQuery(): %v", err.Error())
+		return
+	}
+	if v, ok := tx.(types.TxBasicValidator); ok {
+		if res := v.ValidateBasic(); res.IsErr() {
+			return res
+		}
+		// TODO: call function to handle query
+	} else {
+		res.Code = abci.CodeType_EncodingError
+		res.Log = "Type mismatch"
+		return
+	}
+	return abci.OK
+	// // Validate and exec tx
+	// res = state.ExecQueryTx(app.state, tx)
+	// if res.IsErr() {
+	// 	return res.PrependLog("Error in QueryTx")
+	// }
+	// return res
 }
 
 // Splits the string at the first '/'.
@@ -221,4 +232,24 @@ func splitKey(key string) (prefix string, suffix string) {
 		return keyParts[0], keyParts[1]
 	}
 	return key, ""
+}
+
+// Split query path
+func splitQueryPath(path string) (string, string, error) {
+	var resource, object string
+	re := regexp.MustCompile(`^/(?P<resource>[A-Za-z0-9]+)(?:/(?P<object>[A-Za-z0-9]+)/?)?$`)
+	names := re.SubexpNames()
+	matches := re.FindAllStringSubmatch(path, -1)
+	if len(matches) < 1 {
+		return "", "", fmt.Errorf("malformed resource path: %q", path)
+	}
+	for i, n := range matches[0] {
+		switch names[i] {
+		case "resource":
+			resource = n
+		case "object":
+			object = n
+		}
+	}
+	return resource, object, nil
 }

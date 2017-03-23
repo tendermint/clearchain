@@ -302,7 +302,7 @@ func TestExecTx(t *testing.T) {
 	}
 }
 
-func TestExecQueryTx(t *testing.T) {
+func TestExecQuery(t *testing.T) {
 	// Set up fixtures
 	chainID := "chain"
 	s := NewState(bscoin.NewMemKVStore())
@@ -370,12 +370,12 @@ func TestExecQueryTx(t *testing.T) {
 		{"queryAccountIndex", args{s, &validAccountIndexQueryTx}, abci.NewResultOK(validAccountIndexQueryTxExpectedJSON, "")},
 	}
 	for _, tt := range tests {
-		got := ExecQueryTx(tt.args.state, tt.args.tx)
+		got := ExecQuery(tt.args.state, tt.args.tx)
 		if got.IsErr() && got.Code != tt.want.Code {
-			t.Errorf("%q. ExecQueryTx() = %v, want %v", tt.name, got, tt.want)
+			t.Errorf("%q. ExecQuery() = %v, want %v", tt.name, got, tt.want)
 		}
 		if got.IsOK() && !reflect.DeepEqual(got, tt.want) {
-			t.Errorf("%q. ExecQueryTx() = %v, want %v", tt.name, got, tt.want)
+			t.Errorf("%q. ExecQuery() = %v, want %v", tt.name, got, tt.want)
 		}
 	}
 }

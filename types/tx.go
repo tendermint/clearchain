@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 
+	abci "github.com/tendermint/abci/types"
 	common "github.com/tendermint/go-common"
 	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-wire"
@@ -25,6 +26,11 @@ type SignedTx interface {
 // TxExecutor validates Tx execution permission
 type TxExecutor interface {
 	CanExecTx(byte) bool
+}
+
+// TxBasicValidator implements basic validation rules.
+type TxBasicValidator interface {
+	ValidateBasic() abci.Result
 }
 
 // CanExecTx is a convenience function that validates

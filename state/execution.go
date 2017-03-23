@@ -1,8 +1,6 @@
 package state
 
 import (
-	"encoding/json"
-
 	abci "github.com/tendermint/abci/types"
 	bctypes "github.com/tendermint/basecoin/types"
 	"github.com/tendermint/clearchain/types"
@@ -227,86 +225,87 @@ func ExecTx(state *State, pgz *bctypes.Plugins, tx types.Tx,
 	}
 }
 
-func accountQuery(state *State, tx *types.AccountQueryTx) abci.Result {
-	// Validate basic
-	if res := tx.ValidateBasic(); res.IsErr() {
-		return res.PrependLog("in ValidateBasic()")
-	}
+// func accountQuery(state *State, tx *types.AccountQueryTx) abci.Result {
+// 	// Validate basic
+// 	if res := tx.ValidateBasic(); res.IsErr() {
+// 		return res.PrependLog("in ValidateBasic()")
+// 	}
 
-	user := state.GetUser(tx.Address)
-	if user == nil {
-		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("%v", tx.Address))
-	}
-	accounts := make([]*types.Account, len(tx.Accounts))
-	for i, accountID := range tx.Accounts {
-		account := state.GetAccount(accountID)
-		if account == nil {
-			return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid account_id: %q", accountID))
-		}
-		accounts[i] = account
-	}
+// 	user := state.GetUser(tx.Address)
+// 	if user == nil {
+// 		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("%v", tx.Address))
+// 	}
+// 	accounts := make([]*types.Account, len(tx.Accounts))
+// 	for i, accountID := range tx.Accounts {
+// 		account := state.GetAccount(accountID)
+// 		if account == nil {
+// 			return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid account_id: %q", accountID))
+// 		}
+// 		accounts[i] = account
+// 	}
 
-	// Generate byte-to-byte signature
-	signBytes := tx.SignBytes(state.GetChainID())
-	if !user.VerifySignature(signBytes, tx.Signature) {
-		return abci.ErrUnauthorized.AppendLog("signature doesn't match")
-	}
-	data, err := json.Marshal(types.AccountsReturned{Account: accounts})
-	if err != nil {
-		return abci.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
-	}
-	return abci.OK.SetData(data)
-}
+// 	// Generate byte-to-byte signature
+// 	signBytes := tx.SignBytes(state.GetChainID())
+// 	if !user.VerifySignature(signBytes, tx.Signature) {
+// 		return abci.ErrUnauthorized.AppendLog("signature doesn't match")
+// 	}
+// 	data, err := json.Marshal(types.AccountsReturned{Account: accounts})
+// 	if err != nil {
+// 		return abci.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
+// 	}
+// 	return abci.OK.SetData(data)
+// }
 
-func accountIndexQuery(state *State, tx *types.AccountIndexQueryTx) abci.Result {
-	// Validate basic
-	if res := tx.ValidateBasic(); res.IsErr() {
-		return res.PrependLog("in ValidateBasic()")
-	}
+// func accountIndexQuery(state *State, tx *types.AccountIndexQueryTx) abci.Result {
+// 	// Validate basic
+// 	if res := tx.ValidateBasic(); res.IsErr() {
+// 		return res.PrependLog("in ValidateBasic()")
+// 	}
 
-	user := state.GetUser(tx.Address)
-	if user == nil {
-		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("%v", tx.Address))
-	}
+// 	user := state.GetUser(tx.Address)
+// 	if user == nil {
+// 		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("%v", tx.Address))
+// 	}
 
-	// Check that the account index exists
-	accountIndex := state.GetAccountIndex()
-	if accountIndex == nil {
-		return abci.ErrInternalError.AppendLog("AccountIndex has not yet been initialized")
-	}
+// 	// Check that the account index exists
+// 	accountIndex := state.GetAccountIndex()
+// 	if accountIndex == nil {
+// 		return abci.ErrInternalError.AppendLog("AccountIndex has not yet been initialized")
+// 	}
 
-	// Generate byte-to-byte signature
-	signBytes := tx.SignBytes(state.GetChainID())
-	if !user.VerifySignature(signBytes, tx.Signature) {
-		return abci.ErrUnauthorized.AppendLog("signature doesn't match")
-	}
-	data, err := json.Marshal(accountIndex)
-	if err != nil {
-		return abci.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
-	}
-	return abci.OK.SetData(data)
-}
+// 	// Generate byte-to-byte signature
+// 	signBytes := tx.SignBytes(state.GetChainID())
+// 	if !user.VerifySignature(signBytes, tx.Signature) {
+// 		return abci.ErrUnauthorized.AppendLog("signature doesn't match")
+// 	}
+// 	data, err := json.Marshal(accountIndex)
+// 	if err != nil {
+// 		return abci.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
+// 	}
+// 	return abci.OK.SetData(data)
+// }
 
-// ExecQueryTx handles queries.
-func ExecQueryTx(state *State, tx types.Tx) abci.Result {
+// ExecQuery handles queries.
+func ExecQuery(state *State, tx types.Tx) abci.Result {
 
-	// Execute transaction
-	switch tx := tx.(type) {
-	case *types.AccountQueryTx:
-		return accountQuery(state, tx)
+	// // Execute transaction
+	// switch tx := tx.(type) {
+	// case *types.AccountQueryTx:
+	// 	return accountQuery(state, tx)
 
-	case *types.AccountIndexQueryTx:
-		return accountIndexQuery(state, tx)
+	// case *types.AccountIndexQueryTx:
+	// 	return accountIndexQuery(state, tx)
 
-	case *types.LegalEntityQueryTx:
-		return legalEntityQuery(state, tx)
+	// case *types.LegalEntityQueryTx:
+	// 	return legalEntityQuery(state, tx)
 
-	case *types.LegalEntityIndexQueryTx:
-		return legalEntityIndexQueryTx(state, tx)
+	// case *types.LegalEntityIndexQueryTx:
+	// 	return legalEntityIndexQueryTx(state, tx)
 
-	default:
-		return abci.ErrBaseEncodingError.SetLog("Unknown tx type")
-	}
+	// default:
+	// 	return abci.ErrBaseEncodingError.SetLog("Unknown tx type")
+	// }
+	return abci.OK
 }
 
 //--------------------------------------------------------------------------------
@@ -465,62 +464,62 @@ func SetLegalEntityInIndex(state *State, legalEntity *types.LegalEntity) abci.Re
 	return abci.OK
 }
 
-func legalEntityQuery(state *State, tx *types.LegalEntityQueryTx) abci.Result {
-	// Validate basic
-	if res := tx.ValidateBasic(); res.IsErr() {
-		return res.PrependLog("in ValidateBasic()")
-	}
+// func legalEntityQuery(state *State, tx *types.LegalEntityQueryTx) abci.Result {
+// 	// Validate basic
+// 	if res := tx.ValidateBasic(); res.IsErr() {
+// 		return res.PrependLog("in ValidateBasic()")
+// 	}
 
-	user := state.GetUser(tx.Address)
-	if user == nil {
-		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("%v", tx.Address))
-	}
-	legalEntities := make([]*types.LegalEntity, len(tx.Ids))
-	for i, id := range tx.Ids {
-		legalEntity := state.GetLegalEntity(id)
-		if legalEntity == nil {
-			return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid legalEntity id: %q", id))
-		}
-		legalEntities[i] = legalEntity
-	}
+// 	user := state.GetUser(tx.Address)
+// 	if user == nil {
+// 		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("%v", tx.Address))
+// 	}
+// 	legalEntities := make([]*types.LegalEntity, len(tx.Ids))
+// 	for i, id := range tx.Ids {
+// 		legalEntity := state.GetLegalEntity(id)
+// 		if legalEntity == nil {
+// 			return abci.ErrBaseInvalidInput.AppendLog(common.Fmt("Invalid legalEntity id: %q", id))
+// 		}
+// 		legalEntities[i] = legalEntity
+// 	}
 
-	// Generate byte-to-byte signature
-	signBytes := tx.SignBytes(state.GetChainID())
-	if !user.VerifySignature(signBytes, tx.Signature) {
-		return abci.ErrUnauthorized.AppendLog("signature doesn't match")
-	}
-	data, err := json.Marshal(types.LegalEntitiesReturned{LegalEntities: legalEntities})
-	if err != nil {
-		return abci.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
-	}
-	return abci.OK.SetData(data)
-}
+// 	// Generate byte-to-byte signature
+// 	signBytes := tx.SignBytes(state.GetChainID())
+// 	if !user.VerifySignature(signBytes, tx.Signature) {
+// 		return abci.ErrUnauthorized.AppendLog("signature doesn't match")
+// 	}
+// 	data, err := json.Marshal(types.LegalEntitiesReturned{LegalEntities: legalEntities})
+// 	if err != nil {
+// 		return abci.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
+// 	}
+// 	return abci.OK.SetData(data)
+// }
 
-func legalEntityIndexQueryTx(state *State, tx *types.LegalEntityIndexQueryTx) abci.Result {
-	// Validate basic
-	if res := tx.ValidateBasic(); res.IsErr() {
-		return res.PrependLog("in ValidateBasic()")
-	}
+// func legalEntityIndexQueryTx(state *State, tx *types.LegalEntityIndexQueryTx) abci.Result {
+// 	// Validate basic
+// 	if res := tx.ValidateBasic(); res.IsErr() {
+// 		return res.PrependLog("in ValidateBasic()")
+// 	}
 
-	user := state.GetUser(tx.Address)
-	if user == nil {
-		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("%v", tx.Address))
-	}
+// 	user := state.GetUser(tx.Address)
+// 	if user == nil {
+// 		return abci.ErrBaseUnknownAddress.AppendLog(common.Fmt("%v", tx.Address))
+// 	}
 
-	// Check that the account index exists
-	legalEntities := state.GetLegalEntityIndex()
-	if legalEntities == nil {
-		return abci.ErrInternalError.AppendLog("LegalEntities has not yet been initialized")
-	}
+// 	// Check that the account index exists
+// 	legalEntities := state.GetLegalEntityIndex()
+// 	if legalEntities == nil {
+// 		return abci.ErrInternalError.AppendLog("LegalEntities has not yet been initialized")
+// 	}
 
-	// Generate byte-to-byte signature
-	signBytes := tx.SignBytes(state.GetChainID())
-	if !user.VerifySignature(signBytes, tx.Signature) {
-		return abci.ErrUnauthorized.AppendLog("signature doesn't match")
-	}
-	data, err := json.Marshal(legalEntities)
-	if err != nil {
-		return abci.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
-	}
-	return abci.OK.SetData(data)
-}
+// 	// Generate byte-to-byte signature
+// 	signBytes := tx.SignBytes(state.GetChainID())
+// 	if !user.VerifySignature(signBytes, tx.Signature) {
+// 		return abci.ErrUnauthorized.AppendLog("signature doesn't match")
+// 	}
+// 	data, err := json.Marshal(legalEntities)
+// 	if err != nil {
+// 		return abci.ErrInternalError.AppendLog(common.Fmt("Couldn't make the response: %v", err))
+// 	}
+// 	return abci.OK.SetData(data)
+// }
