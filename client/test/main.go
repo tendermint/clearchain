@@ -8,6 +8,7 @@ import (
 	"github.com/tendermint/go-crypto"
 )
 
+// Tendermint core  must be running
 func main() {
 	serverAddress := "127.0.0.1:46657"
 	chainID := "test_chain_id"
@@ -35,32 +36,30 @@ func main() {
 	client.CreateLegalEntity(privateKey, entityID, entityType, legalEntityName, parentID)
 
 	fmt.Println("Account IDs:")
-	var accountsRequested []string = client.GetAllAccounts(privateKey).Accounts
+	var accountsRequested []string = client.GetAllAccounts().Accounts
 
 	for _, account := range accountsRequested {
 		fmt.Println("\t", account)
+		
+		var accounts []*types.Account = client.GetAccount(account).Account
+		fmt.Println("accounts returned:")
+		for _, accountRes := range accounts {
+			fmt.Println("\t", accountRes)
+		}
 	}
 
-	var accounts []*types.Account = client.GetAccounts(privateKey, accountsRequested).Account
-
-	fmt.Println("accounts returned:")
-	for _, account := range accounts {
-		fmt.Println("\t", account)
-	}
-
-	legalEntityIDs := client.GetAllLegalEntities(privateKey)
+	legalEntityIDs := client.GetAllLegalEntities()
 
 	fmt.Println("legalEntity IDs:")
 	for _, legalEntityID := range legalEntityIDs.Ids {
 		fmt.Println("\t", legalEntityID)
-
-	}
-
-	legalEntities := client.GetLegalEntities(privateKey, legalEntityIDs.Ids).LegalEntities
-	fmt.Println("legalEntities returned:")
-	fmt.Println(legalEntities)
-	for _, legalEntity := range legalEntities {
-		fmt.Println("\t", legalEntity)
+		
+		legalEntities := client.GetLegalEntity(legalEntityID).LegalEntities
+		fmt.Println("legalEntities returned:")
+		fmt.Println(legalEntities)
+		for _, legalEntity := range legalEntities {
+			fmt.Println("\t", legalEntity)
+		}
 	}
 
 	//	serverAddress: tcp://127.0.0.1:46658

@@ -331,50 +331,37 @@ func TestExecQuery(t *testing.T) {
 		accountIDs[i] = account.ID
 	}
 	// Create a valid QueryTx
-	validAccountQueryTx := types.AccountQueryTx{
-		Address:  user.User.PubKey.Address(),
-		Accounts: accountIDs,
-	}
-	validAccountQueryTx.Signature = user.PrivKey.Sign(validAccountQueryTx.SignBytes(chainID))
+	validAccountQueryTx := accountIDs[0]
+	
 	// Create a signed QueryTx with invalid accounts
-	invalidAccountsQueryTx := types.AccountQueryTx{
-		Address:  user.User.PubKey.Address(),
-		Accounts: append(accountIDs, ""),
-	}
-	invalidAccountsQueryTx.Signature = user.PrivKey.Sign(invalidAccountsQueryTx.SignBytes(chainID))
+	invalidAccountsQueryTx := "xx"
+	
 	expectedJSON, _ := json.Marshal(struct {
 		Account []*types.Account `json:"accounts"`
-	}{Account: accounts})
-	// Create a signed AccountIndexQueryTx
-	validAccountIndexQueryTx := types.AccountIndexQueryTx{
-		Address: user.User.PubKey.Address(),
-	}
-	validAccountIndexQueryTx.Signature = user.PrivKey.Sign(validAccountIndexQueryTx.SignBytes(chainID))
+	}{Account: []*types.Account{accounts[0]}})
+	
 	validAccountIndexQueryTxExpectedJSON, _ := json.Marshal(accountIndex)
 
 	type args struct {
 		state *State
-		tx    types.Tx
+		resource string
+		object string
 	}
 	tests := []struct {
 		name string
 		args args
-		want abci.Result
+		want abci.ResponseQuery
 	}{
-		{"queryAccount", args{s, &validAccountQueryTx}, abci.NewResultOK(expectedJSON, "")},
-		{"invalidAccountID", args{s, &invalidAccountsQueryTx}, abci.ErrBaseInvalidInput},
-		{"notExistingAccount", args{s, func(t types.AccountQueryTx) *types.AccountQueryTx {
-			t.Accounts = append(t.Accounts, uuid.NewV4().String())
-			return &t
-		}(invalidAccountsQueryTx)}, abci.ErrBaseInvalidInput},
-		{"queryAccountIndex", args{s, &validAccountIndexQueryTx}, abci.NewResultOK(validAccountIndexQueryTxExpectedJSON, "")},
+		{"queryAccount", args{s, "account", validAccountQueryTx}, abci.ResponseQuery{Code:abci.CodeType_OK, Value: expectedJSON} },
+		{"invalidAccountID", args{s, "account", invalidAccountsQueryTx}, abci.ResponseQuery{Code: abci.CodeType_BaseInvalidInput, Log: "Invalid account_id: xx"}},
+		{"queryAccountIndex", args{s, "account", ""}, abci.ResponseQuery{Code:abci.CodeType_OK , Value: validAccountIndexQueryTxExpectedJSON}},
 	}
 	for _, tt := range tests {
-		got := ExecQuery(tt.args.state, tt.args.tx)
-		if got.IsErr() && got.Code != tt.want.Code {
+		got := ExecQuery(tt.args.state, tt.args.resource, tt.args.object)
+		if got.Code != abci.CodeType_OK && got.Code != tt.want.Code {
 			t.Errorf("%q. ExecQuery() = %v, want %v", tt.name, got, tt.want)
 		}
-		if got.IsOK() && !reflect.DeepEqual(got, tt.want) {
+		if got.Code == abci.CodeType_OK && !reflect.DeepEqual(got, tt.want) {
 			t.Errorf("%q. ExecQuery() = %v, want %v", tt.name, got, tt.want)
 		}
 	}

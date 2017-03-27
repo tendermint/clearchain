@@ -1,9 +1,11 @@
 package app
 
 import (
-	"reflect"
 	"testing"
-
+	
+	bscoin "github.com/tendermint/basecoin/types"
+	"github.com/tendermint/clearchain/types"
+	
 	abci "github.com/tendermint/abci/types"
 	bctypes "github.com/tendermint/basecoin/types"
 	"github.com/tendermint/clearchain/state"
@@ -21,7 +23,10 @@ func Test_splitQueryPath(t *testing.T) {
 		want1   string
 		wantErr bool
 	}{
-		{"validPath", args{"/resource/object"}, "resource", "object", false},
+		{"validPath_generic", args{"/resource/object"}, "resource", "object", false},
+		{"validPath_no_resource", args{"/resource"}, "resource", "", false},
+		{"validPath_legal_entity_all", args{"/legal_entity"}, "legal_entity", "", false},
+		{"validPath_account_id", args{"/account/1d2df1ae-accb-11e6-bbbb-00ff5244ae7f"}, "account", "1d2df1ae-accb-11e6-bbbb-00ff5244ae7f", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -50,23 +55,27 @@ func TestLedger_executeQuery(t *testing.T) {
 	type args struct {
 		req abci.RequestQuery
 	}
-	makeNewClient := func() *eyes.Client {
-		v, _ := eyes.NewClient("dummy")
-		return v
-	}
+	
+	makeNewClient :=  bscoin.NewMemKVStore()
+	s := state.NewState(makeNewClient)
+	accountIndex := types.NewAccountIndex()
+	accountIndex.Add("testId")
+	s.SetAccountIndex(accountIndex)
+	
 	tests := []struct {
 		name    string
 		fields  fields
 		args    args
-		wantRes abci.Result
+		wantRes abci.ResponseQuery
 	}{
 		{"OK",
 			fields{
-				makeNewClient(), state.NewState(makeNewClient),
-				state.NewState(eyes.NewClient("dummy")), bctypes.NewPlugins(),
+				nil, s,
+				s, bctypes.NewPlugins(),
 			},
 			args{
-				abci.RequestQuery{Path: "ciao"}}, abci.OK,
+				abci.RequestQuery{Path: "/account"}},
+			abci.ResponseQuery{Code:abci.CodeType_OK},
 		},
 	}
 	for _, tt := range tests {
@@ -77,7 +86,7 @@ func TestLedger_executeQuery(t *testing.T) {
 				cacheState: tt.fields.cacheState,
 				plugins:    tt.fields.plugins,
 			}
-			if gotRes := app.executeQuery(tt.args.req); !reflect.DeepEqual(gotRes, tt.wantRes) {
+			if gotRes := app.executeQuery(tt.args.req); gotRes.Code != abci.CodeType_OK {
 				t.Errorf("Ledger.executeQuery() = %v, want %v", gotRes, tt.wantRes)
 			}
 		})

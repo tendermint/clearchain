@@ -42,8 +42,6 @@ func CanExecTx(executor TxExecutor, tx Tx) bool {
 var _ = wire.RegisterInterface(
 	struct{ Tx }{},
 	wire.ConcreteType{O: &TransferTx{}, Byte: TxTypeTransfer},
-	wire.ConcreteType{O: &BaseQueryTx{}, Byte: TxTypeQueryBase},
-	wire.ConcreteType{O: &ObjectsQueryTx{}, Byte: TxTypeQueryObjects},
 	wire.ConcreteType{O: &CreateAccountTx{}, Byte: TxTypeCreateAccount},
 	wire.ConcreteType{O: &CreateLegalEntityTx{}, Byte: TxTypeCreateLegalEntity},
 	wire.ConcreteType{O: &CreateUserTx{}, Byte: TxTypeCreateUser},

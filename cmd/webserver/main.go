@@ -88,12 +88,20 @@ func defaultHandler(w http.ResponseWriter, r *http.Request) {
 func viewHandler(w http.ResponseWriter, r *http.Request) {
 	//TODO: Security issue: No autentication, authorization is there to limit access to this code.
 
-	accountsRequested := client.GetAllAccounts(privateKey).Accounts
-	accounts := client.GetAccounts(privateKey, accountsRequested).Account
+	accountsRequested := client.GetAllAccounts().Accounts
+	accounts := make([]*types.Account, len(accountsRequested))
+	for index, account := range accountsRequested {
+		var accountsRes []*types.Account = client.GetAccount(account).Account
+		accounts[index] = accountsRes[0]
+	}
 
-	legalEntityIds := client.GetAllLegalEntities(privateKey).Ids
-	legalEntities := client.GetLegalEntities(privateKey, legalEntityIds).LegalEntities
-
+	legalEntityIds := client.GetAllLegalEntities().Ids
+	legalEntities := make([]*types.LegalEntity, len(legalEntityIds))
+	for index, legalEntityID := range legalEntityIds {
+		legalEntitiesRes := client.GetLegalEntity(legalEntityID).LegalEntities
+		legalEntities[index] = legalEntitiesRes[0]
+	}
+	
 	jsonBytes, err := json.Marshal(struct {
 		LegalEntities []*types.LegalEntity `json:"legalEntities"`
 		Account       []*types.Account     `json:"accounts"`

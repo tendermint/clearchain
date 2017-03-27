@@ -10,8 +10,6 @@ install:
   - export GOPATH=$HOME/gopath
   - export PATH=$PATH:$HOME/gopath/bin
   - make deps
-  - cd $GOPATH/src/github.com/tendermint/light-client && git checkout -qf 287d501e668d0ec9fd48c8f785ad442ab1d79ff7  
-  - cd $GOPATH/src/github.com/tendermint/clearchain
 
 script:
   - export GOPATH=$HOME/gopath

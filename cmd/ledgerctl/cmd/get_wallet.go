@@ -5,7 +5,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/tendermint/clearchain/client"
-	"github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-wire"
 )
 
@@ -15,7 +14,7 @@ func init() {
 		Short: "get wallet for an account from blockchain",
 		Run: func(cmd *cobra.Command, args []string) {
 
-			var chainID, serverAddress, privateKeyParam, accountID string
+			var chainID, serverAddress, accountID string
 
 			if len(args) == 4 {
 				//TMSP version
@@ -25,23 +24,16 @@ func init() {
 
 				chainID = args[0]
 				serverAddress = args[1]
-				privateKeyParam = args[2]
-				accountID = args[3]
+				accountID = args[2]
 			} else {
 				chainID = readParameter("chainID")
 				serverAddress = readParameter("serverAddress")
-				privateKeyParam = readParameter("privateKey")
 				accountID = readParameter("accountID")
 			}
-
-			privateKey, err := crypto.PrivKeyFromBytes(client.Decode(privateKeyParam))
-			if err != nil {
-				panic(err)
-			}
-
+			
 			client.SetChainID(chainID)
 			client.StartClient(serverAddress)
-			fmt.Println(string(wire.JSONBytes(client.GetAccounts(privateKey, []string{accountID}).Account[0])))
+			fmt.Println(string(wire.JSONBytes(client.GetAccount(accountID).Account[0])))
 		},
 	})
 }
