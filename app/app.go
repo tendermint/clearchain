@@ -193,9 +193,7 @@ func (app *Ledger) executeQuery(req abci.RequestQuery) (res abci.ResponseQuery) 
 		return
 	}
 	
-	res = state.ExecQuery(app.state, resource, object)
-	
-	return res
+	return state.ExecQuery(app.state, resource, object)
 }
 
 // Splits the string at the first '/'.
