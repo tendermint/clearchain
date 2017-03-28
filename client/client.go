@@ -82,7 +82,7 @@ func CreateLegalEntity(privateKey crypto.PrivKey,
 
 //Creates money transfer entry in blockchain
 func TransferMoney(privateKey crypto.PrivKey, senderID string, recipientID string, counterSignerAddresses [][]byte, amount int64, currency string) {
-	senderAccount := GetAccounts(privateKey, []string{senderID}).Account[0]
+	senderAccount := GetAccount(senderID).Account[0]
 	newSequenceID := senderAccount.GetWallet(currency).Sequence + 1
 
 	counterSigners := make([]types.TxTransferCounterSigner, len(counterSignerAddresses))
@@ -123,14 +123,11 @@ func TransferMoney(privateKey crypto.PrivKey, senderID string, recipientID strin
 	log.Info("Created transfer entry")
 }
 
-// GetAccounts makes a request to the ledger to returns a set of accounts
-func GetAccounts(privateKey crypto.PrivKey, accountsRequested []string) (returned types.AccountsReturned) {
-	tx := &types.AccountQueryTx{Accounts: accountsRequested,
-		Address: privateKey.PubKey().Address()}
-
-	res := sendQuery(privateKey, tx)
-
-	err := json.Unmarshal(res.Data, &returned)
+// GetAccount makes a request to the ledger to return an accounts
+func GetAccount(accountRequested string) (returned types.AccountsReturned) {
+	
+	res := sendQuery("/account/" + accountRequested)
+	err := json.Unmarshal(res.Value, &returned)
 	if err != nil {
 		panic(fmt.Sprintf("JSON unmarshal for message %v failed with: %v ", returned, err))
 	}
@@ -139,42 +136,45 @@ func GetAccounts(privateKey crypto.PrivKey, accountsRequested []string) (returne
 }
 
 // AccountIndex makes a request to the ledger to returns all account IDs
-func GetAllAccounts(privateKey crypto.PrivKey) (returned types.AccountIndex) {
-	tx := &types.AccountIndexQueryTx{Address: privateKey.PubKey().Address()}
-
-	res := sendQuery(privateKey, tx)
-
-	err := json.Unmarshal(res.Data, &returned)
+func GetAllAccounts() (returned types.AccountIndex) {
+	
+	res := sendQuery("/account")
+	err := json.Unmarshal(res.Value, &returned)
 	if err != nil {
 		panic(fmt.Sprintf("JSON unmarshal for message %v failed with: %v ", res, err))
 	}
 	return
 }
 
-func GetAllLegalEntities(privateKey crypto.PrivKey) (returned types.LegalEntityIndex) {
-	tx := &types.LegalEntityIndexQueryTx{Address: privateKey.PubKey().Address()}
+func GetLegalEntity(id string) (returned types.LegalEntitiesReturned) {
+	
+	res := sendQuery("/legal_entity/" + id)
 
-	res := sendQuery(privateKey, tx)
+	err := json.Unmarshal(res.Value, &returned)
+	if err != nil {
+		panic(fmt.Sprintf("JSON unmarshal for message %v failed with: %v ", res.Value, err))
+	}
+	return
+}
 
-	err := json.Unmarshal(res.Data, &returned)
+func GetAllLegalEntities() (returned types.LegalEntityIndex) {
+
+	res := sendQuery("/legal_entity")
+	err := json.Unmarshal(res.Value, &returned)
 	if err != nil {
 		panic(fmt.Sprintf("JSON unmarshal for message %v failed with: %v ", res, err))
 	}
 	return
 }
 
-func sendQuery(privateKey crypto.PrivKey, tx types.SignedTx) abci.Result {
-	txBytes, result := getTXBytes(privateKey, tx, true)
-	if result.IsErr() {
-		return result
-	}
+func sendQuery(path string) abci.ResponseQuery {
 
-	resultABCI, err := httpClient.ABCIQuery(txBytes)
+	resultABCI, err := httpClient.ABCIQuery(path, []byte(""), false)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	return resultABCI.Result
+	return resultABCI.Response
 }
 
 func sendDeliverTxSync(privateKey crypto.PrivKey, tx types.SignedTx) abci.Result {
@@ -220,7 +220,7 @@ func getTXBytes(privateKey crypto.PrivKey, tx types.SignedTx, isQuery bool) (txs
 // StartClient is a convenience function to start the client app
 func StartClient(serverAddress string) {
 	//serverAddress := "127.0.0.1:46657"
-	httpClient = rpc.New(serverAddress, "")
+	httpClient = rpc.NewClient(serverAddress, "")
 
 	log.Info("Tendermint server connection established to " + serverAddress)
 }
@@ -228,18 +228,4 @@ func StartClient(serverAddress string) {
 func Commit() {
 }
 
-func GetLegalEntities(privateKey crypto.PrivKey, ids []string) (returned types.LegalEntitiesReturned) {
-	tx := &types.LegalEntityQueryTx{Ids: ids,
-		Address: privateKey.PubKey().Address()}
 
-	res := sendQuery(privateKey, tx)
-	if res.IsErr() {
-		panic(fmt.Sprintf("Error in tendermint response: %v ", res.Log))
-	}
-
-	err := json.Unmarshal(res.Data, &returned)
-	if err != nil {
-		panic(fmt.Sprintf("JSON unmarshal for message %v failed with: %v ", res.Data, err))
-	}
-	return
-}

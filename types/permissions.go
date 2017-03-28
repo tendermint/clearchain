@@ -6,7 +6,6 @@ type Perm uint64
 // Each permission listed below reprent a respective transaction.
 const (
 	PermTransferTx = Perm(1 << iota)
-	PermAccountQueryTx
 	PermCreateAccountTx
 	PermCreateLegalEntityTx
 	PermCreateUserTx
@@ -15,7 +14,6 @@ const (
 
 var permissionsMapByTxType = map[byte]Perm{
 	TxTypeTransfer:          PermTransferTx,
-	TxTypeQueryAccount:      PermAccountQueryTx,
 	TxTypeCreateAccount:     PermCreateAccountTx,
 	TxTypeCreateLegalEntity: PermCreateLegalEntityTx,
 	TxTypeCreateUser:        PermCreateUserTx,

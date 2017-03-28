@@ -78,7 +78,7 @@ func TestLegalEntity_Equal(t *testing.T) {
 }
 
 func TestLegalEntity_CanExecTx(t *testing.T) {
-	allowedTxs := []byte{TxTypeTransfer, TxTypeQueryAccount}
+	allowedTxs := []byte{TxTypeTransfer}
 	notAllowedTxs := []byte{TxTypeCreateUser, TxTypeCreateLegalEntity}
 	type fields struct {
 		Permissions Perm

@@ -5,30 +5,46 @@ import (
 	"flag"
 	"fmt"
 	"reflect"
-
+	"path"
+	"os"
+	
 	"github.com/tendermint/abci/server"
 	"github.com/tendermint/clearchain/app"
 	common "github.com/tendermint/go-common"
 	eyes "github.com/tendermint/merkleeyes/client"
 )
 
+const EyesCacheSize = 10000
+
 func main() {
 
+	fmt.Println("Starting Clearchain...")
 	addrPtr := flag.String("address", "tcp://0.0.0.0:46658", "Listen address")
 	eyesPtr := flag.String("eyes", "local", "MerkleEyes address, or 'local' for embedded")
 	genFilePath := flag.String("genesis", "", "Genesis file, if any")
 	flag.Parse()
 
-	// Connect to MerkleEyes
-	eyesCli, err := eyes.NewClient(*eyesPtr, "socket")
-	if err != nil {
-		common.Exit("connect to MerkleEyes: " + err.Error())
+	// Connect to MerkleEyes	
+	var eyesCli *eyes.Client
+	if *eyesPtr == "local" {
+		clearchainDir := ClearchainRoot("")
+		localDBPath := path.Join(clearchainDir, "dataTmp", "merkleeyes.db")
+		fmt.Println("starting local MerkleEyes. Path: " +  localDBPath)
+		eyesCli = eyes.NewLocalClient(localDBPath, EyesCacheSize)
+	} else {
+		fmt.Println("starting remote MerkleEyes")
+		var err error
+		eyesCli, err = eyes.NewClient(*eyesPtr)
+		if err != nil {
+			common.Exit("connect to MerkleEyes: " + err.Error())
+		}
 	}
 
 	// Create Clearing app
 	app := app.NewLedger(eyesCli)
 
 	// If genesis file was specified, set key-value options
+	fmt.Println("genesis filePath: " +  *genFilePath)
 	if *genFilePath != "" {
 		kvz := loadGenesis(*genFilePath)
 		for _, kv := range kvz {
@@ -94,4 +110,14 @@ func loadGenesis(filePath string) (kvz []KeyValue) {
 		kvz = append(kvz, KeyValue{key, value})
 	}
 	return kvz
+}
+
+func ClearchainRoot(rootDir string) string {
+	if rootDir == "" {
+		rootDir = os.Getenv("CCHOME")
+	}
+	if rootDir == "" {
+		rootDir = os.Getenv("HOME") + "/.clearchain"
+	}
+	return rootDir
 }

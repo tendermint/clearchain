@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/tendermint/go-common"
 )
 
@@ -49,26 +50,26 @@ func NewLegalEntityByType(t byte, id string, name string, creatorAddr []byte, En
 // NewCH is a convenience function to create a new CH
 func NewCH(id string, name string, creatorAddr []byte, EntityID string) *LegalEntity {
 	return NewLegalEntity(id, EntityTypeCHByte, name, NewPermByTxType(
-		TxTypeTransfer, TxTypeQueryAccount, TxTypeCreateAccount, TxTypeCreateLegalEntity, TxTypeCreateUser,
+		TxTypeTransfer, TxTypeCreateAccount, TxTypeCreateLegalEntity, TxTypeCreateUser,
 	), creatorAddr, EntityID)
 }
 
 // NewGCM is a convenience function to create a new GCM
 func NewGCM(id string, name string, creatorAddr []byte, EntityID string) *LegalEntity {
 	return NewLegalEntity(id, EntityTypeGCMByte, name, NewPermByTxType(
-		TxTypeTransfer, TxTypeQueryAccount, TxTypeCreateAccount, TxTypeCreateUser), creatorAddr, EntityID)
+		TxTypeTransfer, TxTypeCreateAccount, TxTypeCreateUser), creatorAddr, EntityID)
 }
 
 // NewICM is a convenience function to create a new ICM
 func NewICM(id string, name string, creatorAddr []byte, EntityID string) *LegalEntity {
 	return NewLegalEntity(id, EntityTypeICMByte, name, NewPermByTxType(
-		TxTypeTransfer, TxTypeQueryAccount, TxTypeCreateAccount, TxTypeCreateUser), creatorAddr, EntityID)
+		TxTypeTransfer, TxTypeCreateAccount, TxTypeCreateUser), creatorAddr, EntityID)
 }
 
 // NewCustodian is a convenience function to create a new Custodian
 func NewCustodian(id string, name string, creatorAddr []byte, EntityID string) *LegalEntity {
 	return NewLegalEntity(id, EntityTypeGCMByte, name, NewPermByTxType(
-		TxTypeTransfer, TxTypeQueryAccount, TxTypeCreateAccount, TxTypeCreateUser), creatorAddr, EntityID)
+		TxTypeTransfer, TxTypeCreateAccount, TxTypeCreateUser), creatorAddr, EntityID)
 }
 
 // NewLegalEntity initializes a new LegalEntity
