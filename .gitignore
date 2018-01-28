@@ -33,3 +33,4 @@ ledger/.settings/com.googlecode.goclipse.core.prefs
 build/
 
 testbed/testbed.go
+/vendor
