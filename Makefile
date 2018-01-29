@@ -7,7 +7,7 @@ all: get_vendor_deps build test
 ### Build
 
 build:
-	go build $(BUILD_FLAGS) -o build/clearchain ./cmd/...
+	go build $(BUILD_FLAGS) -o build/clearchain ./cmd/clearchain
 
 
 ########################################
