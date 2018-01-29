@@ -18,6 +18,7 @@ const AppName = "ClearchainApp"
 // ClearchainApp is basic application
 type ClearchainApp struct {
 	*baseapp.BaseApp
+	accts sdk.AccountMapper
 }
 
 func NewClearchainApp() *ClearchainApp {
@@ -44,6 +45,7 @@ func NewClearchainApp() *ClearchainApp {
 
 	return &ClearchainApp{
 		BaseApp: bApp,
+		accts:   accts,
 	}
 }
 
@@ -59,6 +61,11 @@ func (app *ClearchainApp) RunForever() {
 		// Cleanup
 		srv.Stop()
 	})
+}
+
+func (app *ClearchainApp) StoreAccount(acct sdk.Account) {
+	// var ctx = app.NewContext(true, []byte{1, 2, 3, 4})
+	// app.accts.SetAccount(ctx, acct)
 }
 
 func mountMultiStore(bApp *baseapp.BaseApp,
@@ -98,6 +105,10 @@ func makeTxCodec() (cdc *wire.Codec) {
 
 	// Register clearchain types.
 	types.RegisterWire(cdc)
+
+	cdc.RegisterInterface((*sdk.Msg)(nil), nil)
+	// cdc.RegisterInterface((*sdk.Tx)(nil), nil)
+	// cdc.RegisterConcrete(sdk.StdTx{}, "cosmos-sdk/StdTx", nil)
 
 	return
 }
