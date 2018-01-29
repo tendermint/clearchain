@@ -1,19 +1,17 @@
 language: go
 
 go:
-  - 1.7
+  - 1.9
 
 matrix:
   - fast_finish: true
 
 install:
   - export GOPATH=$HOME/gopath
-  - export PATH=$PATH:$HOME/gopath/bin
-  - make deps
+  - export PATH=$HOME/gopath/bin:$PATH
+  - curl https://glide.sh/get | sh
 
 script:
   - export GOPATH=$HOME/gopath
   - export PATH=$HOME/gopath/bin:$PATH
-  - make ci
-  - make test
-  - make lint
+  - make
