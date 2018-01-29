@@ -282,6 +282,80 @@ func TestWithdrawMsg_ValidateBasic(t *testing.T) {
 	}
 }
 
+func TestCreateAccountMsg_ValidateBasic(t *testing.T) {
+	type fields struct {
+		Creator     crypto.Address
+		PubKey      crypto.PubKey
+		AccountType string
+	}
+
+	creatorAddress := crypto.GenPrivKeyEd25519().PubKey().Address()
+	newPubKey := crypto.GenPrivKeyEd25519().PubKey()
+
+	tests := []struct {
+		name      string
+		fields    fields
+		errorCode sdk.CodeType
+	}{
+		{
+			"new CH acc ok",
+			fields{Creator: creatorAddress, PubKey: newPubKey, AccountType: EntityClearingHouse},
+			sdk.CodeOK,
+		},
+		{
+			"new CUS acc ok",
+			fields{Creator: creatorAddress, PubKey: newPubKey, AccountType: EntityCustodian},
+			sdk.CodeOK,
+		},
+		{
+			"new GCM acc ok",
+			fields{Creator: creatorAddress, PubKey: newPubKey, AccountType: EntityGeneralClearingMember},
+			sdk.CodeOK,
+		},
+		{
+			"new ICM acc ok",
+			fields{Creator: creatorAddress, PubKey: newPubKey, AccountType: EntityIndividualClearingMember},
+			sdk.CodeOK,
+		},
+		{
+			"creator addr is null",
+			fields{Creator: nil, PubKey: newPubKey, AccountType: EntityIndividualClearingMember},
+			CodeInvalidAddress,
+		},
+		{
+			"invalid len creator address",
+			fields{Creator: crypto.Address("short"), PubKey: newPubKey, AccountType: EntityIndividualClearingMember},
+			CodeInvalidAddress,
+		},
+		{
+			"new acc pubkey is null",
+			fields{Creator: creatorAddress, PubKey: nil, AccountType: EntityIndividualClearingMember},
+			CodeInvalidPubKey,
+		},
+		{
+			"same creator and new acc",
+			fields{Creator: newPubKey.Address(), PubKey: nil, AccountType: EntityIndividualClearingMember},
+			CodeInvalidPubKey,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := CreateAccountMsg{
+				Creator:     tt.fields.Creator,
+				PubKey:      tt.fields.PubKey,
+				AccountType: tt.fields.AccountType,
+			}
+			got := w.ValidateBasic()
+			if got == nil {
+				assert.True(t, tt.errorCode.IsOK())
+			} else {
+				assert.Equal(t, tt.errorCode, got.ABCICode(), got.Error())
+			}
+		})
+	}
+}
+
 func TestSignBytes(t *testing.T) {
 	type fields struct {
 		Sender    crypto.Address

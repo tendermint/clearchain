@@ -13,6 +13,8 @@ const (
 	EntityCustodian                = "custodian"
 )
 
+var entityTypes []string = []string{EntityClearingHouse, EntityGeneralClearingMember, EntityIndividualClearingMember, EntityCustodian}
+
 // LegalEntity defines the properties of a legal entity
 type LegalEntity interface {
 	GetAddress() crypto.Address
@@ -49,4 +51,17 @@ func (e BaseLegalEntity) GetOps() []crypto.Address {
 
 func (e BaseLegalEntity) GetParent() crypto.Address {
 	return e.Parent
+}
+
+func IsValidEntityType(entityType string) bool {
+	return sliceContainsString(entityTypes, entityType)
+}
+
+func sliceContainsString(slice []string, target string) bool {
+	for _, s := range slice {
+		if s == target {
+			return true
+		}
+	}
+	return false
 }

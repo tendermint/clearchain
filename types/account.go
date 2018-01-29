@@ -13,8 +13,10 @@ type AppAccount struct {
 	auth.BaseAccount
 	Type string
 
+	// TODO: fields that may potentially be introduced in future
 	// Name               string
 	// LegalEntityAddress crypto.Address
+	// Creator            crypto.Address
 }
 
 func IsCustodian(a *AppAccount) bool {
@@ -64,4 +66,14 @@ func AccountMapper(capKey sdk.StoreKey) sdk.AccountMapper {
 // // SetName modifies account's name
 // func (a *AppAccount) SetName(name string) {
 // 	a.Name = name
+// }
+
+// // GetCreator returns account's name.
+// func  GetCreator() crypto.Address {
+// 	return a.Creator
+// }
+
+// // SetCreator modifies account's name
+// func (a *AppAccount) SetCreator(creator crypto.Address) {
+// 	a.Creator = creator
 // }

@@ -7,10 +7,12 @@ import (
 	crypto "github.com/tendermint/go-crypto"
 )
 
+// message types definitions
 const (
-	DepositType    = "deposit"
-	SettlementType = "settlement"
-	WithdrawType   = "withdraw"
+	DepositType       = "deposit"
+	SettlementType    = "settlement"
+	WithdrawType      = "withdraw"
+	CreateAccountType = "createAccount"
 )
 
 // DepositMsg defines the properties of an asset transfer
@@ -30,12 +32,13 @@ func (d DepositMsg) ValidateBasic() sdk.Error {
 	if d.Amount.Denom == "" {
 		return sdk.NewError(CodeInvalidAmount, "invalid denom")
 	}
-	if len(d.Sender) != 20 {
-		return sdk.NewError(CodeInvalidAddress, "invalid sender address")
+	if err := validateAddress(d.Sender); err != nil {
+		return err
 	}
-	if len(d.Recipient) != 20 {
-		return sdk.NewError(CodeInvalidAddress, "invalid recipient address")
+	if err := validateAddress(d.Recipient); err != nil {
+		return err
 	}
+
 	if bytes.Equal(d.Sender, d.Recipient) {
 		return sdk.NewError(CodeSameAddress, "same addresses")
 	}
@@ -80,19 +83,19 @@ var _ sdk.Msg = SettleMsg{}
 
 // amount may be negative
 func (s SettleMsg) ValidateBasic() sdk.Error {
-
 	if s.Amount.Amount == 0 {
 		return sdk.NewError(CodeInvalidAmount, "invalid amount")
 	}
 	if s.Amount.Denom == "" {
 		return sdk.NewError(CodeInvalidAmount, "invalid denom")
 	}
-	if len(s.Sender) != 20 {
-		return sdk.NewError(CodeInvalidAddress, "invalid sender address")
+	if err := validateAddress(s.Sender); err != nil {
+		return err
 	}
-	if len(s.Recipient) != 20 {
-		return sdk.NewError(CodeInvalidAddress, "invalid recipient address")
+	if err := validateAddress(s.Recipient); err != nil {
+		return err
 	}
+
 	if bytes.Equal(s.Sender, s.Recipient) {
 		return sdk.NewError(CodeSameAddress, "same addresses")
 	}
@@ -143,15 +146,16 @@ func (w WithdrawMsg) ValidateBasic() sdk.Error {
 	if w.Amount.Denom == "" {
 		return sdk.NewError(CodeInvalidAmount, "invalid denom")
 	}
-	if len(w.Sender) != 20 {
-		return sdk.NewError(CodeInvalidAddress, "invalid sender address")
+	if err := validateAddress(w.Sender); err != nil {
+		return err
 	}
-	if len(w.Recipient) != 20 {
-		return sdk.NewError(CodeInvalidAddress, "invalid recipient address")
+	if err := validateAddress(w.Recipient); err != nil {
+		return err
 	}
-	if len(w.Operator) != 20 {
-		return sdk.NewError(CodeInvalidAddress, "invalid operator address")
+	if err := validateAddress(w.Operator); err != nil {
+		return err
 	}
+
 	if bytes.Equal(w.Sender, w.Recipient) {
 		return sdk.NewError(CodeSameAddress, "same addresses")
 	}
@@ -184,4 +188,72 @@ func (w WithdrawMsg) GetSignBytes() []byte {
 // CONTRACT: Returns addrs in some deterministic order.
 func (w WithdrawMsg) GetSigners() []crypto.Address {
 	return []crypto.Address{w.Sender, w.Operator}
+}
+
+//*********************
+
+type CreateAccountMsg struct {
+	Creator     crypto.Address
+	PubKey      crypto.PubKey
+	AccountType string
+}
+
+var _ sdk.Msg = CreateAccountMsg{}
+
+func (msg CreateAccountMsg) ValidateBasic() sdk.Error {
+
+	if err := validateAddress(msg.Creator); err != nil {
+		return err
+	}
+
+	if msg.PubKey == nil {
+		return sdk.NewError(CodeInvalidPubKey, "invalid pub key")
+	}
+	if bytes.Equal(msg.Creator, msg.PubKey.Address()) {
+		return sdk.NewError(CodeSameAddress, "same address")
+	}
+	if !IsValidEntityType(msg.AccountType) {
+		return sdk.NewError(CodeInvalidPubKey, "invalid entity type")
+	}
+
+	return nil
+}
+
+// Return the message type.
+// Must be alphanumeric or empty.
+func (msg CreateAccountMsg) Type() string {
+	return CreateAccountType
+}
+
+// Get some property of the Msg.
+func (msg CreateAccountMsg) Get(key interface{}) (value interface{}) {
+	return nil
+}
+
+// Get the canonical byte representation of the Msg.
+func (msg CreateAccountMsg) GetSignBytes() []byte {
+	bz, err := cdc.MarshalBinary(msg)
+	if err != nil {
+		panic(err)
+	}
+	return bz
+}
+
+// Signers returns the addrs of signers that must sign.
+// CONTRACT: All signatures must be present to be valid.
+// CONTRACT: Returns addrs in some deterministic order.
+func (msg CreateAccountMsg) GetSigners() []crypto.Address {
+	return []crypto.Address{msg.Creator}
+}
+
+//******************************* helper methods *****************************
+
+func validateAddress(addr crypto.Address) sdk.Error {
+	if addr == nil {
+		return ErrInvalidAddress("address is nil")
+	}
+	if len(addr) != 20 {
+		return ErrInvalidAddress("invalid address length")
+	}
+	return nil
 }
