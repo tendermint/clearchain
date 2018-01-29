@@ -34,11 +34,6 @@ func (d depositMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		return sdk.ErrTxParse("Expected DepositMsg").Result()
 	}
 
-	// TODO: check if validate basic is called before...
-	if err := dm.ValidateBasic(); err != nil {
-		return err.Result()
-	}
-
 	// ensure proper types
 	sender, err := getAccountWithType(ctx, d.accts, dm.Sender, IsCustodian)
 	if err != nil {
@@ -75,11 +70,6 @@ func (sh settleMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 	sm, ok := msg.(SettleMsg)
 	if !ok {
 		return sdk.ErrTxParse("Expected SettleMsg").Result()
-	}
-
-	// TODO: check if validate basic is called before...
-	if err := sm.ValidateBasic(); err != nil {
-		return err.Result()
 	}
 
 	// ensure proper types
@@ -120,11 +110,6 @@ func (wh withdrawMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 	wm, ok := msg.(WithdrawMsg)
 	if !ok {
 		return sdk.ErrTxParse("Expected WithdrawMsg").Result()
-	}
-
-	// TODO: check if validate basic is called before...
-	if err := wm.ValidateBasic(); err != nil {
-		return err.Result()
 	}
 
 	// ensure proper types
