@@ -60,7 +60,6 @@ func (app *ClearchainApp) loadStores() {
 func (app *ClearchainApp) initCapKeys() {
 	app.capKeyMainStore = sdk.NewKVStoreKey("main")
 	app.capKeyIBCStore = sdk.NewKVStoreKey("ibc")
-
 }
 
 func (app *ClearchainApp) initBaseApp() {
@@ -132,9 +131,7 @@ func (app *ClearchainApp) initDefaultAnteHandler() {
 func (app *ClearchainApp) initRouterHandlers() {
 	// All handlers must be added here.
 	// The order matters.
-	app.router.AddRoute("deposit", types.DepositMsgHandler(app.accountMapper))
-	app.router.AddRoute("settle", types.SettleMsgHandler(app.accountMapper))
-	app.router.AddRoute("settle", types.WithDrawMsgHandler(app.accountMapper))
+	types.RegisterRoutes(app.router, app.accountMapper)
 }
 
 func makeTxCodec() (cdc *wire.Codec) {
