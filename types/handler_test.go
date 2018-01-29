@@ -131,20 +131,6 @@ func TestDepositMsgHandler(t *testing.T) {
 			nil, // sdk.Coins{}
 		},
 		{
-			"no negative deposits",
-			args{ctx: ctx, msg: DepositMsg{Sender: member, Recipient: cust, Amount: sdk.Coin{"USD", -500}}},
-			CodeInvalidAmount,
-			cCoins,
-			nil, // sdk.Coins{}
-		},
-		{
-			"no 0 deposits",
-			args{ctx: ctx, msg: DepositMsg{Sender: member, Recipient: cust, Amount: sdk.Coin{"USD", 0}}},
-			CodeInvalidAmount,
-			cCoins,
-			nil, // sdk.Coins{}
-		},
-		{
 			"good deposit",
 			args{ctx: ctx, msg: DepositMsg{Sender: cust, Recipient: member, Amount: sdk.Coin{"USD", 700}}},
 			sdk.CodeOK,
@@ -199,13 +185,6 @@ func TestSettleMsgHandler(t *testing.T) {
 			"no returns",
 			args{ctx: ctx, msg: SettleMsg{Sender: member, Recipient: clh, Amount: sdk.Coin{"USD", 200}}},
 			CodeWrongSigner,
-			clhCoins,
-			mCoins,
-		},
-		{
-			"no 0 settle",
-			args{ctx: ctx, msg: SettleMsg{Sender: clh, Recipient: member, Amount: sdk.Coin{"USD", 0}}},
-			CodeInvalidAmount,
 			clhCoins,
 			mCoins,
 		},
@@ -276,32 +255,11 @@ func TestWithDrawMsgHandler(t *testing.T) {
 			nil,
 			mCoins,
 		},
-		{
-			"no 0 Withdraw",
-			args{ctx: ctx, msg: WithdrawMsg{Sender: member, Recipient: cust, Operator: operator, Amount: sdk.Coin{"USD", 0}}},
-			CodeInvalidAmount,
-			nil,
-			mCoins,
-		},
-		{
-			"no negative Withdraw",
-			args{ctx: ctx, msg: WithdrawMsg{Sender: member, Recipient: cust, Operator: operator, Amount: sdk.Coin{"USD", -500}}},
-			CodeInvalidAmount,
-			nil,
-			mCoins,
-		},
 
 		{
 			"good Withdraw",
 			args{ctx: ctx, msg: WithdrawMsg{Sender: member, Recipient: cust, Operator: operator, Amount: sdk.Coin{"USD", 500}}},
 			sdk.CodeOK,
-			sdk.Coins{{"USD", 500}},
-			sdk.Coins{{"EUR", 5000}, {"USD", 500}},
-		},
-		{
-			"overdraft",
-			args{ctx: ctx, msg: WithdrawMsg{Sender: member, Recipient: cust, Operator: operator, Amount: sdk.Coin{"EUR", 10000}}},
-			sdk.CodeInsufficientFunds,
 			sdk.Coins{{"USD", 500}},
 			sdk.Coins{{"EUR", 5000}, {"USD", 500}},
 		},
