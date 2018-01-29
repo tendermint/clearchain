@@ -1,12 +1,12 @@
-hash: d06a04ad26f7ebd22884637bd7defeb0fd523bd7d3befbae9963be88a5f4aef6
-updated: 2018-01-28T12:13:21.518889202+01:00
+hash: f1fefda712e70a84bd2cbac80cfce13ea4f59e8cc3c6d8a92b74a525c686b8ee
+updated: 2018-01-29T13:56:37.379030008+01:00
 imports:
 - name: github.com/btcsuite/btcd
   version: 2e60448ffcc6bf78332d1fe590260095f554dd78
   subpackages:
   - btcec
 - name: github.com/cosmos/cosmos-sdk
-  version: df7cd9e670dfbaf2091befbed76fe99f0f524a7a
+  version: b3fe29af6335192705fbf6fb852e5579794794b0
   subpackages:
   - baseapp
   - store
@@ -143,5 +143,11 @@ imports:
   - tap
   - transport
 testImports:
+- name: github.com/pmezard/go-difflib
+  version: 792786c7400a136282c1664665ae0a8db921c6c2
+  subpackages:
+  - difflib
 - name: github.com/stretchr/testify
   version: b91bfb9ebec76498946beb6af7c0230c7cc7ba6c
+  subpackages:
+  - assert

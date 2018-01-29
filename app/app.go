@@ -64,8 +64,9 @@ func (app *ClearchainApp) RunForever() {
 }
 
 func (app *ClearchainApp) StoreAccount(acct sdk.Account) {
-	// var ctx = app.NewContext(true, []byte{1, 2, 3, 4})
-	// app.accts.SetAccount(ctx, acct)
+	// delivertx with fake tx bytes (we don't care for SetAccount)
+	var ctx = app.NewContext(false, []byte{1, 2, 3, 4})
+	app.accts.SetAccount(ctx, acct)
 }
 
 func mountMultiStore(bApp *baseapp.BaseApp,
@@ -106,9 +107,8 @@ func makeTxCodec() (cdc *wire.Codec) {
 	// Register clearchain types.
 	types.RegisterWire(cdc)
 
+	// Must register message interface to parse sdk.StdTx
 	cdc.RegisterInterface((*sdk.Msg)(nil), nil)
-	// cdc.RegisterInterface((*sdk.Tx)(nil), nil)
-	// cdc.RegisterConcrete(sdk.StdTx{}, "cosmos-sdk/StdTx", nil)
 
 	return
 }

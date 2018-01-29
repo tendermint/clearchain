@@ -1,7 +1,7 @@
 package: github.com/tendermint/clearchain
 import:
 - package: github.com/cosmos/cosmos-sdk
-  version: sdk2
+  version: feature/init-account
 - package: github.com/tendermint/go-wire
   version: sdk2
 - package: github.com/tendermint/go-crypto

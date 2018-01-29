@@ -17,12 +17,13 @@ func TestApp(t *testing.T) {
 	cc := NewClearchainApp()
 	junk := []byte("khekfhewgfsug")
 
+	cc.BeginBlock(abci.RequestBeginBlock{})
+
 	cust, cKey := fakeAccount(cc, types.EntityCustodian, nil)
 	member, _ := fakeAccount(cc, types.EntityIndividualClearingMember, nil)
 	msg := types.DepositMsg{Sender: cust, Recipient: member, Amount: sdk.Coin{"USD", 700}}
 	real := makeTx(msg, cKey)
 
-	cc.BeginBlock(abci.RequestBeginBlock{})
 	// garbage in, garbage out
 	dres := cc.DeliverTx(junk)
 	assert.EqualValues(t, sdk.CodeTxParse, dres.Code, dres.Log)
@@ -32,9 +33,10 @@ func TestApp(t *testing.T) {
 	assert.EqualValues(t, sdk.CodeOK, dres.Code, dres.Log)
 
 	cc.EndBlock(abci.RequestEndBlock{})
-	// no data in db
+
+	// TODO: not working yet...
 	// cres := cc.Commit()
-	// assert.Equal(t, 0, len(cres.Data))
+	// assert.NotEqual(t, 0, len(cres.Data))
 }
 
 func makeTx(msg sdk.Msg, keys ...crypto.PrivKey) []byte {
