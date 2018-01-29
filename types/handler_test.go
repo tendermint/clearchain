@@ -104,43 +104,6 @@ func TestRegisterRoutes(t *testing.T) {
 		})
 	}
 }
-
-func fakeAccountMapper() (sdk.AccountMapper, sdk.Context) {
-	db := dbm.NewMemDB()
-	ms := store.NewCommitMultiStore(db)
-
-	key := sdk.NewKVStoreKey("test")
-	ms.MountStoreWithDB(key, sdk.StoreTypeIAVL, db)
-	err := ms.LoadLatestVersion()
-	if err != nil {
-		panic(err)
-	}
-
-	accts := AccountMapper(key)
-
-	h := abci.Header{
-		Height:  100,
-		ChainID: "clear-chain",
-	}
-	ctx := sdk.NewContext(ms, h, false, []byte{1, 2, 3, 4}) // DeliverTx
-
-	return accts, ctx
-}
-
-func fakeAccount(accts sdk.AccountMapper, ctx sdk.Context, typ string, cash sdk.Coins) crypto.Address {
-	pub := crypto.GenPrivKeyEd25519().PubKey()
-	addr := pub.Address()
-
-	acct := new(AppAccount)
-	acct.SetAddress(addr)
-	acct.SetPubKey(pub)
-	acct.SetCoins(cash)
-	acct.Type = typ
-
-	accts.SetAccount(ctx, acct)
-	return addr
-}
-
 func TestDepositMsgHandler(t *testing.T) {
 	accts, ctx := fakeAccountMapper()
 	cCoins := sdk.Coins{{"EUR", 5000}, {"USD", 1000}}
@@ -357,4 +320,42 @@ func TestWithDrawMsgHandler(t *testing.T) {
 			assert.Equal(t, tt.mBal, m.GetCoins())
 		})
 	}
+}
+
+//---------------- helpers --------------------
+
+func fakeAccountMapper() (sdk.AccountMapper, sdk.Context) {
+	db := dbm.NewMemDB()
+	ms := store.NewCommitMultiStore(db)
+
+	key := sdk.NewKVStoreKey("test")
+	ms.MountStoreWithDB(key, sdk.StoreTypeIAVL, db)
+	err := ms.LoadLatestVersion()
+	if err != nil {
+		panic(err)
+	}
+
+	accts := AccountMapper(key)
+
+	h := abci.Header{
+		Height:  100,
+		ChainID: "clear-chain",
+	}
+	ctx := sdk.NewContext(ms, h, false, []byte{1, 2, 3, 4}) // DeliverTx
+
+	return accts, ctx
+}
+
+func fakeAccount(accts sdk.AccountMapper, ctx sdk.Context, typ string, cash sdk.Coins) crypto.Address {
+	pub := crypto.GenPrivKeyEd25519().PubKey()
+	addr := pub.Address()
+
+	acct := new(AppAccount)
+	acct.SetAddress(addr)
+	acct.SetPubKey(pub)
+	acct.SetCoins(cash)
+	acct.Type = typ
+
+	accts.SetAccount(ctx, acct)
+	return addr
 }
