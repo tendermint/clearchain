@@ -23,7 +23,7 @@ get_vendor_deps:
 ### Testing
 
 test:
-	@go test $(PACKAGES)
+	@go test -v -cover $(PACKAGES)
 
 benchmark:
 	@go test -bench=. $(PACKAGES)
