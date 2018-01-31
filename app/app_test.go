@@ -2,7 +2,7 @@ package app
 
 import (
 	"testing"
-
+	
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 	abci "github.com/tendermint/abci/types"
@@ -19,25 +19,39 @@ func TestApp(t *testing.T) {
 
 	cc.BeginBlock(abci.RequestBeginBlock{})
 
+	// send a deposit msg
 	cust, cKey := fakeAccount(cc, types.EntityCustodian, nil)
 	member, _ := fakeAccount(cc, types.EntityIndividualClearingMember, nil)
-	msg := types.DepositMsg{Sender: cust, Recipient: member, Amount: sdk.Coin{"USD", 700}}
-	real := makeTx(msg, cKey)
-
+	depositMsg := types.DepositMsg{Sender: cust, Recipient: member, Amount: sdk.Coin{"USD", 700}}
+	depositTx := makeTx(depositMsg, cKey)
 	// garbage in, garbage out
 	dres := cc.DeliverTx(junk)
 	assert.EqualValues(t, sdk.CodeTxParse, dres.Code, dres.Log)
-
 	// get real working
-	dres = cc.DeliverTx(real)
+	dres = cc.DeliverTx(depositTx)
 	assert.EqualValues(t, sdk.CodeOK, dres.Code, dres.Log)
-
 	cc.EndBlock(abci.RequestEndBlock{})
 
 	// TODO: not working yet...
 	// cres := cc.Commit()
 	// assert.NotEqual(t, 0, len(cres.Data))
+
+	//send a create account msg	
+	cc.BeginBlock(abci.RequestBeginBlock{})
+	clearingHouse, chKey := fakeAccount(cc, types.EntityClearingHouse, nil)
+	createAccMsg := types.CreateAccountMsg{
+		Creator:     clearingHouse,
+		PubKey:      crypto.GenPrivKeyEd25519().PubKey(),
+		AccountType: types.EntityCustodian}
+		
+	 createAccTx := makeTx(createAccMsg, chKey)
+	res := cc.DeliverTx(createAccTx)
+	assert.EqualValues(t, sdk.CodeOK, res.Code, res.Log)
+	cc.EndBlock(abci.RequestEndBlock{})
+
 }
+
+
 
 func makeTx(msg sdk.Msg, keys ...crypto.PrivKey) []byte {
 	tx := sdk.StdTx{Msg: msg}
