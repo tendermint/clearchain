@@ -20,22 +20,32 @@ type AppAccount struct {
 	// Creator            crypto.Address
 }
 
+// IsCustodian returns true if the account's owner entity
+// is a custodian; false otherwise.
 func IsCustodian(a *AppAccount) bool {
 	return a.Type == EntityCustodian
 }
 
+// IsClearingHouse returns true if the account's owner entity
+// is the clearing house; false otherwise.
 func IsClearingHouse(a *AppAccount) bool {
 	return a.Type == EntityClearingHouse
 }
 
+// IsGeneralClearingMember returns true if the account's owner entity
+// is a general clearing member; false otherwise.
 func IsGeneralClearingMember(a *AppAccount) bool {
 	return a.Type == EntityGeneralClearingMember
 }
 
+// IsIndividualClearingMember returns true if the account's owner entity
+// is an individual clearing member; false otherwise.
 func IsIndividualClearingMember(a *AppAccount) bool {
 	return a.Type == EntityIndividualClearingMember
 }
 
+// IsMember returns true if the account's owner entity is either
+// a general or an individual clearing member; false otherwise.
 func IsMember(a *AppAccount) bool {
 	return IsIndividualClearingMember(a) ||
 		IsGeneralClearingMember(a)
