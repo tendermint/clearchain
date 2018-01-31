@@ -6,17 +6,22 @@ import (
 	crypto "github.com/tendermint/go-crypto"
 )
 
+//Business logic is executed here
+
+// Routes the message (request) to a proper handler
 func RegisterRoutes(r baseapp.Router, accts sdk.AccountMapper) {
 	r.AddRoute(DepositType, DepositMsgHandler(accts))
 	r.AddRoute(SettlementType, SettleMsgHandler(accts))
-	r.AddRoute(WithdrawType, WithDrawMsgHandler(accts))
+	r.AddRoute(WithdrawType, WithdrawMsgHandler(accts))
 	r.AddRoute(CreateAccountType, CreateAccountMsgHandler(accts))
 }
 
 /*
 
-Sender == Custodian
-Rec == Member
+Deposit functionality.
+
+Sender is Custodian
+Rec is Member
 */
 func DepositMsgHandler(accts sdk.AccountMapper) sdk.Handler {
 	return depositMsgHandler{accts}.Do
@@ -26,13 +31,14 @@ type depositMsgHandler struct {
 	accts sdk.AccountMapper
 }
 
+// Deposit logic
 func (d depositMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 	// TODO: ensure auth actually checks the sigs
 
 	// ensure proper message
 	dm, ok := msg.(DepositMsg)
 	if !ok {
-		return sdk.ErrTxParse("Expected DepositMsg").Result()
+		return ErrWrongMsgFormat("expected DepositMsg").Result()
 	}
 
 	// ensure proper types
@@ -54,8 +60,10 @@ func (d depositMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 }
 
 /*
-Sender == CH
-Rec == member
+Settlement funcionality.
+
+Sender is CH
+Rec is member
 */
 func SettleMsgHandler(accts sdk.AccountMapper) sdk.Handler {
 	return settleMsgHandler{accts}.Do
@@ -65,12 +73,13 @@ type settleMsgHandler struct {
 	accts sdk.AccountMapper
 }
 
+// Settlement logic
 func (sh settleMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 
 	// ensure proper message
 	sm, ok := msg.(SettleMsg)
 	if !ok {
-		return sdk.ErrTxParse("Expected SettleMsg").Result()
+		return ErrWrongMsgFormat("expected SettleMsg").Result()
 	}
 
 	// ensure proper types
@@ -93,12 +102,15 @@ func (sh settleMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 }
 
 /*
-Sender == member
-Reci == custodian
-Operator == CH
+
+Withdraw functionality.
+
+Sender is member
+Reci is custodian
+Operator is CH
 
 */
-func WithDrawMsgHandler(accts sdk.AccountMapper) sdk.Handler {
+func WithdrawMsgHandler(accts sdk.AccountMapper) sdk.Handler {
 	return withdrawMsgHandler{accts}.Do
 }
 
@@ -106,11 +118,12 @@ type withdrawMsgHandler struct {
 	accts sdk.AccountMapper
 }
 
+// Withdraw logic
 func (wh withdrawMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 	// ensure proper message
 	wm, ok := msg.(WithdrawMsg)
 	if !ok {
-		return sdk.ErrTxParse("Expected WithdrawMsg").Result()
+		return ErrWrongMsgFormat("expected WithdrawMsg").Result()
 	}
 
 	// ensure proper types
@@ -137,7 +150,9 @@ func (wh withdrawMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 }
 
 /*
-Creates a new account
+Create account functionality.
+
+Creator is CH
 */
 func CreateAccountMsgHandler(accts sdk.AccountMapper) sdk.Handler {
 	return createAccountMsgHandler{accts}.Do
@@ -147,25 +162,27 @@ type createAccountMsgHandler struct {
 	accts sdk.AccountMapper
 }
 
+// Create acc logic.
+// A clearing house account is allowed to create any kind of accounts,
+// including clearing house, custodian, and members accounts.
+// TODO: clarify business rules and ensure this is desired
 func (h createAccountMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 	// ensure proper message
 	cm, ok := msg.(CreateAccountMsg)
 	if !ok {
-		return sdk.ErrTxParse("Expected CreateAccountMsg").Result()
+		return ErrWrongMsgFormat("expected CreateAccountMsg").Result()
 	}
-
 	// ensure proper types
 	creator, err := getAccountWithType(ctx, h.accts, cm.Creator, IsClearingHouse)
 	if err != nil {
 		return err.Result()
 	}
-	// A clearing house account is allowed to create any kind of accounts,
-	// including clearing house, custodian, and members accounts.
-	// TODO: clarify business rules and ensure this is desired
+
 	if rawAccount := h.accts.GetAccount(ctx, cm.PubKey.Address()); rawAccount != nil {
 		return ErrInvalidAccount("the account already exists").Result()
 	}
 
+	// finally create and save the account
 	acct := createAccount(creator.GetAddress(), cm.PubKey, cm.AccountType)
 	h.accts.SetAccount(ctx, acct)
 
@@ -174,32 +191,36 @@ func (h createAccountMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 
 //*********************************** helper methods *********************************************
 
+// Transfers money from the sender to the  recipient
 func moveMoney(accts sdk.AccountMapper, ctx sdk.Context, sender *AppAccount, recipient *AppAccount,
 	amount sdk.Coin, senderMustBePositive bool, recipientMustBePositive bool) sdk.Error {
 
-	// now make the transfer
 	transfer := sdk.Coins{amount}
+
+	// first verify funds
 	sender.Coins = sender.Coins.Minus(transfer)
 	if senderMustBePositive && !sender.Coins.IsNotNegative() {
-		return sdk.ErrInsufficientFunds("sender balance negative")
+		return ErrInvalidAmount("sender  has insufficient funds")
 	}
+	// transfer may be negative
 	recipient.Coins = recipient.Coins.Plus(transfer)
 	if recipientMustBePositive && !recipient.Coins.IsNotNegative() {
-		return sdk.ErrInsufficientFunds("recipient balance negative")
+		return ErrInvalidAmount("recipient has insufficient funds")
 	}
 
-	// and save the result
+	// now make the transfer and save the result
 	accts.SetAccount(ctx, sender)
 	accts.SetAccount(ctx, recipient)
 	return nil
 }
 
+// Returns the account and verifies its type
 func getAccountWithType(ctx sdk.Context, accts sdk.AccountMapper, addr crypto.Address,
 	typeCheck func(*AppAccount) bool) (*AppAccount, sdk.Error) {
 
 	rawAccount := accts.GetAccount(ctx, addr)
 	if rawAccount == nil {
-		return nil, sdk.ErrUnrecognizedAddress(addr)
+		return nil, ErrInvalidAccount("account does not exist")
 	}
 	account := rawAccount.(*AppAccount)
 	if !typeCheck(account) {
@@ -209,6 +230,7 @@ func getAccountWithType(ctx sdk.Context, accts sdk.AccountMapper, addr crypto.Ad
 	return account, nil
 }
 
+// Creates an account instance
 func createAccount(creator crypto.Address, newAccPubKey crypto.PubKey, typ string) *AppAccount {
 	acct := new(AppAccount)
 	acct.SetAddress(newAccPubKey.Address())

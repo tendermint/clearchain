@@ -6,6 +6,7 @@ import (
 	crypto "github.com/tendermint/go-crypto"
 )
 
+// ensure AppAccount implements the sdk.Account interface
 var _ sdk.Account = (*AppAccount)(nil)
 
 // AppAccount defines the properties of an AppAccount
@@ -19,8 +20,8 @@ type AppAccount struct {
 	// Creator            crypto.Address
 }
 
-func IsCustodian(a *AppAccount) bool {
-	return a.Type == EntityCustodian
+func IsCustodian(a *AppAccount) bool {	
+	return a.Type == EntityCustodian 
 }
 
 func IsClearingHouse(a *AppAccount) bool {

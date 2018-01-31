@@ -67,7 +67,7 @@ func TestDepositMsg_ValidateBasic(t *testing.T) {
 		{
 			"same address",
 			fields{Amount: coin, Sender: addr, Recipient: addr},
-			CodeSameAddress,
+			CodeInvalidAddress,
 		},
 		{
 			"proper address",
@@ -155,7 +155,7 @@ func TestSettleMsg_ValidateBasic(t *testing.T) {
 		{
 			"same address",
 			fields{Amount: coin, Sender: addr, Recipient: addr},
-			CodeSameAddress,
+			CodeInvalidAddress,
 		},
 		{
 			"proper address",
@@ -245,7 +245,7 @@ func TestWithdrawMsg_ValidateBasic(t *testing.T) {
 		{
 			"same address",
 			fields{Amount: coin, Sender: addr, Recipient: addr, Operator: addr3},
-			CodeSameAddress,
+			CodeInvalidAddress,
 		},
 		{
 			"missing proper address",
@@ -334,6 +334,11 @@ func TestCreateAccountMsg_ValidateBasic(t *testing.T) {
 		},
 		{
 			"same creator and new acc",
+			fields{Creator: newPubKey.Address(), PubKey: nil, AccountType: EntityIndividualClearingMember},
+			CodeInvalidPubKey,
+		},
+		{
+			"creator is not CH",
 			fields{Creator: newPubKey.Address(), PubKey: nil, AccountType: EntityIndividualClearingMember},
 			CodeInvalidPubKey,
 		},

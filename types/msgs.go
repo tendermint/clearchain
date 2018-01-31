@@ -7,6 +7,9 @@ import (
 	crypto "github.com/tendermint/go-crypto"
 )
 
+// Defines all the messages (requests) supported by the app
+
+
 // message types definitions
 const (
 	DepositType       = "deposit"
@@ -22,15 +25,16 @@ type DepositMsg struct {
 	Amount    sdk.Coin
 }
 
-var _ sdk.Msg = DepositMsg{}
+// ensure DepositMsg implements the sdk.Msg interface
 var _ sdk.Msg = (*DepositMsg)(nil)
 
+//Called by SDk automatically
 func (d DepositMsg) ValidateBasic() sdk.Error {
-	if d.Amount.Amount <= 0 {
-		return sdk.NewError(CodeInvalidAmount, "negative amount")
+	if d.Amount.Amount <= 0 {		
+		return ErrInvalidAmount("negative amount")
 	}
-	if d.Amount.Denom == "" {
-		return sdk.NewError(CodeInvalidAmount, "invalid denom")
+	if d.Amount.Denom == "" {		
+		return ErrInvalidAmount("empty denom")
 	}
 	if err := validateAddress(d.Sender); err != nil {
 		return err
@@ -39,8 +43,8 @@ func (d DepositMsg) ValidateBasic() sdk.Error {
 		return err
 	}
 
-	if bytes.Equal(d.Sender, d.Recipient) {
-		return sdk.NewError(CodeSameAddress, "same addresses")
+	if bytes.Equal(d.Sender, d.Recipient) {		
+		return ErrInvalidAddress("sender and recipient have the same address")
 	}
 
 	return nil
@@ -81,13 +85,14 @@ type SettleMsg struct {
 
 var _ sdk.Msg = SettleMsg{}
 
-// amount may be negative
+//Called by SDk automatically
 func (s SettleMsg) ValidateBasic() sdk.Error {
-	if s.Amount.Amount == 0 {
-		return sdk.NewError(CodeInvalidAmount, "invalid amount")
+	// amount may be negative
+	if s.Amount.Amount == 0 {	
+		return ErrInvalidAmount("empty or 0 amount not allowed")
 	}
-	if s.Amount.Denom == "" {
-		return sdk.NewError(CodeInvalidAmount, "invalid denom")
+	if s.Amount.Denom == "" {		
+		return ErrInvalidAmount("empty denom")
 	}
 	if err := validateAddress(s.Sender); err != nil {
 		return err
@@ -97,7 +102,7 @@ func (s SettleMsg) ValidateBasic() sdk.Error {
 	}
 
 	if bytes.Equal(s.Sender, s.Recipient) {
-		return sdk.NewError(CodeSameAddress, "same addresses")
+		return ErrInvalidAddress("sender and recipient have the same address")
 	}
 
 	return nil
@@ -139,12 +144,13 @@ type WithdrawMsg struct {
 
 var _ sdk.Msg = WithdrawMsg{}
 
+// Called by SDk automatically
 func (w WithdrawMsg) ValidateBasic() sdk.Error {
-	if w.Amount.Amount <= 0 {
-		return sdk.NewError(CodeInvalidAmount, "invalid amount")
+	if w.Amount.Amount <= 0 {		
+		return ErrInvalidAmount("negative or 0 amount not allowed")
 	}
 	if w.Amount.Denom == "" {
-		return sdk.NewError(CodeInvalidAmount, "invalid denom")
+		return ErrInvalidAmount("empty denom")
 	}
 	if err := validateAddress(w.Sender); err != nil {
 		return err
@@ -157,7 +163,7 @@ func (w WithdrawMsg) ValidateBasic() sdk.Error {
 	}
 
 	if bytes.Equal(w.Sender, w.Recipient) {
-		return sdk.NewError(CodeSameAddress, "same addresses")
+		return ErrInvalidAddress("sender and recipient have the same address")
 	}
 
 	return nil
@@ -200,20 +206,21 @@ type CreateAccountMsg struct {
 
 var _ sdk.Msg = CreateAccountMsg{}
 
+//Called by SDk automatically
 func (msg CreateAccountMsg) ValidateBasic() sdk.Error {
 
 	if err := validateAddress(msg.Creator); err != nil {
 		return err
 	}
 
-	if msg.PubKey == nil {
-		return sdk.NewError(CodeInvalidPubKey, "invalid pub key")
+	if msg.PubKey == nil {		
+		return ErrInvalidPubKey("pub key is nil")		
 	}
-	if bytes.Equal(msg.Creator, msg.PubKey.Address()) {
-		return sdk.NewError(CodeSameAddress, "same address")
+	if bytes.Equal(msg.Creator, msg.PubKey.Address()) {		
+		return ErrInvalidAddress("creator and new account have the same address")
 	}
-	if !IsValidEntityType(msg.AccountType) {
-		return sdk.NewError(CodeInvalidPubKey, "invalid entity type")
+	if !IsValidEntityType(msg.AccountType) {		
+		return ErrInvalidAccount("unrecognized entity type")
 	}
 
 	return nil
