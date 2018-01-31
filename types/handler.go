@@ -236,8 +236,7 @@ func createAccount(creator crypto.Address, newAccPubKey crypto.PubKey, typ strin
 	acct.SetAddress(newAccPubKey.Address())
 	acct.SetPubKey(newAccPubKey)
 	acct.SetCoins(nil)
+	acct.SetCreator(creator)
 	acct.Type = typ
-	// TODO:
-	// acct.SetCreator(creator)
 	return acct
 }

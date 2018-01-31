@@ -290,6 +290,7 @@ func TestCreateAccountMsgHandler(t *testing.T) {
 	newCHAccPubKey := crypto.GenPrivKeyEd25519().PubKey()
 	newICMAccPubKey := crypto.GenPrivKeyEd25519().PubKey()
 	newCUSAccPubKey := crypto.GenPrivKeyEd25519().PubKey()
+	justAPubKey := crypto.GenPrivKeyEd25519().PubKey()
 
 	type args struct {
 		ctx sdk.Context
@@ -331,18 +332,23 @@ func TestCreateAccountMsgHandler(t *testing.T) {
 			CodeInvalidAccount,
 		},
 		{
+			"fail creator is nil",
+			args{ctx: ctx, msg: CreateAccountMsg{Creator: nil, PubKey: justAPubKey, AccountType: EntityIndividualClearingMember}},
+			CodeInvalidAccount,
+		},
+		{
 			"fail creator is CUS (not CH)",
-			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorCUS, PubKey: crypto.GenPrivKeyEd25519().PubKey(), AccountType: EntityIndividualClearingMember}},
+			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorCUS, PubKey: justAPubKey, AccountType: EntityIndividualClearingMember}},
 			CodeWrongSigner,
 		},
 		{
 			"fail creator is GCM (not CH)",
-			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorGCM, PubKey: crypto.GenPrivKeyEd25519().PubKey(), AccountType: EntityIndividualClearingMember}},
+			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorGCM, PubKey: justAPubKey, AccountType: EntityIndividualClearingMember}},
 			CodeWrongSigner,
 		},
 		{
 			"fail creator is CUS (not CH)",
-			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorICM, PubKey: crypto.GenPrivKeyEd25519().PubKey(), AccountType: EntityIndividualClearingMember}},
+			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorICM, PubKey: justAPubKey, AccountType: EntityIndividualClearingMember}},
 			CodeWrongSigner,
 		},
 	}
