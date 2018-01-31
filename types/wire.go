@@ -4,15 +4,9 @@ import (
 	wire "github.com/tendermint/go-wire"
 	crypto "github.com/tendermint/go-crypto"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	
 )
-var cdc = wire.NewCodec()
-
-func init() {
-	crypto.RegisterWire(cdc)	
-	// Must register message interface to parse sdk.StdTx
-	cdc.RegisterInterface((*sdk.Msg)(nil), nil)
-	RegisterWire(cdc)
-}
+var cdc = MakeTxCodec()
 
 func RegisterWire(cdc *wire.Codec) {
 	cdc.RegisterConcrete(DepositMsg{},
@@ -24,3 +18,19 @@ func RegisterWire(cdc *wire.Codec) {
 	cdc.RegisterConcrete(CreateAccountMsg{},
 		"com.tendermint.clearchain.CreateAccountMsg", nil)
 }
+
+func MakeTxCodec() (cdc *wire.Codec) {
+	cdc = wire.NewCodec()
+
+	// Register crypto.[PubKey,PrivKey,Signature] types.
+	crypto.RegisterWire(cdc)
+
+	// Register clearchain types.
+	RegisterWire(cdc)
+
+	// Must register message interface to parse sdk.StdTx
+	cdc.RegisterInterface((*sdk.Msg)(nil), nil)
+
+	return
+}
+ 

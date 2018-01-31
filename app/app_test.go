@@ -66,7 +66,7 @@ func makeTx(msg sdk.Msg, keys ...crypto.PrivKey) []byte {
 	}
 	tx.Signatures = sigs
 
-	cc := makeTxCodec()
+	cc :=  types.MakeTxCodec()
 	bz, err := cc.MarshalBinary(tx)
 	if err != nil {
 		panic(err)

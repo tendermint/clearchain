@@ -1,9 +1,7 @@
 package app
 
 import (
-	"github.com/tendermint/abci/server"
-	crypto "github.com/tendermint/go-crypto"
-	wire "github.com/tendermint/go-wire"
+	"github.com/tendermint/abci/server"	
 	cmn "github.com/tendermint/tmlibs/common"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -11,6 +9,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 
 	"github.com/tendermint/clearchain/types"
+	
 )
 
 const AppName = "ClearchainApp"
@@ -85,7 +84,7 @@ func setAnteHandler(bApp *baseapp.BaseApp, accts sdk.AccountMapper) {
 }
 
 func initBaseAppTxDecoder(bApp *baseapp.BaseApp) {
-	cdc := makeTxCodec()
+	cdc := types.MakeTxCodec()
 	bApp.SetTxDecoder(func(txBytes []byte) (sdk.Tx, sdk.Error) {
 		var tx = sdk.StdTx{}
 		// StdTx.Msg is an interface whose concrete
@@ -98,17 +97,3 @@ func initBaseAppTxDecoder(bApp *baseapp.BaseApp) {
 	})
 }
 
-func makeTxCodec() (cdc *wire.Codec) {
-	cdc = wire.NewCodec()
-
-	// Register crypto.[PubKey,PrivKey,Signature] types.
-	crypto.RegisterWire(cdc)
-
-	// Register clearchain types.
-	types.RegisterWire(cdc)
-
-	// Must register message interface to parse sdk.StdTx
-	cdc.RegisterInterface((*sdk.Msg)(nil), nil)
-
-	return
-}
