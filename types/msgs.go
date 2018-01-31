@@ -9,7 +9,6 @@ import (
 
 // Defines all the messages (requests) supported by the app
 
-
 // message types definitions
 const (
 	DepositType       = "deposit"
@@ -30,10 +29,10 @@ var _ sdk.Msg = (*DepositMsg)(nil)
 
 //Called by SDk automatically
 func (d DepositMsg) ValidateBasic() sdk.Error {
-	if d.Amount.Amount <= 0 {		
+	if d.Amount.Amount <= 0 {
 		return ErrInvalidAmount("negative amount")
 	}
-	if d.Amount.Denom == "" {		
+	if d.Amount.Denom == "" {
 		return ErrInvalidAmount("empty denom")
 	}
 	if err := validateAddress(d.Sender); err != nil {
@@ -43,7 +42,7 @@ func (d DepositMsg) ValidateBasic() sdk.Error {
 		return err
 	}
 
-	if bytes.Equal(d.Sender, d.Recipient) {		
+	if bytes.Equal(d.Sender, d.Recipient) {
 		return ErrInvalidAddress("sender and recipient have the same address")
 	}
 
@@ -88,10 +87,10 @@ var _ sdk.Msg = SettleMsg{}
 //Called by SDk automatically
 func (s SettleMsg) ValidateBasic() sdk.Error {
 	// amount may be negative
-	if s.Amount.Amount == 0 {	
+	if s.Amount.Amount == 0 {
 		return ErrInvalidAmount("empty or 0 amount not allowed")
 	}
-	if s.Amount.Denom == "" {		
+	if s.Amount.Denom == "" {
 		return ErrInvalidAmount("empty denom")
 	}
 	if err := validateAddress(s.Sender); err != nil {
@@ -146,7 +145,7 @@ var _ sdk.Msg = WithdrawMsg{}
 
 // Called by SDk automatically
 func (w WithdrawMsg) ValidateBasic() sdk.Error {
-	if w.Amount.Amount <= 0 {		
+	if w.Amount.Amount <= 0 {
 		return ErrInvalidAmount("negative or 0 amount not allowed")
 	}
 	if w.Amount.Denom == "" {
@@ -213,13 +212,13 @@ func (msg CreateAccountMsg) ValidateBasic() sdk.Error {
 		return err
 	}
 
-	if msg.PubKey == nil {		
-		return ErrInvalidPubKey("pub key is nil")		
+	if msg.PubKey == nil {
+		return ErrInvalidPubKey("pub key is nil")
 	}
-	if bytes.Equal(msg.Creator, msg.PubKey.Address()) {		
+	if bytes.Equal(msg.Creator, msg.PubKey.Address()) {
 		return ErrInvalidAddress("creator and new account have the same address")
 	}
-	if !IsValidEntityType(msg.AccountType) {		
+	if !IsValidEntityType(msg.AccountType) {
 		return ErrInvalidAccount("unrecognized entity type")
 	}
 

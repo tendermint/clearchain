@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/tendermint/abci/server"	
+	"github.com/tendermint/abci/server"
 	cmn "github.com/tendermint/tmlibs/common"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -9,7 +9,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 
 	"github.com/tendermint/clearchain/types"
-	
 )
 
 const AppName = "ClearchainApp"
@@ -96,4 +95,3 @@ func initBaseAppTxDecoder(bApp *baseapp.BaseApp) {
 		return tx, nil
 	})
 }
-

@@ -9,12 +9,12 @@ import (
 const (
 	// Base SDK reserves 0 ~ 99.
 
-	CodeInvalidAmount  sdk.CodeType = 100
-	CodeInvalidAddress sdk.CodeType = 101	
-	CodeInvalidPubKey  sdk.CodeType = 102
-	CodeInvalidAccount sdk.CodeType = 103
-	CodeWrongSigner    sdk.CodeType = 104
-	CodeWrongMessageFormat    sdk.CodeType = 105
+	CodeInvalidAmount      sdk.CodeType = 100
+	CodeInvalidAddress     sdk.CodeType = 101
+	CodeInvalidPubKey      sdk.CodeType = 102
+	CodeInvalidAccount     sdk.CodeType = 103
+	CodeWrongSigner        sdk.CodeType = 104
+	CodeWrongMessageFormat sdk.CodeType = 105
 )
 
 func ErrInvalidAmount(typ string) sdk.Error {

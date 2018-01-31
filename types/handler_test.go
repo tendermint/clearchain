@@ -280,18 +280,17 @@ func TestWithdrawMsgHandler(t *testing.T) {
 	}
 }
 
-
 func TestCreateAccountMsgHandler(t *testing.T) {
 	accts, ctx := fakeAccountMapper()
-	creatorCH := fakeAccount(accts, ctx, EntityClearingHouse , sdk.Coins{})
-	creatorCUS := fakeAccount(accts, ctx, EntityCustodian , sdk.Coins{})
-	creatorGCM := fakeAccount(accts, ctx, EntityCustodian , sdk.Coins{})
-	creatorICM := fakeAccount(accts, ctx, EntityCustodian , sdk.Coins{})
+	creatorCH := fakeAccount(accts, ctx, EntityClearingHouse, sdk.Coins{})
+	creatorCUS := fakeAccount(accts, ctx, EntityCustodian, sdk.Coins{})
+	creatorGCM := fakeAccount(accts, ctx, EntityCustodian, sdk.Coins{})
+	creatorICM := fakeAccount(accts, ctx, EntityCustodian, sdk.Coins{})
 	newGCMAccPubKey := crypto.GenPrivKeyEd25519().PubKey()
 	newCHAccPubKey := crypto.GenPrivKeyEd25519().PubKey()
 	newICMAccPubKey := crypto.GenPrivKeyEd25519().PubKey()
 	newCUSAccPubKey := crypto.GenPrivKeyEd25519().PubKey()
-	
+
 	type args struct {
 		ctx sdk.Context
 		msg sdk.Msg
@@ -299,53 +298,53 @@ func TestCreateAccountMsgHandler(t *testing.T) {
 	tests := []struct {
 		name   string
 		args   args
-		expect sdk.CodeType		
+		expect sdk.CodeType
 	}{
 		{
 			"create GCM",
 			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorCH, PubKey: newGCMAccPubKey, AccountType: EntityGeneralClearingMember}},
-			sdk.CodeOK,			
-		},	
+			sdk.CodeOK,
+		},
 		{
 			"create CH",
 			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorCH, PubKey: newCHAccPubKey, AccountType: EntityClearingHouse}},
-			sdk.CodeOK,			
-		},	
+			sdk.CodeOK,
+		},
 		{
 			"create ICM",
 			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorCH, PubKey: newICMAccPubKey, AccountType: EntityIndividualClearingMember}},
-			sdk.CodeOK,			
-		},	
+			sdk.CodeOK,
+		},
 		{
 			"create CUS",
 			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorCH, PubKey: newCUSAccPubKey, AccountType: EntityCustodian}},
-			sdk.CodeOK,			
-		},	
+			sdk.CodeOK,
+		},
 		{
 			"fail Acc already exists",
 			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorCH, PubKey: newCUSAccPubKey, AccountType: EntityCustodian}},
-			CodeInvalidAccount,			
-		},	
+			CodeInvalidAccount,
+		},
 		{
 			"fail creator does not exist",
 			args{ctx: ctx, msg: CreateAccountMsg{Creator: crypto.GenPrivKeyEd25519().PubKey().Address(), PubKey: crypto.GenPrivKeyEd25519().PubKey(), AccountType: EntityIndividualClearingMember}},
-			CodeInvalidAccount,			
+			CodeInvalidAccount,
 		},
 		{
 			"fail creator is CUS (not CH)",
 			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorCUS, PubKey: crypto.GenPrivKeyEd25519().PubKey(), AccountType: EntityIndividualClearingMember}},
-			CodeWrongSigner,			
-		},	
+			CodeWrongSigner,
+		},
 		{
 			"fail creator is GCM (not CH)",
 			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorGCM, PubKey: crypto.GenPrivKeyEd25519().PubKey(), AccountType: EntityIndividualClearingMember}},
-			CodeWrongSigner,			
-		},	
+			CodeWrongSigner,
+		},
 		{
 			"fail creator is CUS (not CH)",
 			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorICM, PubKey: crypto.GenPrivKeyEd25519().PubKey(), AccountType: EntityIndividualClearingMember}},
-			CodeWrongSigner,			
-		},	
+			CodeWrongSigner,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -353,17 +352,16 @@ func TestCreateAccountMsgHandler(t *testing.T) {
 			got := handler(tt.args.ctx, tt.args.msg)
 			assert.Equal(t, tt.expect, got.Code, got.Log)
 
-			newAcc := accts.GetAccount(ctx, tt.args.msg.(CreateAccountMsg).PubKey.Address())	
-			if tt.expect == sdk.CodeOK || tt.name == "fail Acc already exists"{
-				assert.True(t, newAcc != nil)			
-			}else{
-				assert.True(t, newAcc == nil)	
+			newAcc := accts.GetAccount(ctx, tt.args.msg.(CreateAccountMsg).PubKey.Address())
+			if tt.expect == sdk.CodeOK || tt.name == "fail Acc already exists" {
+				assert.True(t, newAcc != nil)
+			} else {
+				assert.True(t, newAcc == nil)
 			}
-						
+
 		})
 	}
 }
-
 
 //---------------- helpers --------------------
 

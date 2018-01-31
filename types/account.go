@@ -20,8 +20,8 @@ type AppAccount struct {
 	// Creator            crypto.Address
 }
 
-func IsCustodian(a *AppAccount) bool {	
-	return a.Type == EntityCustodian 
+func IsCustodian(a *AppAccount) bool {
+	return a.Type == EntityCustodian
 }
 
 func IsClearingHouse(a *AppAccount) bool {
