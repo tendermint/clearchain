@@ -183,7 +183,7 @@ func (h createAccountMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 	}
 
 	// finally create and save the account
-	acct := createAccount(creator.GetAddress(), cm.PubKey, cm.AccountType)
+	acct := createAccount(creator.GetAddress(), cm.PubKey, cm.AccountType, creator.LegalEntityName)
 	h.accts.SetAccount(ctx, acct)
 
 	return sdk.Result{}
@@ -231,12 +231,13 @@ func getAccountWithType(ctx sdk.Context, accts sdk.AccountMapper, addr crypto.Ad
 }
 
 // Creates an account instance
-func createAccount(creator crypto.Address, newAccPubKey crypto.PubKey, typ string) *AppAccount {
+func createAccount(creator crypto.Address, newAccPubKey crypto.PubKey, typ string, entity string) *AppAccount {
 	acct := new(AppAccount)
 	acct.SetAddress(newAccPubKey.Address())
 	acct.SetPubKey(newAccPubKey)
 	acct.SetCoins(nil)
 	acct.SetCreator(creator)
 	acct.Type = typ
+	acct.LegalEntityName = entity
 	return acct
 }

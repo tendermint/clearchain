@@ -15,7 +15,7 @@ const (
 )
 
 var (
-	entityTypes = []string{EntityClearingHouse, EntityGeneralClearingMember, EntityIndividualClearingMember, EntityCustodian}
+	creatableEntities = []string{EntityGeneralClearingMember, EntityIndividualClearingMember, EntityCustodian}
 
 	// ensure AppAccount implements the sdk.Account interface
 	_ sdk.Account = (*AppAccount)(nil)
@@ -24,12 +24,9 @@ var (
 // AppAccount defines the properties of an AppAccount
 type AppAccount struct {
 	auth.BaseAccount
-	Type    string
-	Creator crypto.Address
-
-	// TODO: fields that may potentially be introduced in future
-	// Name               string
-	// LegalEntityAddress crypto.Address
+	Type            string
+	Creator         crypto.Address
+	LegalEntityName string
 }
 
 // IsCustodian returns true if the account's owner entity
@@ -91,8 +88,9 @@ func (a *AppAccount) SetCreator(creator crypto.Address) {
 	a.Creator = creator
 }
 
-func IsValidEntityType(entityType string) bool {
-	return sliceContainsString(entityTypes, entityType)
+// IsCreatableEntity checks whether it is allowed to create an entity of the given type..
+func IsCreatableEntity(entityType string) bool {
+	return sliceContainsString(creatableEntities, entityType)
 }
 
 func sliceContainsString(slice []string, target string) bool {
