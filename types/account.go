@@ -12,12 +12,12 @@ var _ sdk.Account = (*AppAccount)(nil)
 // AppAccount defines the properties of an AppAccount
 type AppAccount struct {
 	auth.BaseAccount
-	Type string
+	Type    string
+	Creator crypto.Address
 
 	// TODO: fields that may potentially be introduced in future
 	// Name               string
 	// LegalEntityAddress crypto.Address
-	// Creator            crypto.Address
 }
 
 // IsCustodian returns true if the account's owner entity
@@ -69,22 +69,22 @@ func AccountMapper(capKey sdk.StoreKey) sdk.AccountMapper {
 	return res
 }
 
+// GetCreator returns account's creator.
+func GetCreator(a *AppAccount) crypto.Address {
+	return a.Creator
+}
+
+// SetCreator modifies account's creator.
+func (a *AppAccount) SetCreator(creator crypto.Address) {
+	a.Creator = creator
+}
+
 // // GetName returns account's name.
-// func  GetName() string {
+// func GetName() string {
 // 	return a.Name
 // }
 
 // // SetName modifies account's name
 // func (a *AppAccount) SetName(name string) {
 // 	a.Name = name
-// }
-
-// // GetCreator returns account's name.
-// func  GetCreator() crypto.Address {
-// 	return a.Creator
-// }
-
-// // SetCreator modifies account's name
-// func (a *AppAccount) SetCreator(creator crypto.Address) {
-// 	a.Creator = creator
 // }

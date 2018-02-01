@@ -207,11 +207,9 @@ var _ sdk.Msg = CreateAccountMsg{}
 
 //Called by SDk automatically
 func (msg CreateAccountMsg) ValidateBasic() sdk.Error {
-
 	if err := validateAddress(msg.Creator); err != nil {
 		return err
 	}
-
 	if msg.PubKey == nil {
 		return ErrInvalidPubKey("pub key is nil")
 	}
@@ -221,22 +219,21 @@ func (msg CreateAccountMsg) ValidateBasic() sdk.Error {
 	if !IsValidEntityType(msg.AccountType) {
 		return ErrInvalidAccount("unrecognized entity type")
 	}
-
 	return nil
 }
 
-// Return the message type.
+// Type returns the message type.
 // Must be alphanumeric or empty.
 func (msg CreateAccountMsg) Type() string {
 	return CreateAccountType
 }
 
-// Get some property of the Msg.
+// Get returns some property of the Msg.
 func (msg CreateAccountMsg) Get(key interface{}) (value interface{}) {
 	return nil
 }
 
-// Get the canonical byte representation of the Msg.
+// GetSignBytes returns the canonical byte representation of the Msg.
 func (msg CreateAccountMsg) GetSignBytes() []byte {
 	bz, err := cdc.MarshalBinary(msg)
 	if err != nil {
@@ -245,7 +242,7 @@ func (msg CreateAccountMsg) GetSignBytes() []byte {
 	return bz
 }
 
-// Signers returns the addrs of signers that must sign.
+// GetSigners returns the addrs of signers that must sign.
 // CONTRACT: All signatures must be present to be valid.
 // CONTRACT: Returns addrs in some deterministic order.
 func (msg CreateAccountMsg) GetSigners() []crypto.Address {
