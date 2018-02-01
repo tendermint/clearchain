@@ -3,7 +3,7 @@ import:
 - package: github.com/cosmos/cosmos-sdk
   version: feature/init-account
 - package: github.com/tendermint/go-wire
-  version: sdk2
+  version: e723d95ac2838b7ae9919ada25004859236c32ff
 - package: github.com/tendermint/go-crypto
   version: sdk2
 testImport:
