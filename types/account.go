@@ -6,8 +6,20 @@ import (
 	crypto "github.com/tendermint/go-crypto"
 )
 
-// ensure AppAccount implements the sdk.Account interface
-var _ sdk.Account = (*AppAccount)(nil)
+// EntityType string identifiers
+const (
+	EntityClearingHouse            = "ch"
+	EntityGeneralClearingMember    = "gcm"
+	EntityIndividualClearingMember = "icm"
+	EntityCustodian                = "custodian"
+)
+
+var (
+	entityTypes = []string{EntityClearingHouse, EntityGeneralClearingMember, EntityIndividualClearingMember, EntityCustodian}
+
+	// ensure AppAccount implements the sdk.Account interface
+	_ sdk.Account = (*AppAccount)(nil)
+)
 
 // AppAccount defines the properties of an AppAccount
 type AppAccount struct {
@@ -77,6 +89,19 @@ func GetCreator(a *AppAccount) crypto.Address {
 // SetCreator modifies account's creator.
 func (a *AppAccount) SetCreator(creator crypto.Address) {
 	a.Creator = creator
+}
+
+func IsValidEntityType(entityType string) bool {
+	return sliceContainsString(entityTypes, entityType)
+}
+
+func sliceContainsString(slice []string, target string) bool {
+	for _, s := range slice {
+		if s == target {
+			return true
+		}
+	}
+	return false
 }
 
 // // GetName returns account's name.
