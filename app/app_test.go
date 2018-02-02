@@ -40,9 +40,11 @@ func TestApp(t *testing.T) {
 	cc.BeginBlock(abci.RequestBeginBlock{})
 	clearingHouse, chKey := fakeAccount(cc, types.EntityClearingHouse, nil)
 	createAccMsg := types.CreateAccountMsg{
-		Creator:     clearingHouse,
-		PubKey:      crypto.GenPrivKeyEd25519().PubKey(),
-		AccountType: types.EntityCustodian}
+		Creator:         clearingHouse,
+		PubKey:          crypto.GenPrivKeyEd25519().PubKey(),
+		AccountType:     types.EntityCustodian,
+		LegalEntityName: "custodian",
+	}
 
 	createAccTx := makeTx(createAccMsg, chKey)
 	res := cc.DeliverTx(createAccTx)

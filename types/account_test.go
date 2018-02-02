@@ -2,7 +2,7 @@ package types
 
 import "testing"
 
-func TestIsValidEntityType(t *testing.T) {
+func TestIsCreatableEntity(t *testing.T) {
 	type args struct {
 		entityType string
 	}
@@ -11,14 +11,15 @@ func TestIsValidEntityType(t *testing.T) {
 		args args
 		want bool
 	}{
-		{"valid entity", args{"ch"}, true},
+		{"can't create ch", args{"ch"}, false},
 		{"bad entity", args{""}, false},
 		{"bad entity", args{"bad"}, false},
+		{"valid entity", args{"gcm"}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := IsValidEntityType(tt.args.entityType); got != tt.want {
-				t.Errorf("IsValidEntityType() = %v, want %v", got, tt.want)
+			if got := IsCreatableEntity(tt.args.entityType); got != tt.want {
+				t.Errorf("IsCreatableEntity() = %v, want %v", got, tt.want)
 			}
 		})
 	}

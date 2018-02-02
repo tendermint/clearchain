@@ -3,15 +3,13 @@ package types
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
-	abci "github.com/tendermint/abci/types"
-	crypto "github.com/tendermint/go-crypto"
-	dbm "github.com/tendermint/tmlibs/db"
-
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/stretchr/testify/assert"
+	abci "github.com/tendermint/abci/types"
+	crypto "github.com/tendermint/go-crypto"
+	dbm "github.com/tendermint/tmlibs/db"
 )
 
 // TestRegisterRoutes is an end-to-end test, making sure a normal workflow is
@@ -284,6 +282,7 @@ func TestCreateAccountMsgHandler(t *testing.T) {
 	accts, ctx := fakeAccountMapper()
 	creatorCH := fakeAccount(accts, ctx, EntityClearingHouse, sdk.Coins{})
 	creatorCUS := fakeAccount(accts, ctx, EntityCustodian, sdk.Coins{})
+	creatorCUSAdmin := fakeAdminAccount(accts, ctx, EntityCustodian, sdk.Coins{})
 	creatorGCM := fakeAccount(accts, ctx, EntityCustodian, sdk.Coins{})
 	creatorICM := fakeAccount(accts, ctx, EntityCustodian, sdk.Coins{})
 	newGCMAccPubKey := crypto.GenPrivKeyEd25519().PubKey()
@@ -351,6 +350,16 @@ func TestCreateAccountMsgHandler(t *testing.T) {
 			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorICM, PubKey: justAPubKey, AccountType: EntityIndividualClearingMember}},
 			CodeWrongSigner,
 		},
+		{
+			"non-admin cannot create own accounts",
+			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorCUS, PubKey: justAPubKey, AccountType: EntityCustodian, LegalEntityName: string(creatorCUS)}},
+			CodeWrongSigner,
+		},
+		{
+			"CUS Admin can create own accounts",
+			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorCUSAdmin, PubKey: justAPubKey, AccountType: EntityCustodian, LegalEntityName: string(creatorCUSAdmin)}},
+			sdk.CodeOK,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -365,6 +374,34 @@ func TestCreateAccountMsgHandler(t *testing.T) {
 				assert.True(t, newAcc == nil)
 			}
 
+		})
+	}
+}
+func Test_canCreateAdmin(t *testing.T) {
+	entityType := EntityClearingHouse
+	nonAdmin := makeAccount(entityType, nil, false)
+	admin := makeAccount(entityType, nil, true)
+	type args struct {
+		acct          *AppAccount
+		newAcctType   string
+		newAcctEntity string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{"not admin", args{nonAdmin, nonAdmin.Type, nonAdmin.LegalEntityName}, false},
+		{"not admin, non same type or entity", args{nonAdmin, EntityCustodian, "entity name"}, false},
+		{"admin", args{admin, admin.Type, admin.LegalEntityName}, true},
+		{"admin, not same type", args{admin, EntityCustodian, admin.LegalEntityName}, false},
+		{"admin, not same entity", args{admin, admin.Type, "entity name"}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := canCreateAdmin(tt.args.acct, tt.args.newAcctType, tt.args.newAcctEntity); got != tt.want {
+				t.Errorf("canCreateAdmin() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }
@@ -394,6 +431,18 @@ func fakeAccountMapper() (sdk.AccountMapper, sdk.Context) {
 }
 
 func fakeAccount(accts sdk.AccountMapper, ctx sdk.Context, typ string, cash sdk.Coins) crypto.Address {
+	acct := makeAccount(typ, cash, false)
+	accts.SetAccount(ctx, acct)
+	return acct.Address
+}
+
+func fakeAdminAccount(accts sdk.AccountMapper, ctx sdk.Context, typ string, cash sdk.Coins) crypto.Address {
+	acct := makeAccount(typ, cash, true)
+	accts.SetAccount(ctx, acct)
+	return acct.Address
+}
+
+func makeAccount(typ string, cash sdk.Coins, isAdmin bool) *AppAccount {
 	pub := crypto.GenPrivKeyEd25519().PubKey()
 	addr := pub.Address()
 
@@ -402,7 +451,7 @@ func fakeAccount(accts sdk.AccountMapper, ctx sdk.Context, typ string, cash sdk.
 	acct.SetPubKey(pub)
 	acct.SetCoins(cash)
 	acct.Type = typ
-
-	accts.SetAccount(ctx, acct)
-	return addr
+	acct.EntityAdmin = isAdmin
+	acct.LegalEntityName = string(addr)
+	return acct
 }

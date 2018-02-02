@@ -2,6 +2,8 @@ package types
 
 import (
 	"bytes"
+	"fmt"
+	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	crypto "github.com/tendermint/go-crypto"
@@ -188,7 +190,7 @@ func (w WithdrawMsg) GetSignBytes() []byte {
 	return bz
 }
 
-// Signers returns the addrs of signers that must sign.
+// GetSigners returns the addrs of signers that must sign.
 // CONTRACT: All signatures must be present to be valid.
 // CONTRACT: Returns addrs in some deterministic order.
 func (w WithdrawMsg) GetSigners() []crypto.Address {
@@ -198,14 +200,16 @@ func (w WithdrawMsg) GetSigners() []crypto.Address {
 //*********************
 
 type CreateAccountMsg struct {
-	Creator     crypto.Address
-	PubKey      crypto.PubKey
-	AccountType string
+	Creator         crypto.Address
+	PubKey          crypto.PubKey
+	AccountType     string
+	LegalEntityName string
+	IsAdmin         bool
 }
 
 var _ sdk.Msg = CreateAccountMsg{}
 
-//Called by SDk automatically
+// ValidateBasic is called by SDK automatically
 func (msg CreateAccountMsg) ValidateBasic() sdk.Error {
 	if err := validateAddress(msg.Creator); err != nil {
 		return err
@@ -216,8 +220,11 @@ func (msg CreateAccountMsg) ValidateBasic() sdk.Error {
 	if bytes.Equal(msg.Creator, msg.PubKey.Address()) {
 		return ErrInvalidAddress("creator and new account have the same address")
 	}
-	if !IsValidEntityType(msg.AccountType) {
-		return ErrInvalidAccount("unrecognized entity type")
+	if !IsCreatableEntity(msg.AccountType) {
+		return ErrInvalidAccount(fmt.Sprintf("couldn't create entity type: %q", msg.AccountType))
+	}
+	if len(strings.TrimSpace(msg.LegalEntityName)) == 0 {
+		return ErrInvalidAccount("legal entity name must be non-nil")
 	}
 	return nil
 }
@@ -249,7 +256,7 @@ func (msg CreateAccountMsg) GetSigners() []crypto.Address {
 	return []crypto.Address{msg.Creator}
 }
 
-//******************************* helper methods *****************************
+// Auxiliary functions, might be undocumented
 
 func validateAddress(addr crypto.Address) sdk.Error {
 	if addr == nil {
