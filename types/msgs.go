@@ -204,6 +204,7 @@ type CreateAccountMsg struct {
 	PubKey          crypto.PubKey
 	AccountType     string
 	LegalEntityName string
+	IsAdmin         bool
 }
 
 var _ sdk.Msg = CreateAccountMsg{}

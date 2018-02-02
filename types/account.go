@@ -26,7 +26,12 @@ type AppAccount struct {
 	auth.BaseAccount
 	Type            string
 	Creator         crypto.Address
+	EntityAdmin     bool
 	LegalEntityName string
+}
+
+func IsEntityAdmin(a *AppAccount) bool {
+	return a.EntityAdmin
 }
 
 // IsCustodian returns true if the account's owner entity

@@ -173,7 +173,7 @@ func (h createAccountMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 		return ErrWrongMsgFormat("expected CreateAccountMsg").Result()
 	}
 	// ensure proper types
-	creator, err := getAccountWithType(ctx, h.accts, cm.Creator, IsClearingHouse)
+	creator, err := getAccountCreator(ctx, h.accts, cm)
 	if err != nil {
 		return err.Result()
 	}
@@ -183,10 +183,23 @@ func (h createAccountMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 	}
 
 	// finally create and save the account
-	acct := createAccount(creator.GetAddress(), cm.PubKey, cm.AccountType, creator.LegalEntityName)
+	acct := createAccount(creator.GetAddress(), cm.PubKey, cm.AccountType, creator.LegalEntityName, cm.IsAdmin)
 	h.accts.SetAccount(ctx, acct)
 
 	return sdk.Result{}
+}
+
+func getAccountCreator(ctx sdk.Context, accts sdk.AccountMapper,
+	msg CreateAccountMsg) (creator *AppAccount, err sdk.Error) {
+	// Check whether it's a clearing house account
+	creator, err = getAccountWithType(ctx, accts, msg.Creator, IsClearingHouse)
+	if err != nil {
+		// Check whether it's same-entity account
+		return getAccountWithType(ctx, accts, msg.Creator, func(app *AppAccount) bool {
+			return canCreateAdmin(app, msg.AccountType, msg.LegalEntityName)
+		})
+	}
+	return
 }
 
 //*********************************** helper methods *********************************************
@@ -230,8 +243,13 @@ func getAccountWithType(ctx sdk.Context, accts sdk.AccountMapper, addr crypto.Ad
 	return account, nil
 }
 
+func canCreateAdmin(acct *AppAccount, newAcctType, newAcctEntity string) bool {
+	return IsEntityAdmin(acct) && (acct.Type == newAcctType) && (acct.LegalEntityName == newAcctEntity)
+
+}
+
 // Creates an account instance
-func createAccount(creator crypto.Address, newAccPubKey crypto.PubKey, typ string, entity string) *AppAccount {
+func createAccount(creator crypto.Address, newAccPubKey crypto.PubKey, typ string, entity string, isAdmin bool) *AppAccount {
 	acct := new(AppAccount)
 	acct.SetAddress(newAccPubKey.Address())
 	acct.SetPubKey(newAccPubKey)
@@ -239,5 +257,6 @@ func createAccount(creator crypto.Address, newAccPubKey crypto.PubKey, typ strin
 	acct.SetCreator(creator)
 	acct.Type = typ
 	acct.LegalEntityName = entity
+	acct.EntityAdmin = isAdmin
 	return acct
 }
