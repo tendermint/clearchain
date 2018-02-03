@@ -1,10 +1,14 @@
 package types
 
 import (
+	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	crypto "github.com/tendermint/go-crypto"
 )
+
+// TODO: Admin cannot do ops other than create account msg
 
 //Business logic is executed here
 
@@ -172,34 +176,25 @@ func (h createAccountMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 	if !ok {
 		return ErrWrongMsgFormat("expected CreateAccountMsg").Result()
 	}
-	// ensure proper types
-	creator, err := getAccountCreator(ctx, h.accts, cm)
-	if err != nil {
-		return err.Result()
+	// ensure creator exists
+	creator := h.accts.GetAccount(ctx, cm.Creator)
+	if creator == nil {
+		return ErrInvalidAccount("couldn't find creator").Result()
 	}
-
+	// ensure proper types
+	concreteCreator := creator.(*AppAccount)
+	// ensure new account does not exist
 	if rawAccount := h.accts.GetAccount(ctx, cm.PubKey.Address()); rawAccount != nil {
 		return ErrInvalidAccount("the account already exists").Result()
 	}
 
-	// finally create and save the account
-	acct := createAccount(creator.GetAddress(), cm.PubKey, cm.AccountType, creator.LegalEntityName, cm.IsAdmin)
-	h.accts.SetAccount(ctx, acct)
-
-	return sdk.Result{}
-}
-
-func getAccountCreator(ctx sdk.Context, accts sdk.AccountMapper,
-	msg CreateAccountMsg) (creator *AppAccount, err sdk.Error) {
-	// Check whether it's a clearing house account
-	creator, err = getAccountWithType(ctx, accts, msg.Creator, IsClearingHouse)
-	if err != nil {
-		// Check whether it's same-entity account
-		return getAccountWithType(ctx, accts, msg.Creator, func(app *AppAccount) bool {
-			return canCreateAdmin(app, msg.AccountType, msg.LegalEntityName)
-		})
+	// Construct a new account
+	acct := NewAppAccount(cm.PubKey, nil, cm.AccountType, creator.GetAddress(), cm.IsAdmin, cm.LegalEntityName)
+	if err := CanCreate(concreteCreator, acct); err != nil {
+		return ErrUnauthorized(fmt.Sprintf("can't create account: %v", err)).Result()
 	}
-	return
+	h.accts.SetAccount(ctx, acct)
+	return sdk.Result{}
 }
 
 //*********************************** helper methods *********************************************
@@ -241,11 +236,6 @@ func getAccountWithType(ctx sdk.Context, accts sdk.AccountMapper, addr crypto.Ad
 	}
 
 	return account, nil
-}
-
-func canCreateAdmin(acct *AppAccount, newAcctType, newAcctEntity string) bool {
-	return IsEntityAdmin(acct) && (acct.Type == newAcctType) && (acct.LegalEntityName == newAcctEntity)
-
 }
 
 // Creates an account instance

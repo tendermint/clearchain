@@ -2,7 +2,6 @@ package types
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -219,9 +218,6 @@ func (msg CreateAccountMsg) ValidateBasic() sdk.Error {
 	}
 	if bytes.Equal(msg.Creator, msg.PubKey.Address()) {
 		return ErrInvalidAddress("creator and new account have the same address")
-	}
-	if !IsCreatableEntity(msg.AccountType) {
-		return ErrInvalidAccount(fmt.Sprintf("couldn't create entity type: %q", msg.AccountType))
 	}
 	if len(strings.TrimSpace(msg.LegalEntityName)) == 0 {
 		return ErrInvalidAccount("legal entity name must be non-nil")

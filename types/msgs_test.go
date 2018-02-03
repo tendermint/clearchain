@@ -300,9 +300,9 @@ func TestCreateAccountMsg_ValidateBasic(t *testing.T) {
 		errorCode sdk.CodeType
 	}{
 		{
-			"can't create a CH",
+			"new CH acc ok",
 			fields{Creator: creatorAddress, PubKey: newPubKey, AccountType: EntityClearingHouse, LegalEntityName: entity},
-			CodeInvalidAccount,
+			sdk.CodeOK,
 		},
 		{
 			"new CUS acc ok",
