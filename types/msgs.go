@@ -28,7 +28,7 @@ type DepositMsg struct {
 // ensure DepositMsg implements the sdk.Msg interface
 var _ sdk.Msg = (*DepositMsg)(nil)
 
-//Called by SDk automatically
+// ValidateBasic is called by the SDK automatically.
 func (d DepositMsg) ValidateBasic() sdk.Error {
 	if d.Amount.Amount <= 0 {
 		return ErrInvalidAmount("negative amount")
@@ -50,7 +50,7 @@ func (d DepositMsg) ValidateBasic() sdk.Error {
 	return nil
 }
 
-// Return the message type.
+// Type returns the message type.
 // Must be alphanumeric or empty.
 func (d DepositMsg) Type() string {
 	return DepositType
@@ -61,128 +61,9 @@ func (d DepositMsg) Get(key interface{}) (value interface{}) {
 	return nil
 }
 
-// Get the canonical byte representation of the Msg.
+// GetSignBytes returns the canonical byte representation of the Msg.
 func (d DepositMsg) GetSignBytes() []byte {
 	bz, err := cdc.MarshalBinary(d)
-	if err != nil {
-		panic(err)
-	}
-	return bz
-}
-
-// Signers returns the addrs of signers that must sign.
-// CONTRACT: All signatures must be present to be valid.
-// CONTRACT: Returns addrs in some deterministic order.
-func (d DepositMsg) GetSigners() []crypto.Address {
-	return []crypto.Address{d.Sender}
-}
-
-type SettleMsg struct {
-	Sender    crypto.Address
-	Recipient crypto.Address
-	Amount    sdk.Coin
-}
-
-var _ sdk.Msg = SettleMsg{}
-
-//Called by SDk automatically
-func (s SettleMsg) ValidateBasic() sdk.Error {
-	// amount may be negative
-	if s.Amount.Amount == 0 {
-		return ErrInvalidAmount("empty or 0 amount not allowed")
-	}
-	if s.Amount.Denom == "" {
-		return ErrInvalidAmount("empty denom")
-	}
-	if err := validateAddress(s.Sender); err != nil {
-		return err
-	}
-	if err := validateAddress(s.Recipient); err != nil {
-		return err
-	}
-
-	if bytes.Equal(s.Sender, s.Recipient) {
-		return ErrInvalidAddress("sender and recipient have the same address")
-	}
-
-	return nil
-}
-
-// Return the message type.
-// Must be alphanumeric or empty.
-func (s SettleMsg) Type() string {
-	return SettlementType
-}
-
-// Get some property of the Msg.
-func (s SettleMsg) Get(key interface{}) (value interface{}) {
-	return nil
-}
-
-// Get the canonical byte representation of the Msg.
-func (s SettleMsg) GetSignBytes() []byte {
-	bz, err := cdc.MarshalBinary(s)
-	if err != nil {
-		panic(err)
-	}
-	return bz
-}
-
-// Signers returns the addrs of signers that must sign.
-// CONTRACT: All signatures must be present to be valid.
-// CONTRACT: Returns addrs in some deterministic order.
-func (s SettleMsg) GetSigners() []crypto.Address {
-	return []crypto.Address{s.Sender}
-}
-
-type WithdrawMsg struct {
-	Sender    crypto.Address
-	Recipient crypto.Address
-	Operator  crypto.Address
-	Amount    sdk.Coin
-}
-
-var _ sdk.Msg = WithdrawMsg{}
-
-// Called by SDk automatically
-func (w WithdrawMsg) ValidateBasic() sdk.Error {
-	if w.Amount.Amount <= 0 {
-		return ErrInvalidAmount("negative or 0 amount not allowed")
-	}
-	if w.Amount.Denom == "" {
-		return ErrInvalidAmount("empty denom")
-	}
-	if err := validateAddress(w.Sender); err != nil {
-		return err
-	}
-	if err := validateAddress(w.Recipient); err != nil {
-		return err
-	}
-	if err := validateAddress(w.Operator); err != nil {
-		return err
-	}
-
-	if bytes.Equal(w.Sender, w.Recipient) {
-		return ErrInvalidAddress("sender and recipient have the same address")
-	}
-
-	return nil
-}
-
-// Return the message type.
-// Must be alphanumeric or empty.
-func (w WithdrawMsg) Type() string {
-	return WithdrawType
-}
-
-// Get some property of the Msg.
-func (w WithdrawMsg) Get(key interface{}) (value interface{}) {
-	return nil
-}
-
-// Get the canonical byte representation of the Msg.
-func (w WithdrawMsg) GetSignBytes() []byte {
-	bz, err := cdc.MarshalBinary(w)
 	if err != nil {
 		panic(err)
 	}
@@ -192,12 +73,130 @@ func (w WithdrawMsg) GetSignBytes() []byte {
 // GetSigners returns the addrs of signers that must sign.
 // CONTRACT: All signatures must be present to be valid.
 // CONTRACT: Returns addrs in some deterministic order.
-func (w WithdrawMsg) GetSigners() []crypto.Address {
-	return []crypto.Address{w.Sender, w.Operator}
+func (d DepositMsg) GetSigners() []crypto.Address {
+	return []crypto.Address{d.Sender}
 }
 
-//*********************
+// SettleMsg defines the properties of a settle transaction.
+type SettleMsg struct {
+	Sender    crypto.Address
+	Recipient crypto.Address
+	Amount    sdk.Coin
+}
 
+var _ sdk.Msg = SettleMsg{}
+
+// ValidateBasic is called by the SDK automatically.
+func (msg SettleMsg) ValidateBasic() sdk.Error {
+	// amount may be negative
+	if msg.Amount.Amount == 0 {
+		return ErrInvalidAmount("empty or 0 amount not allowed")
+	}
+	if msg.Amount.Denom == "" {
+		return ErrInvalidAmount("empty denom")
+	}
+	if err := validateAddress(msg.Sender); err != nil {
+		return err
+	}
+	if err := validateAddress(msg.Recipient); err != nil {
+		return err
+	}
+
+	if bytes.Equal(msg.Sender, msg.Recipient) {
+		return ErrInvalidAddress("sender and recipient have the same address")
+	}
+
+	return nil
+}
+
+// Type returns the message type.
+// Must be alphanumeric or empty.
+func (msg SettleMsg) Type() string {
+	return SettlementType
+}
+
+// Get some property of the Msg.
+func (msg SettleMsg) Get(key interface{}) (value interface{}) {
+	return nil
+}
+
+// GetSignBytes returns the canonical byte representation of the Msg.
+func (msg SettleMsg) GetSignBytes() []byte {
+	bz, err := cdc.MarshalBinary(msg)
+	if err != nil {
+		panic(err)
+	}
+	return bz
+}
+
+// GetSigners returns the addrs of signers that must sign.
+// CONTRACT: All signatures must be present to be valid.
+// CONTRACT: Returns addrs in some deterministic order.
+func (msg SettleMsg) GetSigners() []crypto.Address {
+	return []crypto.Address{msg.Sender}
+}
+
+// WithdrawMsg defines the properties of a withdraw transaction.
+type WithdrawMsg struct {
+	Sender    crypto.Address
+	Recipient crypto.Address
+	Operator  crypto.Address
+	Amount    sdk.Coin
+}
+
+var _ sdk.Msg = WithdrawMsg{}
+
+// ValidateBasic is called by the SDK automatically.
+func (msg WithdrawMsg) ValidateBasic() sdk.Error {
+	if msg.Amount.Amount <= 0 {
+		return ErrInvalidAmount("negative or 0 amount not allowed")
+	}
+	if msg.Amount.Denom == "" {
+		return ErrInvalidAmount("empty denom")
+	}
+	if err := validateAddress(msg.Sender); err != nil {
+		return err
+	}
+	if err := validateAddress(msg.Recipient); err != nil {
+		return err
+	}
+	if err := validateAddress(msg.Operator); err != nil {
+		return err
+	}
+	if bytes.Equal(msg.Sender, msg.Recipient) {
+		return ErrInvalidAddress("sender and recipient have the same address")
+	}
+	return nil
+}
+
+// Type returns the message type.
+// Must be alphanumeric or empty.
+func (msg WithdrawMsg) Type() string {
+	return WithdrawType
+}
+
+// Get some property of the Msg.
+func (msg WithdrawMsg) Get(key interface{}) (value interface{}) {
+	return nil
+}
+
+// GetSignBytes returns the canonical byte representation of the Msg.
+func (msg WithdrawMsg) GetSignBytes() []byte {
+	bz, err := cdc.MarshalBinary(msg)
+	if err != nil {
+		panic(err)
+	}
+	return bz
+}
+
+// GetSigners returns the addrs of signers that must sign.
+// CONTRACT: All signatures must be present to be valid.
+// CONTRACT: Returns addrs in some deterministic order.
+func (msg WithdrawMsg) GetSigners() []crypto.Address {
+	return []crypto.Address{msg.Sender, msg.Operator}
+}
+
+// CreateAccountMsg defines the property of a create account transaction.
 type CreateAccountMsg struct {
 	Creator         crypto.Address
 	PubKey          crypto.PubKey
@@ -208,7 +207,7 @@ type CreateAccountMsg struct {
 
 var _ sdk.Msg = CreateAccountMsg{}
 
-// ValidateBasic is called by SDK automatically
+// ValidateBasic is called by the SDK automatically.
 func (msg CreateAccountMsg) ValidateBasic() sdk.Error {
 	if err := validateAddress(msg.Creator); err != nil {
 		return err
