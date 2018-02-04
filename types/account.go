@@ -17,8 +17,6 @@ const (
 )
 
 var (
-	creatableEntities = []string{EntityGeneralClearingMember, EntityIndividualClearingMember, EntityCustodian}
-
 	// ensure AppAccount implements the sdk.Account interface
 	_ sdk.Account = (*AppAccount)(nil)
 )
