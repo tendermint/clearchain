@@ -16,3 +16,6 @@ import:
   version: develop
 - package: github.com/tendermint/iavl
   version: develop
+testImport:
+- package: github.com/stretchr/testify
+  version: ^1.2.0
