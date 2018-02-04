@@ -8,11 +8,11 @@ Status](https://api.travis-ci.org/tendermint/clearchain.png?branch=master)](http
 | Coverage | Package |
 |----------|---------|
 | [![github.com/tendermint/clearchain/types](http://gocover.io/_badge/github.com/tendermint/clearchain/types)](http://gocover.io/github.com/tendermint/clearchain/types) | github.com/tendermint/clearchain/types |
-| [![github.com/tendermint/clearchain/state](http://gocover.io/_badge/github.com/tendermint/clearchain/state)](http://gocover.io/github.com/tendermint/clearchain/state) | github.com/tendermint/clearchain/state |
+| [![github.com/tendermint/clearchain/app](http://gocover.io/_badge/github.com/tendermint/clearchain/app)](http://gocover.io/github.com/tendermint/clearchain/app) | github.com/tendermint/clearchain/app |
+| [![github.com/tendermint/clearchain/cmd](http://gocover.io/_badge/github.com/tendermint/clearchain/cmd)](http://gocover.io/github.com/tendermint/clearchain/cmd) | github.com/tendermint/clearchain/cmd |
 
-Simple tendermint application to manage a distributed
-ledger for money transfers that supports multi currency
-accounts.
+Distributed ledger implemented as a Cosmos application for
+money transfers that supports multi currency accounts.
 
 # Get started
 

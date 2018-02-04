@@ -2,93 +2,90 @@ package app
 
 import (
 	"testing"
-	
-	bscoin "github.com/tendermint/basecoin/types"
-	"github.com/tendermint/clearchain/types"
-	
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/stretchr/testify/assert"
 	abci "github.com/tendermint/abci/types"
-	bctypes "github.com/tendermint/basecoin/types"
-	"github.com/tendermint/clearchain/state"
-	eyes "github.com/tendermint/merkleeyes/client"
+	crypto "github.com/tendermint/go-crypto"
+
+	"github.com/tendermint/clearchain/types"
 )
 
-func Test_splitQueryPath(t *testing.T) {
-	type args struct {
-		path string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		want1   string
-		wantErr bool
-	}{
-		{"validPath_generic", args{"/resource/object"}, "resource", "object", false},
-		{"validPath_no_resource", args{"/resource"}, "resource", "", false},
-		{"validPath_legal_entity_all", args{"/legal_entity"}, "legal_entity", "", false},
-		{"validPath_account_id", args{"/account/1d2df1ae-accb-11e6-bbbb-00ff5244ae7f"}, "account", "1d2df1ae-accb-11e6-bbbb-00ff5244ae7f", false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, got1, err := splitQueryPath(tt.args.path)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("splitQueryPath() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("splitQueryPath() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("splitQueryPath() got1 = %v, want %v", got1, tt.want1)
-			}
-		})
-	}
+// TODO: init state
+// TODO: query
+func TestApp(t *testing.T) {
+	cc := NewClearchainApp()
+	junk := []byte("khekfhewgfsug")
+
+	cc.BeginBlock(abci.RequestBeginBlock{})
+
+	// send a deposit msg
+	cust, cKey := fakeAccount(cc, types.EntityCustodian, nil)
+	member, _ := fakeAccount(cc, types.EntityIndividualClearingMember, nil)
+	depositMsg := types.DepositMsg{Sender: cust, Recipient: member, Amount: sdk.Coin{"USD", 700}}
+	depositTx := makeTx(depositMsg, cKey)
+	// garbage in, garbage out
+	dres := cc.DeliverTx(junk)
+	assert.EqualValues(t, sdk.CodeTxParse, dres.Code, dres.Log)
+	// get real working
+	dres = cc.DeliverTx(depositTx)
+	assert.EqualValues(t, sdk.CodeOK, dres.Code, dres.Log)
+	cc.EndBlock(abci.RequestEndBlock{})
+
+	// TODO: not working yet...
+	// cres := cc.Commit()
+	// assert.NotEqual(t, 0, len(cres.Data))
+
+	//send a create account msg
+	cc.BeginBlock(abci.RequestBeginBlock{})
+	clearingHouse, chKey := fakeAccount(cc, types.EntityClearingHouse, nil)
+	createAccMsg := types.CreateAccountMsg{
+		Creator:     clearingHouse,
+		PubKey:      crypto.GenPrivKeyEd25519().PubKey(),
+		AccountType: types.EntityCustodian}
+
+	createAccTx := makeTx(createAccMsg, chKey)
+	res := cc.DeliverTx(createAccTx)
+	assert.EqualValues(t, sdk.CodeOK, res.Code, res.Log)
+	cc.EndBlock(abci.RequestEndBlock{})
+
 }
 
-func TestLedger_executeQuery(t *testing.T) {
-	type fields struct {
-		eyesCli    *eyes.Client
-		state      *state.State
-		cacheState *state.State
-		plugins    *bctypes.Plugins
+func makeTx(msg sdk.Msg, keys ...crypto.PrivKey) []byte {
+	tx := sdk.StdTx{Msg: msg}
+
+	sigs := make([]sdk.StdSignature, len(keys))
+	for i, k := range keys {
+		sigs[i] = sdk.StdSignature{
+			PubKey:    k.PubKey(),
+			Sequence:  0,
+			Signature: k.Sign(tx.GetSignBytes()),
+		}
 	}
-	type args struct {
-		req abci.RequestQuery
+	tx.Signatures = sigs
+
+	cc := types.MakeTxCodec()
+	bz, err := cc.MarshalBinary(tx)
+	if err != nil {
+		panic(err)
 	}
-	
-	makeNewClient :=  bscoin.NewMemKVStore()
-	s := state.NewState(makeNewClient)
-	accountIndex := types.NewAccountIndex()
-	accountIndex.Add("testId")
-	s.SetAccountIndex(accountIndex)
-	
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantRes abci.ResponseQuery
-	}{
-		{"OK",
-			fields{
-				nil, s,
-				s, bctypes.NewPlugins(),
-			},
-			args{
-				abci.RequestQuery{Path: "/account"}},
-			abci.ResponseQuery{Code:abci.CodeType_OK},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			app := &Ledger{
-				eyesCli:    tt.fields.eyesCli,
-				state:      tt.fields.state,
-				cacheState: tt.fields.cacheState,
-				plugins:    tt.fields.plugins,
-			}
-			if gotRes := app.executeQuery(tt.args.req); gotRes.Code != abci.CodeType_OK {
-				t.Errorf("Ledger.executeQuery() = %v, want %v", gotRes, tt.wantRes)
-			}
-		})
-	}
+
+	return bz
+}
+
+// func fakeAccount(accts sdk.AccountMapper, ctx sdk.Context, typ string, cash sdk.Coins) crypto.Address {
+func fakeAccount(cc *ClearchainApp, typ string, cash sdk.Coins) (crypto.Address, crypto.PrivKey) {
+	priv := crypto.GenPrivKeyEd25519()
+	pub := priv.PubKey()
+	addr := pub.Address()
+
+	acct := new(types.AppAccount)
+	acct.SetAddress(addr)
+	acct.SetPubKey(pub)
+	acct.SetCoins(cash)
+	acct.Type = typ
+
+	cc.StoreAccount(acct)
+
+	return addr, priv
 }

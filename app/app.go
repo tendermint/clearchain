@@ -1,227 +1,97 @@
 package app
 
 import (
-	"encoding/json"
-	"regexp"
-	"strings"
+	"github.com/tendermint/abci/server"
+	cmn "github.com/tendermint/tmlibs/common"
 
-	"fmt"
+	"github.com/cosmos/cosmos-sdk/baseapp"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 
-	abci "github.com/tendermint/abci/types"
-	bctypes "github.com/tendermint/basecoin/types"
-	"github.com/tendermint/clearchain/state"
 	"github.com/tendermint/clearchain/types"
-	common "github.com/tendermint/go-common"
-	"github.com/tendermint/go-wire"
-	eyes "github.com/tendermint/merkleeyes/client"
 )
 
-const (
-	version   = "0.0.1"
-	maxTxSize = 10240
+const AppName = "ClearchainApp"
 
-	// PluginTypeByteBase defines the base plugin's byte code
-	PluginTypeByteBase = 0x01
-	// PluginTypeByteEyes defines the eyes plugin's byte code
-	PluginTypeByteEyes = 0x02
-
-	// PluginNameBase defines the base plugin's name
-	PluginNameBase = "base"
-	// PluginNameEyes defines the eyes plugin's name
-	PluginNameEyes = "eyes"
-)
-
-// Ledger defines the attributes of the app
-type Ledger struct {
-	eyesCli    *eyes.Client
-	state      *state.State
-	cacheState *state.State
-	plugins    *bctypes.Plugins
+// ClearchainApp is basic application
+type ClearchainApp struct {
+	*baseapp.BaseApp
+	accts sdk.AccountMapper
 }
 
-// NewLedger creates a new instance of the app
-func NewLedger(eyesCli *eyes.Client) *Ledger {
-	state := state.NewState(eyesCli)
-	plugins := bctypes.NewPlugins()
-	return &Ledger{
-		eyesCli:    eyesCli,
-		state:      state,
-		cacheState: nil,
-		plugins:    plugins,
-	}
-}
+func NewClearchainApp() *ClearchainApp {
+	// var app = &ClearchainApp{}
 
-// Info returns app's generic information
-func (app *Ledger) Info() abci.ResponseInfo {
-	return abci.ResponseInfo{Data: common.Fmt("Ledger v%v", version)}
-}
+	// make multistore with various keys
+	mainKey := sdk.NewKVStoreKey("cc")
+	// ibcKey = sdk.NewKVStoreKey("ibc")
 
-func (app *Ledger) RegisterPlugin(plugin bctypes.Plugin) {
-	app.plugins.RegisterPlugin(plugin)
-}
-
-// SetOption modifies app's configuration
-func (app *Ledger) SetOption(key string, value string) (log string) {
-	PluginName, key := splitKey(key)
-	if PluginName != PluginNameBase {
-		// Set option on plugin
-		plugin := app.plugins.GetByName(PluginName)
-		if plugin == nil {
-			panic("Invalid plugin name: " + PluginName)
-		}
-		return plugin.SetOption(app.state, key, value)
-	}
-	// Set option on Clearing
-	switch key {
-	case "chainID":
-		app.state.SetChainID(value)
-		return "Success"
-	case "account":
-		var err error
-		var acc *types.Account
-		wire.ReadJSONPtr(&acc, []byte(value), &err)
-		if err != nil {
-			panic("Error decoding acc message: " + err.Error())
-		}
-		app.state.SetAccount(acc.ID, acc)
-		state.SetAccountInIndex(app.state, *acc)
-		app.Commit()
-		return "Success"
-	case "user":
-		var err error
-		var user *types.User
-		wire.ReadJSONPtr(&user, []byte(value), &err)
-		if err != nil {
-			panic("Error decoding user message: " + err.Error())
-		}
-
-		app.state.SetUser(user.PubKey.Address(), user)
-		app.Commit()
-		return "Success"
-	case "legalEntity":
-		var legalEntity types.LegalEntity
-
-		err := json.Unmarshal([]byte(value), &legalEntity)
-
-		if err != nil {
-			panic("Error decoding legalEntity message: " + err.Error())
-		}
-
-		app.state.SetLegalEntity(legalEntity.ID, &legalEntity)
-		state.SetLegalEntityInIndex(app.state, &legalEntity)
-		app.Commit()
-
-		return "Success"
-	}
-	return "Unrecognized option key " + key
-}
-
-// DeliverTx handles deliverTx
-func (app *Ledger) DeliverTx(txBytes []byte) (res abci.Result) {
-	return app.executeTx(txBytes, false)
-}
-
-// CheckTx handles checkTx
-func (app *Ledger) CheckTx(txBytes []byte) (res abci.Result) {
-	return app.executeTx(txBytes, true)
-}
-
-// Query handles queryTx
-func (app *Ledger) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
-	
-	return app.executeQuery(req)
-}
-
-// Commit handles commitTx
-func (app *Ledger) Commit() (res abci.Result) {
-	// Commit eyes.
-	res = app.eyesCli.CommitSync()
-	if res.IsErr() {
-		common.PanicSanity("Error getting hash: " + res.Error())
-	}
-	return res
-}
-
-// InitChain initializes the chain
-func (app *Ledger) InitChain(validators []*abci.Validator) {
-	for _, plugin := range app.plugins.GetList() {
-		plugin.InitChain(app.state, validators)
-	}
-}
-
-// abci::BeginBlock
-func (app *Ledger) BeginBlock(hash []byte, header *abci.Header) {
-	for _, plugin := range app.plugins.GetList() {
-		plugin.BeginBlock(app.state, hash, header)
-	}
-	app.cacheState = app.state.CacheWrap()
-}
-
-// abci::EndBlock
-func (app *Ledger) EndBlock(height uint64) (res abci.ResponseEndBlock) {
-	for _, plugin := range app.plugins.GetList() {
-		pluginRes := plugin.EndBlock(app.state, height)
-		res.Diffs = append(res.Diffs, pluginRes.Diffs...)
-	}
-	return
-}
-
-func (app *Ledger) executeTx(txBytes []byte, simulate bool) (res abci.Result) {
-	if len(txBytes) > maxTxSize {
-		return abci.ErrBaseEncodingError.AppendLog("Tx size exceeds maximum")
-	}
-	// Decode tx
-	var tx types.Tx
-	err := wire.ReadBinaryBytes(txBytes, &tx)
+	bApp := baseapp.NewBaseApp(AppName)
+	mountMultiStore(bApp, mainKey)
+	err := bApp.LoadLatestVersion(mainKey)
 	if err != nil {
-		return abci.ErrBaseEncodingError.AppendLog("Error decoding tx: " + err.Error())
+		panic(err)
 	}
-	// Validate and exec tx
-	res = state.ExecTx(app.state, app.plugins, tx, simulate, nil)
-	if res.IsErr() {
-		return res.PrependLog("Error in DeliverTx")
+
+	// register routes on new application
+	accts := types.AccountMapper(mainKey)
+	types.RegisterRoutes(bApp.Router(), accts)
+
+	// set up ante and tx parsing
+	setAnteHandler(bApp, accts)
+	initBaseAppTxDecoder(bApp)
+
+	return &ClearchainApp{
+		BaseApp: bApp,
+		accts:   accts,
 	}
-	return res
 }
 
-func (app *Ledger) executeQuery(req abci.RequestQuery) (res abci.ResponseQuery) {
-	
-	resource, object, err := splitQueryPath(req.Path)
+// RunForever starts the abci server
+func (app *ClearchainApp) RunForever() {
+	srv, err := server.NewServer("0.0.0.0:46658", "socket", app)
 	if err != nil {
-		res.Code = abci.CodeType_UnknownRequest
-		res.Log = common.Fmt("in executeQuery(): %s", err)
-		return
+		panic(err)
 	}
-	
-	return state.ExecQuery(app.state, resource, object)
+	srv.Start()
+	// Wait forever
+	cmn.TrapSignal(func() {
+		// Cleanup
+		srv.Stop()
+	})
 }
 
-// Splits the string at the first '/'.
-// if there are none, the second string is nil.
-func splitKey(key string) (prefix string, suffix string) {
-	if strings.Contains(key, "/") {
-		keyParts := strings.SplitN(key, "/", 2)
-		return keyParts[0], keyParts[1]
-	}
-	return key, ""
+func (app *ClearchainApp) StoreAccount(acct sdk.Account) {
+	// delivertx with fake tx bytes (we don't care for SetAccount)
+	var ctx = app.NewContext(false, []byte{1, 2, 3, 4})
+	app.accts.SetAccount(ctx, acct)
 }
 
-// Split query path
-func splitQueryPath(path string) (string, string, error) {
-	var resource, object string
-	re := regexp.MustCompile(`^/(?P<resource>[A-Za-z0-9_]+)(?:/(?P<object>[A-Za-z0-9\-]+)/?)?$`)
-	names := re.SubexpNames()
-	matches := re.FindAllStringSubmatch(path, -1)
-	if len(matches) < 1 {
-		return "", "", fmt.Errorf("malformed resource path: %q", path)
+func mountMultiStore(bApp *baseapp.BaseApp,
+	keys ...*sdk.KVStoreKey) {
+
+	// create substore for every key
+	for _, key := range keys {
+		bApp.MountStore(key, sdk.StoreTypeIAVL)
 	}
-	for i, n := range matches[0] {
-		switch names[i] {
-		case "resource":
-			resource = n
-		case "object":
-			object = n
+}
+
+func setAnteHandler(bApp *baseapp.BaseApp, accts sdk.AccountMapper) {
+	// this checks auth, but may take fee is future, check for compatibility
+	bApp.SetDefaultAnteHandler(
+		auth.NewAnteHandler(accts))
+}
+
+func initBaseAppTxDecoder(bApp *baseapp.BaseApp) {
+	cdc := types.MakeTxCodec()
+	bApp.SetTxDecoder(func(txBytes []byte) (sdk.Tx, sdk.Error) {
+		var tx = sdk.StdTx{}
+		// StdTx.Msg is an interface whose concrete
+		// types are registered in app/msgs.go.
+		err := cdc.UnmarshalBinary(txBytes, &tx)
+		if err != nil {
+			return nil, sdk.ErrTxParse("").TraceCause(err, "")
 		}
-	}
-	return resource, object, nil
+		return tx, nil
+	})
 }

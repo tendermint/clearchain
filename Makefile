@@ -1,54 +1,35 @@
-NAME = ledger
-HARDWARE = $(shell uname -m)
-VERSION ?= 0.0.2
-BUILD_TAG ?= dev
-BUILD_DIR ?= build
+PACKAGES=$(shell go list ./... | grep -v '/vendor/')
+BUILD_FLAGS = -ldflags "-X github.com/tendermint/clearchain/version.GitCommit=`git rev-parse --short HEAD`"
 
-CWD := $(shell pwd)
-GOLINT := $(GOPATH)/bin/golint
-LDFLAGS_DEFAULT = -X=app.Version=$(VERSION)
+all: get_vendor_deps build test
 
-ci: $(BUILD_DIR)/linux/amd64
+########################################
+### Build
 
-all: $(BUILD_DIR)/linux/amd64 $(BUILD_DIR)/linux/386 \
-	$(BUILD_DIR)/darwin/amd64 $(BUILD_DIR)/darwin/386 \
-	$(BUILD_DIR)/windows/amd64 $(BUILD_DIR)/windows/386
+build:
+	go build $(BUILD_FLAGS) -o build/clearchain ./cmd/clearchain
 
-darwin: $(BUILD_DIR)/darwin/amd64 $(BUILD_DIR)/darwin/386
-	lipo -create build/darwin/386/ledger build/darwin/amd64/ledger -output build/darwin/ledger
 
-$(BUILD_DIR)/%: deps
-	GOOS=$(word 2,$(subst /, ,$@)) GOARCH=$(word 3,$(subst /, ,$@)) \
-	go build -v -ldflags="$(LDFLAGS_DEFAULT) $(LDFLAGS)" -o $@/$(NAME) ./cmd/$(NAME)
-	GOOS=$(word 2,$(subst /, ,$@)) GOARCH=$(word 3,$(subst /, ,$@)) \
-	go build -v -ldflags="$(LDFLAGS_DEFAULT) $(LDFLAGS)" -o $@/ledgerctl ./cmd/ledgerctl
-	GOOS=$(word 2,$(subst /, ,$@)) GOARCH=$(word 3,$(subst /, ,$@)) \
-	go build -v -ldflags="$(LDFLAGS_DEFAULT) $(LDFLAGS)" -o $@/webserver ./cmd/webserver
+########################################
+### Tools & dependencies
 
-deps: $(BUILD_DIR)/deps-stamp
-$(BUILD_DIR)/deps-stamp:
-	go get -u -v github.com/golang/lint/golint
-	go get -u -v github.com/golang/mock/mockgen
-	go get -d -v ./... || true
-	mkdir -p $(BUILD_DIR)
-	touch $@
+get_vendor_deps:
+	@rm -rf vendor/
+	@echo "--> Running glide install"
+	@glide install
 
-release:
 
-mockgen:
-	mockgen -package mock_tx github.com/tenermint/clearchain/ledger/types Tx,TxExecutor > testutil/mocks/mock_tx/mock_tx.go
+########################################
+### Testing
 
-test: deps
-	go test -race -cover -v ./...
+test:
+	@go test -v -cover $(PACKAGES)
 
-lint:
-	go vet ./... || true
-	$(GOLINT) ./... || true
+benchmark:
+	@go test -bench=. $(PACKAGES)
 
-dist-clean: clean
-	rm -f $(BUILD_DIR)/deps-stamp
 
-clean:
-	rm -rf $(BUILD_DIR)/*/ -rf
-
-.PHONY: release deps clean test lint
+# To avoid unintended conflicts with file names, always add to .PHONY
+# unless there is a reason not to.
+# https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html
+.PHONY: build check_tools get_vendor_deps test benchmark
