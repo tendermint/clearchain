@@ -18,12 +18,13 @@ func TestApp(t *testing.T) {
 	junk := []byte("khekfhewgfsug")
 
 	cc.BeginBlock(abci.RequestBeginBlock{})
-
 	// send a deposit msg
-	cust, cKey := fakeAccount(cc, types.EntityCustodian, nil, "Custodian")
-	member, _ := fakeAccount(cc, types.EntityIndividualClearingMember, nil, "ICM")
-	depositMsg := types.DepositMsg{Sender: cust, Recipient: member, Amount: sdk.Coin{"USD", 700}}
-	depositTx := makeTx(depositMsg, cKey)
+	chOpAddr, chOpPrivKey := fakeOpAccount(cc, types.EntityClearingHouse, "CH")
+	custAssetAddr := fakeAssetAccount(cc, nil, types.EntityCustodian, "CUST")
+	memberAssetAddr := fakeAssetAccount(cc, nil, types.EntityIndividualClearingMember, "ICM")
+	depositMsg := types.DepositMsg{Operator: chOpAddr, Sender: custAssetAddr,
+		Recipient: memberAssetAddr, Amount: sdk.Coin{"USD", 700}}
+	depositTx := makeTx(depositMsg, chOpPrivKey)
 	// garbage in, garbage out
 	dres := cc.DeliverTx(junk)
 	assert.EqualValues(t, sdk.CodeTxParse, dres.Code, dres.Log)
@@ -35,23 +36,6 @@ func TestApp(t *testing.T) {
 	// TODO: not working yet...
 	// cres := cc.Commit()
 	// assert.NotEqual(t, 0, len(cres.Data))
-
-	//send a create account msg
-	cc.BeginBlock(abci.RequestBeginBlock{})
-	clearingHouse, chKey := fakeAdminAccount(cc, types.EntityClearingHouse, nil, "Custodian")
-	createAccMsg := types.CreateAccountMsg{
-		Creator:         clearingHouse,
-		PubKey:          crypto.GenPrivKeyEd25519().PubKey(),
-		AccountType:     types.EntityCustodian,
-		LegalEntityName: "custodian",
-		IsAdmin:         true,
-	}
-
-	createAccTx := makeTx(createAccMsg, chKey)
-	res := cc.DeliverTx(createAccTx)
-	assert.EqualValues(t, sdk.CodeOK, res.Code, res.Log)
-	cc.EndBlock(abci.RequestEndBlock{})
-
 }
 
 func makeTx(msg sdk.Msg, keys ...crypto.PrivKey) []byte {
@@ -76,20 +60,28 @@ func makeTx(msg sdk.Msg, keys ...crypto.PrivKey) []byte {
 	return bz
 }
 
-func fakeAccount(cc *ClearchainApp, typ string, cash sdk.Coins, entityName string) (crypto.Address, crypto.PrivKey) {
+func fakeAssetAccount(cc *ClearchainApp, cash sdk.Coins, typ string, entityName string) crypto.Address {
+	pub := crypto.GenPrivKeyEd25519().PubKey()
+	addr := pub.Address()
+	acct := types.NewAssetAccount(pub, cash, nil, entityName, typ)
+	cc.StoreAccount(acct)
+	return addr
+}
+
+func fakeOpAccount(cc *ClearchainApp, typ string, entityName string) (crypto.Address, crypto.PrivKey) {
 	priv := crypto.GenPrivKeyEd25519()
 	pub := priv.PubKey()
 	addr := pub.Address()
-	acct := types.NewAppAccount(pub, cash, typ, nil, false, entityName)
+	acct := types.NewOpUser(pub, nil, entityName, typ)
 	cc.StoreAccount(acct)
 	return addr, priv
 }
 
-func fakeAdminAccount(cc *ClearchainApp, typ string, cash sdk.Coins, entityName string) (crypto.Address, crypto.PrivKey) {
+func fakeAdminAccount(cc *ClearchainApp, typ string, entityName string) (crypto.Address, crypto.PrivKey) {
 	priv := crypto.GenPrivKeyEd25519()
 	pub := priv.PubKey()
 	addr := pub.Address()
-	acct := types.NewAppAccount(pub, cash, typ, nil, true, entityName)
+	acct := types.NewAdminUser(pub, nil, entityName, typ)
 	cc.StoreAccount(acct)
 	return addr, priv
 }

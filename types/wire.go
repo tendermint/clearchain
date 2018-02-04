@@ -8,6 +8,8 @@ import (
 
 var cdc = MakeTxCodec()
 
+// RegisterWire is the functions that registers application's
+// messages types to a wire.Codec.
 func RegisterWire(cdc *wire.Codec) {
 	cdc.RegisterConcrete(DepositMsg{},
 		"com.tendermint.clearchain.DepositMsg", nil)
@@ -15,10 +17,14 @@ func RegisterWire(cdc *wire.Codec) {
 		"com.tendermint.clearchain.SettleMsg", nil)
 	cdc.RegisterConcrete(WithdrawMsg{},
 		"com.tendermint.clearchain.WithdrawMsg", nil)
-	cdc.RegisterConcrete(CreateAccountMsg{},
-		"com.tendermint.clearchain.CreateAccountMsg", nil)
+	cdc.RegisterConcrete(CreateUserAccountMsg{},
+		"com.tendermint.clearchain.CreateUserAccountMsg", nil)
+	cdc.RegisterConcrete(CreateAssetAccountMsg{},
+		"com.tendermint.clearchain.CreateAssetAccountMsg", nil)
 }
 
+// MakeTxCodec instantiate a wire.Codec and register
+// all application's types; it returns the new codec.
 func MakeTxCodec() (cdc *wire.Codec) {
 	cdc = wire.NewCodec()
 

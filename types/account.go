@@ -10,37 +10,64 @@ import (
 
 // EntityType string identifiers
 const (
-	EntityClearingHouse            = "ch"
-	EntityGeneralClearingMember    = "gcm"
-	EntityIndividualClearingMember = "icm"
-	EntityCustodian                = "custodian"
+	AccountUser  = "user"
+	AccountAsset = "asset"
 )
 
+// ensure AppAccount implements the sdk.Account interface
 var (
-	// ensure AppAccount implements the sdk.Account interface
 	_ sdk.Account = (*AppAccount)(nil)
+	_ LegalEntity = (*AppAccount)(nil)
+	_ UserAccount = (*AppAccount)(nil)
 )
+
+// UserAccount is the interface that wraps the basic
+// accessor methods to set and get user accounts attributes.
+type UserAccount interface {
+	GetAccountType() string
+	IsAdmin() bool
+	IsActive() bool
+}
 
 // AppAccount defines the properties of an AppAccount.
 type AppAccount struct {
 	auth.BaseAccount
-	Type            string
-	Creator         crypto.Address
-	EntityAdmin     bool
-	LegalEntityName string
+	BaseLegalEntity
+	Creator     crypto.Address
+	AccountType string
+	Active      bool
+	Admin       bool
 }
 
 // NewAppAccount constructs a new account instance.
-func NewAppAccount(pub crypto.PubKey, cash sdk.Coins, typ string, creator crypto.Address, isAdmin bool, entity string) *AppAccount {
+func newAppAccount(pub crypto.PubKey, cash sdk.Coins, creator crypto.Address, typ string,
+	isActive bool, isAdmin bool, entityName, entityType string) *AppAccount {
 	acct := new(AppAccount)
 	acct.SetAddress(pub.Address())
 	acct.SetPubKey(pub)
 	acct.SetCoins(cash)
 	acct.SetCreator(creator)
-	acct.Type = typ
-	acct.EntityAdmin = isAdmin
-	acct.LegalEntityName = entity
+	acct.EntityName = entityName
+	acct.EntityType = entityType
+	acct.AccountType = typ
+	acct.Active = isActive
+	acct.Admin = isAdmin
 	return acct
+}
+
+// NewOpUser constructs a new account instance, setting cash to nil.
+func NewOpUser(pub crypto.PubKey, creator crypto.Address, entityName, entityType string) *AppAccount {
+	return newAppAccount(pub, nil, creator, AccountUser, true, false, entityName, entityType)
+}
+
+// NewAdminUser constructs a new account instance, setting cash to nil.
+func NewAdminUser(pub crypto.PubKey, creator crypto.Address, entityName, entityType string) *AppAccount {
+	return newAppAccount(pub, nil, creator, AccountUser, true, true, entityName, entityType)
+}
+
+// NewAssetAccount constructs a new account instance.
+func NewAssetAccount(pub crypto.PubKey, cash sdk.Coins, creator crypto.Address, entityName, entityType string) *AppAccount {
+	return newAppAccount(pub, cash, creator, AccountAsset, true, false, entityName, entityType)
 }
 
 // GetCreator returns account's creator.
@@ -53,73 +80,77 @@ func (a *AppAccount) SetCreator(creator crypto.Address) {
 	a.Creator = creator
 }
 
-// IsEntityAdmin returns true if the account is admin
-// of its legal entity; false otherwise.
-func IsEntityAdmin(a *AppAccount) bool {
-	return a.EntityAdmin
+// GetAccountType returns the account type.
+func (a *AppAccount) GetAccountType() string {
+	return a.AccountType
 }
 
-// IsCustodian returns true if the account's owner entity
-// is a custodian; false otherwise.
-func IsCustodian(a *AppAccount) bool {
-	return a.Type == EntityCustodian
+// IsActive returns true if the account is active; false otherwise.
+func (a *AppAccount) IsActive() bool {
+	return a.Active
 }
 
-// IsClearingHouse returns true if the account's owner entity
-// is the clearing house; false otherwise.
-func IsClearingHouse(a *AppAccount) bool {
-	return a.Type == EntityClearingHouse
+// IsAdmin returns true if the account is admin; false otherwise.
+func (a *AppAccount) IsAdmin() bool {
+	return a.Admin
 }
 
-// IsGeneralClearingMember returns true if the account's owner entity
-// is a general clearing member; false otherwise.
-func IsGeneralClearingMember(a *AppAccount) bool {
-	return a.Type == EntityGeneralClearingMember
+// IsUser returns true if the account holds user data; false otherwise.
+func IsUser(a UserAccount) bool {
+	return a.GetAccountType() == AccountUser
 }
 
-// IsIndividualClearingMember returns true if the account's owner entity
-// is an individual clearing member; false otherwise.
-func IsIndividualClearingMember(a *AppAccount) bool {
-	return a.Type == EntityIndividualClearingMember
+// IsAsset returns true if the account holds assets; false otherwise.
+func IsAsset(a UserAccount) bool {
+	return a.GetAccountType() == AccountAsset
 }
 
-// IsMember returns true if the account's owner entity is either
-// a general or an individual clearing member; false otherwise.
-func IsMember(a *AppAccount) bool {
-	return IsIndividualClearingMember(a) ||
-		IsGeneralClearingMember(a)
+// IsAdminUser returns true if the account is an
+// admin user account of its legal entity;
+// false otherwise.
+func IsAdminUser(a UserAccount) bool {
+	return IsUser(a) && a.IsAdmin()
 }
 
-// BelongToSameEntity returns true if two accounts
-// belong to the same legal entity.
-func BelongToSameEntity(acct1, acct2 *AppAccount) bool {
-	return (acct1.Type == acct2.Type) && (acct1.LegalEntityName == acct2.LegalEntityName)
-}
-
-// CanCreate returns nil if creator can create acct.
-func CanCreate(creator, acct *AppAccount) error {
-	if !IsEntityAdmin(creator) {
-		// Only admins can create accounts.
-		return fmt.Errorf("only admins can create accounts")
+// CanCreateUserAccount returns nil if the user can create a new user account.
+func CanCreateUserAccount(creator, newAcct *AppAccount) error {
+	if !IsAdminUser(creator) {
+		return fmt.Errorf("only admins can create user accounts")
 	}
-	if !IsClearingHouse(creator) { // Members and Custodian can only create their own accounts.
-		if !BelongToSameEntity(creator, acct) {
-			return fmt.Errorf("members and custodian can create their own accounts only")
-		}
-		// Only Clearing House's admins can create other admin accounts
-		if IsEntityAdmin(acct) {
-			return fmt.Errorf("only admins of the clearing house can create admin accounts")
-		}
-	} else {
-		// Clearing house's admins can create admin accounts for
-		// other entities and any other clearing house accounts
-		isCustodianOrMemberAdmin := func(a *AppAccount) bool { return IsEntityAdmin(a) && !IsClearingHouse(a) }
-		if !(BelongToSameEntity(creator, acct) || isCustodianOrMemberAdmin(acct)) {
+	if !creator.IsActive() {
+		return fmt.Errorf("the account is disabled")
+	}
+	isCustodianOrMemberAdmin := IsAdminUser(newAcct) && !IsClearingHouse(newAcct)
+	if IsClearingHouse(creator) {
+		if !isCustodianOrMemberAdmin && !BelongToSameEntity(creator, newAcct) {
 			return fmt.Errorf(
-				"can only create other clearing house's accounts or admin accounts for other entities")
+				"can only create admin accounts for its own clearing house or admin accounts for other entities")
 		}
+		return nil
+	}
+	// members and custodian can create their own users only
+	if !BelongToSameEntity(creator, newAcct) {
+		return fmt.Errorf("members and custodian can create their own users only")
+	}
+	// Only Clearing House's admins can create other admin accounts
+	if BelongToSameEntity(creator, newAcct) && IsAdminUser(newAcct) {
+		return fmt.Errorf("only admins of the clearing house can create admin accounts")
 	}
 	return nil
+}
+
+// CreateAssetAccount is the function that, given an admin user and the
+// new account's public key, instantiate a new asset account owned by
+// the admin itsel.
+func CreateAssetAccount(creator *AppAccount, pub crypto.PubKey, cash sdk.Coins) (*AppAccount, error) {
+	if !IsAdminUser(creator) { // Only admins can create asset accounts.
+		return nil, fmt.Errorf("only admins can create asset accounts")
+	}
+	if !creator.IsActive() {
+		return nil, fmt.Errorf("the account is disabled")
+	}
+	return NewAssetAccount(pub, cash, creator.Address,
+		creator.GetLegalEntityName(), creator.GetLegalEntityType()), nil
 }
 
 // AccountMapper creates an account mapper given a storekey
@@ -138,13 +169,4 @@ func AccountMapper(capKey sdk.StoreKey) sdk.AccountMapper {
 	// Make WireCodec inaccessible before sealing
 	res := accountMapper.Seal()
 	return res
-}
-
-func sliceContainsString(slice []string, target string) bool {
-	for _, s := range slice {
-		if s == target {
-			return true
-		}
-	}
-	return false
 }

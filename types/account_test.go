@@ -1,58 +1,163 @@
 package types
 
 import (
+	"bytes"
+	"fmt"
 	"testing"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
+	crypto "github.com/tendermint/go-crypto"
 )
 
-func TestCanCreate(t *testing.T) {
-	chAdmin := makeAccount(EntityClearingHouse, nil, true)
-	gcmAdmin := makeAccount(EntityGeneralClearingMember, nil, true)
-	icmAdmin := makeAccount(EntityIndividualClearingMember, nil, true)
-	custAdmin := makeAccount(EntityCustodian, nil, true)
-	chOp := makeAccount(EntityClearingHouse, nil, false)
-	gcmOp := makeAccount(EntityGeneralClearingMember, nil, false)
-	icmOp := makeAccount(EntityIndividualClearingMember, nil, false)
-	custOp := makeAccount(EntityCustodian, nil, false)
+func TestBelongToSameEntity(t *testing.T) {
+	acct1, _ := makeAdminUser("ent1", EntityClearingHouse)
+	acct2, _ := makeUser("ent2", EntityClearingHouse)
+	acct3, _ := makeAssetAccount(nil, "ent2", EntityClearingHouse)
+	acct4, _ := makeAssetAccount(nil, "ent2", EntityCustodian)
+	type args struct {
+		acct1 *AppAccount
+		acct2 *AppAccount
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{"identity", args{acct1, acct1}, true},
+		{"same type, different name", args{acct1, acct2}, false},
+		{"different type, same name", args{acct3, acct4}, false},
+		{"different account, same entity", args{acct2, acct3}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := BelongToSameEntity(tt.args.acct1, tt.args.acct2); got != tt.want {
+				t.Errorf("BelongToSameEntity() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
-	chOp.LegalEntityName = chAdmin.LegalEntityName
-	gcmOp.LegalEntityName = gcmAdmin.LegalEntityName
-	icmOp.LegalEntityName = icmAdmin.LegalEntityName
-	custOp.LegalEntityName = custAdmin.LegalEntityName
+func TestAppAccount_CanCreateUserAccount(t *testing.T) {
+	chAdmin, _ := makeAdminUser("CH", EntityClearingHouse)
+	chOp, _ := makeUser("CH", EntityClearingHouse)
+	otherChAdmin, _ := makeAdminUser("CH2", EntityClearingHouse)
+	otherChUser, _ := makeUser("CH2", EntityClearingHouse)
+	custAdmin, _ := makeAdminUser("CUST", EntityCustodian)
+	custOp, _ := makeUser("CUST", EntityCustodian)
+	otherCustOp, _ := makeUser("CUST2", EntityCustodian)
+	icmAdmin, _ := makeAdminUser("ICM", EntityIndividualClearingMember)
+	icmOp, _ := makeUser("ICM", EntityIndividualClearingMember)
+	gcmAdmin, _ := makeAdminUser("GCM", EntityGeneralClearingMember)
+	gcmOp, _ := makeUser("GCM", EntityGeneralClearingMember)
+	chAsset, _ := makeAssetAccount(nil, chAdmin.EntityName, EntityClearingHouse)
+	disabledAdmin, _ := makeAdminUser("ICM", EntityIndividualClearingMember)
+	disabledAdmin.Active = false
 
+	tests := []struct {
+		name    string
+		creator *AppAccount
+		newAcct *AppAccount
+		wantErr bool
+	}{
+		{"ch admin can create ch admin", chAdmin, chAdmin, false},
+		{"ch admin can create ch ops", chAdmin, chOp, false},
+		{"ch admin cannot create foreign ch admin", chAdmin, otherChAdmin, true},
+		{"ch admin cannot create foreign ch ops", chAdmin, otherChUser, true},
+		{"ch admin can create custodian admin", chAdmin, custAdmin, false},
+		{"ch admin cannot create custodian ops", chAdmin, custOp, true},
+		{"ch admin can create icm admin", chAdmin, icmAdmin, false},
+		{"ch admin cannot create icm ops", chAdmin, icmOp, true},
+		{"ch admin can create gcm admin", chAdmin, gcmAdmin, false},
+		{"ch admin cannot create gcm ops", chAdmin, gcmOp, true},
+		{"non-ch op cannot create admin", custOp, custAdmin, true},
+		{"non-ch admin can create ops", custAdmin, custOp, false},
+		{"non-ch admin and op must be same entity", custAdmin, otherCustOp, true},
+		{"can't create asset accounts", custAdmin, chAsset, true},
+		{"icm admin can create op", icmAdmin, icmOp, false},
+		{"disabled icm admin cannot create op", disabledAdmin, icmOp, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := CanCreateUserAccount(tt.creator, tt.newAcct)
+			assert.Equal(t, tt.wantErr, (err != nil), fmt.Sprintf("%v", err))
+		})
+	}
+}
+
+func TestCreateAssetAccount(t *testing.T) {
+	genKey := func() crypto.PubKey {
+		return crypto.GenPrivKeyEd25519().PubKey()
+	}
+	chAdmin, _ := makeAdminUser("CH", EntityClearingHouse)
+	custAdmin, _ := makeAdminUser("CUST", EntityCustodian)
+	icmAdmin, _ := makeAdminUser("ICM", EntityIndividualClearingMember)
+	gcmAdmin, _ := makeAdminUser("GCM", EntityGeneralClearingMember)
+	gcmOp, _ := makeUser("GCM", EntityGeneralClearingMember)
+	chInactiveAdm, _ := makeAdminUser("CH", EntityClearingHouse)
+	chInactiveAdm.Active = false
+	chAsset, _ := makeAssetAccount(nil, "CH", EntityClearingHouse)
 	type args struct {
 		creator *AppAccount
-		acct    *AppAccount
+		pub     crypto.PubKey
+		cash    sdk.Coins
 	}
 	tests := []struct {
 		name    string
 		args    args
 		wantErr bool
 	}{
-		{"CH admin can create CH admin", args{chAdmin, chAdmin}, false},
-		{"CH admin can create CUS admin", args{chAdmin, custAdmin}, false},
-		{"CH admin can create GCM admin", args{chAdmin, gcmAdmin}, false},
-		{"CH admin can create ICM admin", args{chAdmin, icmAdmin}, false},
-		{"CH admin can create CH operator", args{chAdmin, chOp}, false},
-		{"CH admin cannot create CUS operator", args{chAdmin, custOp}, true},
-		{"CH admin cannot create GCM operator", args{chAdmin, gcmOp}, true},
-		{"CH admin cannot create ICM operator", args{chAdmin, icmOp}, true},
-		{"CH operator cannot create accounts", args{chOp, gcmOp}, true},
-		{"GCM admin cannot create ICM accounts", args{gcmAdmin, icmOp}, true},
-		{"GCM admin can create GCM accounts", args{gcmAdmin, gcmOp}, false},
-		{"ICM admin can create ICM accounts", args{icmAdmin, icmOp}, false},
-		{"CUST admin can create CUST accounts", args{custAdmin, custOp}, false},
-		{"same entity types, different entity", args{gcmAdmin, makeAccount(EntityGeneralClearingMember, nil, false)}, true},
-		{"both CH, different entity", args{chAdmin, makeAccount(EntityClearingHouse, nil, false)}, true},
+		{"ch admin create asset", args{chAdmin, genKey(), sdk.Coins{{"USD", 1000}}}, false},
+		{"cust admin create asset", args{custAdmin, genKey(), nil}, false},
+		{"icm admin create asset", args{icmAdmin, genKey(), nil}, false},
+		{"gcm admin create asset", args{gcmAdmin, genKey(), nil}, false},
+		{"gcm op cannot create asset", args{gcmOp, genKey(), nil}, true},
+		{"ch inactive admin cannot create asset", args{chInactiveAdm, genKey(), nil}, true},
+		{"asset cannot create asset", args{chAsset, genKey(), nil}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := CanCreate(tt.args.creator, tt.args.acct)
-			assert.Equal(t, err != nil, tt.wantErr)
+			got, err := CreateAssetAccount(tt.args.creator, tt.args.pub, tt.args.cash)
+			assert.Equal(t, tt.wantErr, (err != nil))
+			if err == nil {
+				assert.EqualValues(t, tt.args.creator.BaseLegalEntity, got.BaseLegalEntity)
+				assert.True(t, bytes.Equal(tt.args.creator.Address, got.Creator))
+				assert.True(t, sdk.Coins.IsEqual(got.GetCoins(), tt.args.cash))
+			}
 		})
 	}
 }
+
+// func TestCanCreateAssetAccount(t *testing.T) {
+// 	chUserAcct, _ := makeUser("CH", EntityClearingHouse)
+// 	chAdmin, _ := makeAdminUser("CH", EntityClearingHouse)
+// 	chAssetAcct, _ := makeAssetAccount(nil, "CH", EntityClearingHouse)
+// 	otherChAssetAcct, _ := makeAssetAccount(nil, "CH2", EntityClearingHouse)
+// 	custAssetAcct, _ := makeAssetAccount(nil, "CUST", EntityCustodian)
+// 	// acct1, _ := makeAdminUser("ent1", EntityClearingHouse)
+// 	// acct2, _ := makeUser("ent2", EntityClearingHouse)
+// 	// acct3, _ := makeAssetAccount(nil, "ent2", EntityClearingHouse)
+// 	// acct4, _ := makeAssetAccount(nil, "ent2", EntityCustodian)
+// 	tests := []struct {
+// 		name    string
+// 		creator *AppAccount
+// 		newAcct *AppAccount
+// 		wantErr bool
+// 	}{
+// 		{"op cannot create asset account", chUserAcct, chAssetAcct, true},
+// 		{"asset account cannot create asset account", chAssetAcct, chAssetAcct, true},
+// 		{"admin cannot create user account", chAdmin, chUserAcct, true},
+// 		{"admin can create asset account (same entity)", chAdmin, chAssetAcct, false},
+// 		{"admin cannot create asset account (different entity name)", chAdmin, otherChAssetAcct, true},
+// 		{"admin cannot create asset account (different entity type)", chAdmin, custAssetAcct, true},
+// 	}
+// 	for _, tt := range tests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			err := CanCreateAssetAccount(tt.creator, tt.newAcct)
+// 			assert.Equal(t, tt.wantErr, (err != nil), fmt.Sprintf("%v", err))
+// 		})
+// 	}
+// }
 
 func Test_sliceContainsString(t *testing.T) {
 	stringSlice := []string{"xxx", "yyy", "zzz"}
@@ -76,4 +181,22 @@ func Test_sliceContainsString(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+/* Auxiliary functions.
+ */
+
+func makeUser(entname, typ string) (*AppAccount, crypto.PrivKey) {
+	priv := crypto.GenPrivKeyEd25519()
+	return NewOpUser(priv.PubKey(), nil, entname, typ), priv
+}
+
+func makeAdminUser(entname, typ string) (*AppAccount, crypto.PrivKey) {
+	priv := crypto.GenPrivKeyEd25519()
+	return NewAdminUser(priv.PubKey(), nil, entname, typ), priv
+}
+
+func makeAssetAccount(cash sdk.Coins, entname, typ string) (*AppAccount, crypto.Address) {
+	pub := crypto.GenPrivKeyEd25519().PubKey()
+	return NewAssetAccount(pub, cash, nil, entname, typ), pub.Address()
 }
