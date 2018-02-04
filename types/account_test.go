@@ -53,3 +53,27 @@ func TestCanCreate(t *testing.T) {
 		})
 	}
 }
+
+func Test_sliceContainsString(t *testing.T) {
+	stringSlice := []string{"xxx", "yyy", "zzz"}
+	type args struct {
+		slice  []string
+		target string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{"nil string", args{stringSlice, ""}, false},
+		{"spotted", args{stringSlice, "xxx"}, true},
+		{"empty slice", args{[]string{}, "xxx"}, false},
+		{"nil slice", args{[]string{}, "xxx"}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := sliceContainsString(tt.args.slice, tt.args.target)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
