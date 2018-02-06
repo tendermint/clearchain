@@ -3,15 +3,13 @@ package types
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
-	abci "github.com/tendermint/abci/types"
-	crypto "github.com/tendermint/go-crypto"
-	dbm "github.com/tendermint/tmlibs/db"
-
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/store"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/stretchr/testify/assert"
+	abci "github.com/tendermint/abci/types"
+	crypto "github.com/tendermint/go-crypto"
+	dbm "github.com/tendermint/tmlibs/db"
 )
 
 // TestRegisterRoutes is an end-to-end test, making sure a normal workflow is
@@ -282,15 +280,21 @@ func TestWithdrawMsgHandler(t *testing.T) {
 
 func TestCreateAccountMsgHandler(t *testing.T) {
 	accts, ctx := fakeAccountMapper()
-	creatorCH := fakeAccount(accts, ctx, EntityClearingHouse, sdk.Coins{})
-	creatorCUS := fakeAccount(accts, ctx, EntityCustodian, sdk.Coins{})
-	creatorGCM := fakeAccount(accts, ctx, EntityCustodian, sdk.Coins{})
-	creatorICM := fakeAccount(accts, ctx, EntityCustodian, sdk.Coins{})
-	newGCMAccPubKey := crypto.GenPrivKeyEd25519().PubKey()
-	newCHAccPubKey := crypto.GenPrivKeyEd25519().PubKey()
-	newICMAccPubKey := crypto.GenPrivKeyEd25519().PubKey()
-	newCUSAccPubKey := crypto.GenPrivKeyEd25519().PubKey()
-	justAPubKey := crypto.GenPrivKeyEd25519().PubKey()
+	createAccount := func(typ, entityName string, isAdm bool) crypto.Address {
+		if isAdm {
+			return fakeAdminAccountWithEntityName(accts, ctx, typ, sdk.Coins{}, entityName)
+		}
+		return fakeAccountWithEntityName(accts, ctx, typ, sdk.Coins{}, entityName)
+	}
+	mkKey := func() crypto.PubKey {
+		return crypto.GenPrivKeyEd25519().PubKey()
+	}
+	chOp := createAccount(EntityClearingHouse, "CH", false)
+	chAdm := createAccount(EntityClearingHouse, "CH", true)
+	custOp := createAccount(EntityCustodian, "CUST", false)
+	custAdm := createAccount(EntityCustodian, "CUST", true)
+	existingCustOp := makeAccountWithEntityName(EntityCustodian, nil, false, "CUST")
+	accts.SetAccount(ctx, existingCustOp)
 
 	type args struct {
 		ctx sdk.Context
@@ -302,54 +306,79 @@ func TestCreateAccountMsgHandler(t *testing.T) {
 		expect sdk.CodeType
 	}{
 		{
-			"create GCM",
-			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorCH, PubKey: newGCMAccPubKey, AccountType: EntityGeneralClearingMember}},
-			sdk.CodeOK,
+			"CH admin can create CH admin", args{ctx: ctx, msg: CreateAccountMsg{
+				Creator: chAdm, PubKey: mkKey(), AccountType: EntityClearingHouse,
+				IsAdmin: true, LegalEntityName: "CH"}}, sdk.CodeOK,
 		},
 		{
-			"create CH",
-			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorCH, PubKey: newCHAccPubKey, AccountType: EntityClearingHouse}},
-			sdk.CodeOK,
+			"CH admin can create CH op", args{ctx: ctx, msg: CreateAccountMsg{
+				Creator: chAdm, PubKey: mkKey(), AccountType: EntityClearingHouse,
+				IsAdmin: false, LegalEntityName: "CH"}}, sdk.CodeOK,
 		},
 		{
-			"create ICM",
-			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorCH, PubKey: newICMAccPubKey, AccountType: EntityIndividualClearingMember}},
-			sdk.CodeOK,
+			"CH op cannot create CH admin", args{ctx: ctx, msg: CreateAccountMsg{
+				Creator: chOp, PubKey: mkKey(), AccountType: EntityClearingHouse,
+				IsAdmin: true, LegalEntityName: "CH"}}, sdk.CodeUnauthorized,
 		},
 		{
-			"create CUS",
-			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorCH, PubKey: newCUSAccPubKey, AccountType: EntityCustodian}},
-			sdk.CodeOK,
+			"CH admin can create CUST admin", args{ctx: ctx, msg: CreateAccountMsg{
+				Creator: chAdm, PubKey: mkKey(), AccountType: EntityCustodian,
+				IsAdmin: true, LegalEntityName: "CUST"}}, sdk.CodeOK,
 		},
 		{
-			"fail Acc already exists",
-			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorCH, PubKey: newCUSAccPubKey, AccountType: EntityCustodian}},
-			CodeInvalidAccount,
+			"CH admin can create CUST op", args{ctx: ctx, msg: CreateAccountMsg{
+				Creator: chAdm, PubKey: mkKey(), AccountType: EntityCustodian,
+				IsAdmin: false, LegalEntityName: "CUST"}}, sdk.CodeUnauthorized,
 		},
 		{
-			"fail creator does not exist",
-			args{ctx: ctx, msg: CreateAccountMsg{Creator: crypto.GenPrivKeyEd25519().PubKey().Address(), PubKey: crypto.GenPrivKeyEd25519().PubKey(), AccountType: EntityIndividualClearingMember}},
-			CodeInvalidAccount,
+			"CH op cannot create CUST admin", args{ctx: ctx, msg: CreateAccountMsg{
+				Creator: chOp, PubKey: mkKey(), AccountType: EntityCustodian,
+				IsAdmin: true, LegalEntityName: "CUST"}}, sdk.CodeUnauthorized,
 		},
 		{
-			"fail creator is nil",
-			args{ctx: ctx, msg: CreateAccountMsg{Creator: nil, PubKey: justAPubKey, AccountType: EntityIndividualClearingMember}},
-			CodeInvalidAccount,
+			"CH op cannot create CUST op", args{ctx: ctx, msg: CreateAccountMsg{
+				Creator: chOp, PubKey: mkKey(), AccountType: EntityCustodian,
+				IsAdmin: false, LegalEntityName: "CUST"}}, sdk.CodeUnauthorized,
 		},
 		{
-			"fail creator is CUS (not CH)",
-			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorCUS, PubKey: justAPubKey, AccountType: EntityIndividualClearingMember}},
-			CodeWrongSigner,
+			"CUST admin can create CUST op", args{ctx: ctx, msg: CreateAccountMsg{
+				Creator: custAdm, PubKey: mkKey(), AccountType: EntityCustodian,
+				IsAdmin: false, LegalEntityName: "CUST"}}, sdk.CodeOK,
 		},
 		{
-			"fail creator is GCM (not CH)",
-			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorGCM, PubKey: justAPubKey, AccountType: EntityIndividualClearingMember}},
-			CodeWrongSigner,
+			"CUST op cannot create CUST op", args{ctx: ctx, msg: CreateAccountMsg{
+				Creator: custOp, PubKey: mkKey(), AccountType: EntityCustodian,
+				IsAdmin: false, LegalEntityName: "CUST"}}, sdk.CodeUnauthorized,
 		},
 		{
-			"fail creator is CUS (not CH)",
-			args{ctx: ctx, msg: CreateAccountMsg{Creator: creatorICM, PubKey: justAPubKey, AccountType: EntityIndividualClearingMember}},
-			CodeWrongSigner,
+			"CUST admin cannot create member op", args{ctx: ctx, msg: CreateAccountMsg{
+				Creator: custAdm, PubKey: mkKey(), AccountType: EntityIndividualClearingMember,
+				IsAdmin: false, LegalEntityName: "ICM"}}, sdk.CodeUnauthorized,
+		},
+		{
+			"CUST admin cannot create CH op", args{ctx: ctx, msg: CreateAccountMsg{
+				Creator: custAdm, PubKey: mkKey(), AccountType: EntityClearingHouse,
+				IsAdmin: false, LegalEntityName: "CH"}}, sdk.CodeUnauthorized,
+		},
+		{
+			"CUST admin cannot create CH admin", args{ctx: ctx, msg: CreateAccountMsg{
+				Creator: custAdm, PubKey: mkKey(), AccountType: EntityClearingHouse,
+				IsAdmin: true, LegalEntityName: "CH"}}, sdk.CodeUnauthorized,
+		},
+		{
+			"CUST admin cannot create CH admin", args{ctx: ctx, msg: CreateAccountMsg{
+				Creator: mkKey().Address(), PubKey: mkKey(), AccountType: EntityClearingHouse,
+				IsAdmin: true, LegalEntityName: "CH"}}, CodeInvalidAccount,
+		},
+		{
+			"account already exists", args{ctx: ctx, msg: CreateAccountMsg{
+				Creator: custAdm, PubKey: existingCustOp.PubKey, AccountType: EntityCustodian,
+				IsAdmin: true, LegalEntityName: "CUST"}}, CodeInvalidAccount,
+		},
+		{
+			"nil creator", args{ctx: ctx, msg: CreateAccountMsg{
+				Creator: nil, PubKey: mkKey(), AccountType: EntityClearingHouse,
+				IsAdmin: true, LegalEntityName: "CH"}}, CodeInvalidAccount,
 		},
 	}
 	for _, tt := range tests {
@@ -359,7 +388,7 @@ func TestCreateAccountMsgHandler(t *testing.T) {
 			assert.Equal(t, tt.expect, got.Code, got.Log)
 
 			newAcc := accts.GetAccount(ctx, tt.args.msg.(CreateAccountMsg).PubKey.Address())
-			if tt.expect == sdk.CodeOK || tt.name == "fail Acc already exists" {
+			if tt.expect == sdk.CodeOK || tt.name == "account already exists" {
 				assert.True(t, newAcc != nil)
 			} else {
 				assert.True(t, newAcc == nil)
@@ -383,7 +412,6 @@ func fakeAccountMapper() (sdk.AccountMapper, sdk.Context) {
 	}
 
 	accts := AccountMapper(key)
-
 	h := abci.Header{
 		Height:  100,
 		ChainID: "clear-chain",
@@ -394,15 +422,37 @@ func fakeAccountMapper() (sdk.AccountMapper, sdk.Context) {
 }
 
 func fakeAccount(accts sdk.AccountMapper, ctx sdk.Context, typ string, cash sdk.Coins) crypto.Address {
+	acct := makeAccount(typ, cash, false)
+	accts.SetAccount(ctx, acct)
+	return acct.Address
+}
+
+func fakeAccountWithEntityName(accts sdk.AccountMapper, ctx sdk.Context, typ string, cash sdk.Coins, entityName string) crypto.Address {
+	acct := makeAccountWithEntityName(typ, cash, false, entityName)
+	accts.SetAccount(ctx, acct)
+	return acct.Address
+}
+
+func fakeAdminAccount(accts sdk.AccountMapper, ctx sdk.Context, typ string, cash sdk.Coins) crypto.Address {
+	acct := makeAccount(typ, cash, true)
+	accts.SetAccount(ctx, acct)
+	return acct.Address
+}
+
+func fakeAdminAccountWithEntityName(accts sdk.AccountMapper, ctx sdk.Context, typ string, cash sdk.Coins, entityName string) crypto.Address {
+	acct := makeAccountWithEntityName(typ, cash, true, entityName)
+	accts.SetAccount(ctx, acct)
+	return acct.Address
+}
+
+func makeAccount(typ string, cash sdk.Coins, isAdmin bool) *AppAccount {
 	pub := crypto.GenPrivKeyEd25519().PubKey()
 	addr := pub.Address()
+	return NewAppAccount(pub, cash, typ, nil, isAdmin, string(addr))
+}
 
-	acct := new(AppAccount)
-	acct.SetAddress(addr)
-	acct.SetPubKey(pub)
-	acct.SetCoins(cash)
-	acct.Type = typ
-
-	accts.SetAccount(ctx, acct)
-	return addr
+func makeAccountWithEntityName(typ string, cash sdk.Coins, isAdmin bool, entityName string) *AppAccount {
+	acct := makeAccount(typ, cash, isAdmin)
+	acct.LegalEntityName = entityName
+	return acct
 }

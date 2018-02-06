@@ -1,10 +1,14 @@
 package types
 
 import (
+	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	crypto "github.com/tendermint/go-crypto"
 )
+
+// TODO: Admin cannot do ops other than create account msg
 
 //Business logic is executed here
 
@@ -172,20 +176,24 @@ func (h createAccountMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 	if !ok {
 		return ErrWrongMsgFormat("expected CreateAccountMsg").Result()
 	}
-	// ensure proper types
-	creator, err := getAccountWithType(ctx, h.accts, cm.Creator, IsClearingHouse)
-	if err != nil {
-		return err.Result()
+	// ensure creator exists
+	creator := h.accts.GetAccount(ctx, cm.Creator)
+	if creator == nil {
+		return ErrInvalidAccount("couldn't find creator").Result()
 	}
-
+	// ensure proper types
+	concreteCreator := creator.(*AppAccount)
+	// ensure new account does not exist
 	if rawAccount := h.accts.GetAccount(ctx, cm.PubKey.Address()); rawAccount != nil {
 		return ErrInvalidAccount("the account already exists").Result()
 	}
 
-	// finally create and save the account
-	acct := createAccount(creator.GetAddress(), cm.PubKey, cm.AccountType)
+	// Construct a new account
+	acct := NewAppAccount(cm.PubKey, nil, cm.AccountType, creator.GetAddress(), cm.IsAdmin, cm.LegalEntityName)
+	if err := CanCreate(concreteCreator, acct); err != nil {
+		return ErrUnauthorized(fmt.Sprintf("can't create account: %v", err)).Result()
+	}
 	h.accts.SetAccount(ctx, acct)
-
 	return sdk.Result{}
 }
 
@@ -231,12 +239,14 @@ func getAccountWithType(ctx sdk.Context, accts sdk.AccountMapper, addr crypto.Ad
 }
 
 // Creates an account instance
-func createAccount(creator crypto.Address, newAccPubKey crypto.PubKey, typ string) *AppAccount {
+func createAccount(creator crypto.Address, newAccPubKey crypto.PubKey, typ string, entity string, isAdmin bool) *AppAccount {
 	acct := new(AppAccount)
 	acct.SetAddress(newAccPubKey.Address())
 	acct.SetPubKey(newAccPubKey)
 	acct.SetCoins(nil)
 	acct.SetCreator(creator)
 	acct.Type = typ
+	acct.LegalEntityName = entity
+	acct.EntityAdmin = isAdmin
 	return acct
 }

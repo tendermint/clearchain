@@ -1,25 +1,79 @@
 package types
 
-import "testing"
+import (
+	"testing"
 
-func TestIsValidEntityType(t *testing.T) {
+	"github.com/stretchr/testify/assert"
+)
+
+func TestCanCreate(t *testing.T) {
+	chAdmin := makeAccount(EntityClearingHouse, nil, true)
+	gcmAdmin := makeAccount(EntityGeneralClearingMember, nil, true)
+	icmAdmin := makeAccount(EntityIndividualClearingMember, nil, true)
+	custAdmin := makeAccount(EntityCustodian, nil, true)
+	chOp := makeAccount(EntityClearingHouse, nil, false)
+	gcmOp := makeAccount(EntityGeneralClearingMember, nil, false)
+	icmOp := makeAccount(EntityIndividualClearingMember, nil, false)
+	custOp := makeAccount(EntityCustodian, nil, false)
+
+	chOp.LegalEntityName = chAdmin.LegalEntityName
+	gcmOp.LegalEntityName = gcmAdmin.LegalEntityName
+	icmOp.LegalEntityName = icmAdmin.LegalEntityName
+	custOp.LegalEntityName = custAdmin.LegalEntityName
+
 	type args struct {
-		entityType string
+		creator *AppAccount
+		acct    *AppAccount
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{"CH admin can create CH admin", args{chAdmin, chAdmin}, false},
+		{"CH admin can create CUS admin", args{chAdmin, custAdmin}, false},
+		{"CH admin can create GCM admin", args{chAdmin, gcmAdmin}, false},
+		{"CH admin can create ICM admin", args{chAdmin, icmAdmin}, false},
+		{"CH admin can create CH operator", args{chAdmin, chOp}, false},
+		{"CH admin cannot create CUS operator", args{chAdmin, custOp}, true},
+		{"CH admin cannot create GCM operator", args{chAdmin, gcmOp}, true},
+		{"CH admin cannot create ICM operator", args{chAdmin, icmOp}, true},
+		{"CH operator cannot create accounts", args{chOp, gcmOp}, true},
+		{"GCM admin cannot create ICM accounts", args{gcmAdmin, icmOp}, true},
+		{"GCM admin can create GCM accounts", args{gcmAdmin, gcmOp}, false},
+		{"ICM admin can create ICM accounts", args{icmAdmin, icmOp}, false},
+		{"CUST admin can create CUST accounts", args{custAdmin, custOp}, false},
+		{"same entity types, different entity", args{gcmAdmin, makeAccount(EntityGeneralClearingMember, nil, false)}, true},
+		{"both CH, different entity", args{chAdmin, makeAccount(EntityClearingHouse, nil, false)}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := CanCreate(tt.args.creator, tt.args.acct)
+			assert.Equal(t, err != nil, tt.wantErr)
+		})
+	}
+}
+
+func Test_sliceContainsString(t *testing.T) {
+	stringSlice := []string{"xxx", "yyy", "zzz"}
+	type args struct {
+		slice  []string
+		target string
 	}
 	tests := []struct {
 		name string
 		args args
 		want bool
 	}{
-		{"valid entity", args{"ch"}, true},
-		{"bad entity", args{""}, false},
-		{"bad entity", args{"bad"}, false},
+		{"nil string", args{stringSlice, ""}, false},
+		{"spotted", args{stringSlice, "xxx"}, true},
+		{"empty slice", args{[]string{}, "xxx"}, false},
+		{"nil slice", args{[]string{}, "xxx"}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := IsValidEntityType(tt.args.entityType); got != tt.want {
-				t.Errorf("IsValidEntityType() = %v, want %v", got, tt.want)
-			}
+			got := sliceContainsString(tt.args.slice, tt.args.target)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

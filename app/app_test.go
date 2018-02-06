@@ -20,8 +20,8 @@ func TestApp(t *testing.T) {
 	cc.BeginBlock(abci.RequestBeginBlock{})
 
 	// send a deposit msg
-	cust, cKey := fakeAccount(cc, types.EntityCustodian, nil)
-	member, _ := fakeAccount(cc, types.EntityIndividualClearingMember, nil)
+	cust, cKey := fakeAccount(cc, types.EntityCustodian, nil, "Custodian")
+	member, _ := fakeAccount(cc, types.EntityIndividualClearingMember, nil, "ICM")
 	depositMsg := types.DepositMsg{Sender: cust, Recipient: member, Amount: sdk.Coin{"USD", 700}}
 	depositTx := makeTx(depositMsg, cKey)
 	// garbage in, garbage out
@@ -38,11 +38,14 @@ func TestApp(t *testing.T) {
 
 	//send a create account msg
 	cc.BeginBlock(abci.RequestBeginBlock{})
-	clearingHouse, chKey := fakeAccount(cc, types.EntityClearingHouse, nil)
+	clearingHouse, chKey := fakeAdminAccount(cc, types.EntityClearingHouse, nil, "Custodian")
 	createAccMsg := types.CreateAccountMsg{
-		Creator:     clearingHouse,
-		PubKey:      crypto.GenPrivKeyEd25519().PubKey(),
-		AccountType: types.EntityCustodian}
+		Creator:         clearingHouse,
+		PubKey:          crypto.GenPrivKeyEd25519().PubKey(),
+		AccountType:     types.EntityCustodian,
+		LegalEntityName: "custodian",
+		IsAdmin:         true,
+	}
 
 	createAccTx := makeTx(createAccMsg, chKey)
 	res := cc.DeliverTx(createAccTx)
@@ -73,19 +76,20 @@ func makeTx(msg sdk.Msg, keys ...crypto.PrivKey) []byte {
 	return bz
 }
 
-// func fakeAccount(accts sdk.AccountMapper, ctx sdk.Context, typ string, cash sdk.Coins) crypto.Address {
-func fakeAccount(cc *ClearchainApp, typ string, cash sdk.Coins) (crypto.Address, crypto.PrivKey) {
+func fakeAccount(cc *ClearchainApp, typ string, cash sdk.Coins, entityName string) (crypto.Address, crypto.PrivKey) {
 	priv := crypto.GenPrivKeyEd25519()
 	pub := priv.PubKey()
 	addr := pub.Address()
-
-	acct := new(types.AppAccount)
-	acct.SetAddress(addr)
-	acct.SetPubKey(pub)
-	acct.SetCoins(cash)
-	acct.Type = typ
-
+	acct := types.NewAppAccount(pub, cash, typ, nil, false, entityName)
 	cc.StoreAccount(acct)
+	return addr, priv
+}
 
+func fakeAdminAccount(cc *ClearchainApp, typ string, cash sdk.Coins, entityName string) (crypto.Address, crypto.PrivKey) {
+	priv := crypto.GenPrivKeyEd25519()
+	pub := priv.PubKey()
+	addr := pub.Address()
+	acct := types.NewAppAccount(pub, cash, typ, nil, true, entityName)
+	cc.StoreAccount(acct)
 	return addr, priv
 }

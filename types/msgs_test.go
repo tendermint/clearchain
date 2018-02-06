@@ -284,13 +284,15 @@ func TestWithdrawMsg_ValidateBasic(t *testing.T) {
 
 func TestCreateAccountMsg_ValidateBasic(t *testing.T) {
 	type fields struct {
-		Creator     crypto.Address
-		PubKey      crypto.PubKey
-		AccountType string
+		Creator         crypto.Address
+		PubKey          crypto.PubKey
+		AccountType     string
+		LegalEntityName string
 	}
 
 	creatorAddress := crypto.GenPrivKeyEd25519().PubKey().Address()
 	newPubKey := crypto.GenPrivKeyEd25519().PubKey()
+	entity := "entity"
 
 	tests := []struct {
 		name      string
@@ -299,23 +301,28 @@ func TestCreateAccountMsg_ValidateBasic(t *testing.T) {
 	}{
 		{
 			"new CH acc ok",
-			fields{Creator: creatorAddress, PubKey: newPubKey, AccountType: EntityClearingHouse},
+			fields{Creator: creatorAddress, PubKey: newPubKey, AccountType: EntityClearingHouse, LegalEntityName: entity},
 			sdk.CodeOK,
 		},
 		{
 			"new CUS acc ok",
-			fields{Creator: creatorAddress, PubKey: newPubKey, AccountType: EntityCustodian},
+			fields{Creator: creatorAddress, PubKey: newPubKey, AccountType: EntityCustodian, LegalEntityName: entity},
 			sdk.CodeOK,
 		},
 		{
 			"new GCM acc ok",
-			fields{Creator: creatorAddress, PubKey: newPubKey, AccountType: EntityGeneralClearingMember},
+			fields{Creator: creatorAddress, PubKey: newPubKey, AccountType: EntityGeneralClearingMember, LegalEntityName: entity},
 			sdk.CodeOK,
 		},
 		{
 			"new ICM acc ok",
-			fields{Creator: creatorAddress, PubKey: newPubKey, AccountType: EntityIndividualClearingMember},
+			fields{Creator: creatorAddress, PubKey: newPubKey, AccountType: EntityIndividualClearingMember, LegalEntityName: entity},
 			sdk.CodeOK,
+		},
+		{
+			"legal entity name is empty",
+			fields{Creator: creatorAddress, PubKey: newPubKey, AccountType: EntityIndividualClearingMember, LegalEntityName: "    "},
+			CodeInvalidAccount,
 		},
 		{
 			"creator addr is null",
@@ -347,9 +354,10 @@ func TestCreateAccountMsg_ValidateBasic(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := CreateAccountMsg{
-				Creator:     tt.fields.Creator,
-				PubKey:      tt.fields.PubKey,
-				AccountType: tt.fields.AccountType,
+				Creator:         tt.fields.Creator,
+				PubKey:          tt.fields.PubKey,
+				AccountType:     tt.fields.AccountType,
+				LegalEntityName: tt.fields.LegalEntityName,
 			}
 			got := w.ValidateBasic()
 			if got == nil {
