@@ -128,37 +128,6 @@ func TestCreateAssetAccount(t *testing.T) {
 	}
 }
 
-// func TestCanCreateAssetAccount(t *testing.T) {
-// 	chUserAcct, _ := makeUser("CH", EntityClearingHouse)
-// 	chAdmin, _ := makeAdminUser("CH", EntityClearingHouse)
-// 	chAssetAcct, _ := makeAssetAccount(nil, "CH", EntityClearingHouse)
-// 	otherChAssetAcct, _ := makeAssetAccount(nil, "CH2", EntityClearingHouse)
-// 	custAssetAcct, _ := makeAssetAccount(nil, "CUST", EntityCustodian)
-// 	// acct1, _ := makeAdminUser("ent1", EntityClearingHouse)
-// 	// acct2, _ := makeUser("ent2", EntityClearingHouse)
-// 	// acct3, _ := makeAssetAccount(nil, "ent2", EntityClearingHouse)
-// 	// acct4, _ := makeAssetAccount(nil, "ent2", EntityCustodian)
-// 	tests := []struct {
-// 		name    string
-// 		creator *AppAccount
-// 		newAcct *AppAccount
-// 		wantErr bool
-// 	}{
-// 		{"op cannot create asset account", chUserAcct, chAssetAcct, true},
-// 		{"asset account cannot create asset account", chAssetAcct, chAssetAcct, true},
-// 		{"admin cannot create user account", chAdmin, chUserAcct, true},
-// 		{"admin can create asset account (same entity)", chAdmin, chAssetAcct, false},
-// 		{"admin cannot create asset account (different entity name)", chAdmin, otherChAssetAcct, true},
-// 		{"admin cannot create asset account (different entity type)", chAdmin, custAssetAcct, true},
-// 	}
-// 	for _, tt := range tests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			err := CanCreateAssetAccount(tt.creator, tt.newAcct)
-// 			assert.Equal(t, tt.wantErr, (err != nil), fmt.Sprintf("%v", err))
-// 		})
-// 	}
-// }
-
 func Test_sliceContainsString(t *testing.T) {
 	stringSlice := []string{"xxx", "yyy", "zzz"}
 	type args struct {
