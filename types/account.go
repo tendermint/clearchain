@@ -71,7 +71,7 @@ func NewAssetAccount(pub crypto.PubKey, cash sdk.Coins, creator crypto.Address, 
 }
 
 // GetCreator returns account's creator.
-func GetCreator(a *AppAccount) crypto.Address {
+func (a *AppAccount) GetCreator() crypto.Address {
 	return a.Creator
 }
 
