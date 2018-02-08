@@ -133,7 +133,7 @@ func CanCreateUserAccount(creator, newAcct *AppAccount) error {
 		return fmt.Errorf("members and custodian can create their own users only")
 	}
 	// Only Clearing House's admins can create other admin accounts
-	if BelongToSameEntity(creator, newAcct) && IsAdminUser(newAcct) {
+	if IsAdminUser(newAcct) {
 		return fmt.Errorf("only admins of the clearing house can create admin accounts")
 	}
 	return nil
