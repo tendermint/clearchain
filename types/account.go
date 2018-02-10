@@ -1,7 +1,7 @@
 package types
 
 import (
-	"fmt"
+	"bytes"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -46,7 +46,7 @@ func newAppAccount(pub crypto.PubKey, cash sdk.Coins, creator crypto.Address, ty
 	acct.SetAddress(pub.Address())
 	acct.SetPubKey(pub)
 	acct.SetCoins(cash)
-	acct.SetCreator(creator)
+	acct.Creator = creator
 	acct.EntityName = entityName
 	acct.EntityType = entityType
 	acct.AccountType = typ
@@ -68,16 +68,6 @@ func NewAdminUser(pub crypto.PubKey, creator crypto.Address, entityName, entityT
 // NewAssetAccount constructs a new account instance.
 func NewAssetAccount(pub crypto.PubKey, cash sdk.Coins, creator crypto.Address, entityName, entityType string) *AppAccount {
 	return newAppAccount(pub, cash, creator, AccountAsset, true, false, entityName, entityType)
-}
-
-// GetCreator returns account's creator.
-func (a *AppAccount) GetCreator() crypto.Address {
-	return a.Creator
-}
-
-// SetCreator modifies account's creator.
-func (a *AppAccount) SetCreator(creator crypto.Address) {
-	a.Creator = creator
 }
 
 // GetAccountType returns the account type.
@@ -105,54 +95,6 @@ func IsAsset(a UserAccount) bool {
 	return a.GetAccountType() == AccountAsset
 }
 
-// IsAdminUser returns true if the account is an
-// admin user account of its legal entity;
-// false otherwise.
-func IsAdminUser(a UserAccount) bool {
-	return IsUser(a) && a.IsAdmin()
-}
-
-// CanCreateUserAccount returns nil if the user can create a new user account.
-func CanCreateUserAccount(creator, newAcct *AppAccount) error {
-	if !IsAdminUser(creator) {
-		return fmt.Errorf("only admins can create user accounts")
-	}
-	if !creator.IsActive() {
-		return fmt.Errorf("the account is disabled")
-	}
-	isCustodianOrMemberAdmin := IsAdminUser(newAcct) && !IsClearingHouse(newAcct)
-	if IsClearingHouse(creator) {
-		if !isCustodianOrMemberAdmin && !BelongToSameEntity(creator, newAcct) {
-			return fmt.Errorf(
-				"can only create admin accounts for its own clearing house or admin accounts for other entities")
-		}
-		return nil
-	}
-	// members and custodian can create their own users only
-	if !BelongToSameEntity(creator, newAcct) {
-		return fmt.Errorf("members and custodian can create their own users only")
-	}
-	// Only Clearing House's admins can create other admin accounts
-	if IsAdminUser(newAcct) {
-		return fmt.Errorf("only admins of the clearing house can create admin accounts")
-	}
-	return nil
-}
-
-// CreateAssetAccount is the function that, given an admin user and the
-// new account's public key, instantiate a new asset account owned by
-// the admin itsel.
-func CreateAssetAccount(creator *AppAccount, pub crypto.PubKey, cash sdk.Coins) (*AppAccount, error) {
-	if !IsAdminUser(creator) { // Only admins can create asset accounts.
-		return nil, fmt.Errorf("only admins can create asset accounts")
-	}
-	if !creator.IsActive() {
-		return nil, fmt.Errorf("the account is disabled")
-	}
-	return NewAssetAccount(pub, cash, creator.Address,
-		creator.GetLegalEntityName(), creator.GetLegalEntityType()), nil
-}
-
 // AccountMapper creates an account mapper given a storekey
 func AccountMapper(capKey sdk.StoreKey) sdk.AccountMapper {
 	var accountMapper = auth.NewAccountMapper(
@@ -169,4 +111,15 @@ func AccountMapper(capKey sdk.StoreKey) sdk.AccountMapper {
 	// Make WireCodec inaccessible before sealing
 	res := accountMapper.Seal()
 	return res
+}
+
+func accountEqual(a1, a2 *AppAccount) bool {
+	return ((a1.AccountType == a2.AccountType) &&
+		(a1.Admin == a2.Admin) &&
+		(a1.Active == a2.Active) &&
+		bytes.Equal(a1.Address, a2.Address) &&
+		(bytes.Equal(a1.GetPubKey().Bytes(), a2.GetPubKey().Bytes())) &&
+		BelongToSameEntity(a1, a2) &&
+		bytes.Equal(a1.Creator, a2.Creator) &&
+		a1.GetCoins().IsEqual(a2.GetCoins()))
 }

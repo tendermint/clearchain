@@ -14,8 +14,11 @@ const (
 	CodeInvalidAddress     sdk.CodeType = 1001
 	CodeInvalidPubKey      sdk.CodeType = 1002
 	CodeInvalidAccount     sdk.CodeType = 1003
-	CodeWrongSigner        sdk.CodeType = 1004
-	CodeWrongMessageFormat sdk.CodeType = 1005
+	CodeInvalidEntity      sdk.CodeType = 1004
+	CodeSelfCreate         sdk.CodeType = 1005
+	CodeInactiveAccount    sdk.CodeType = 1006
+	CodeWrongSigner        sdk.CodeType = 1010
+	CodeWrongMessageFormat sdk.CodeType = 1100
 )
 
 func ErrInvalidAmount(typ string) sdk.Error {
@@ -32,6 +35,19 @@ func ErrInvalidPubKey(typ string) sdk.Error {
 
 func ErrInvalidAccount(typ string) sdk.Error {
 	return sdk.NewError(CodeInvalidAccount, fmt.Sprintf("invalid account: %s", typ))
+}
+
+func ErrInvalidLegalEntity(typ string) sdk.Error {
+	return sdk.NewError(CodeInvalidEntity, fmt.Sprintf("invalid entity: %s", typ))
+}
+
+func ErrSelfCreate(typ string) sdk.Error {
+	return sdk.NewError(CodeSelfCreate, fmt.Sprintf(
+		"why on earth are you trying to create yourself? %s", typ))
+}
+
+func ErrInactiveUser(typ string) sdk.Error {
+	return sdk.NewError(CodeInactiveAccount, fmt.Sprintf("inactive user: %s", typ))
 }
 
 func ErrWrongSigner(typ string) sdk.Error {

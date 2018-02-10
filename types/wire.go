@@ -17,8 +17,10 @@ func RegisterWire(cdc *wire.Codec) {
 		"com.tendermint.clearchain.SettleMsg", nil)
 	cdc.RegisterConcrete(WithdrawMsg{},
 		"com.tendermint.clearchain.WithdrawMsg", nil)
-	cdc.RegisterConcrete(CreateUserAccountMsg{},
-		"com.tendermint.clearchain.CreateUserAccountMsg", nil)
+	cdc.RegisterConcrete(CreateOperatorMsg{},
+		"com.tendermint.clearchain.CreateOperatorMsg", nil)
+	cdc.RegisterConcrete(CreateAdminMsg{},
+		"com.tendermint.clearchain.CreateAdminMsg", nil)
 	cdc.RegisterConcrete(CreateAssetAccountMsg{},
 		"com.tendermint.clearchain.CreateAssetAccountMsg", nil)
 }

@@ -239,51 +239,6 @@ func TestWithdrawMsg_ValidateBasic(t *testing.T) {
 	}
 }
 
-func TestCreateUserAccountMsg_ValidateBasic(t *testing.T) {
-	creatorAddress := crypto.GenPrivKeyEd25519().PubKey().Address()
-	newPubKey := crypto.GenPrivKeyEd25519().PubKey()
-	entity := "entity"
-	type fields struct {
-		Creator         crypto.Address
-		PubKey          crypto.PubKey
-		LegalEntityType string
-		LegalEntityName string
-		IsAdmin         bool
-	}
-	tests := []struct {
-		name   string
-		fields fields
-		want   sdk.CodeType
-	}{
-		{"new CH acc ok", fields{creatorAddress, newPubKey, EntityClearingHouse, entity, false}, sdk.CodeOK},
-		{"new CUS acc ok", fields{creatorAddress, newPubKey, EntityCustodian, entity, false}, sdk.CodeOK},
-		{"new GCM acc ok", fields{creatorAddress, newPubKey, EntityGeneralClearingMember, entity, true}, sdk.CodeOK},
-		{"new ICM acc ok", fields{creatorAddress, newPubKey, EntityIndividualClearingMember, entity, true}, sdk.CodeOK},
-		{"legal entity name is empty", fields{creatorAddress, newPubKey, EntityIndividualClearingMember, "", true}, CodeInvalidAccount},
-		{"wrong legal entity type", fields{creatorAddress, newPubKey, "invalid", entity, true}, CodeInvalidAccount},
-		{"creator is nil", fields{nil, newPubKey, EntityIndividualClearingMember, entity, true}, CodeInvalidAddress},
-		{"invalid creator len", fields{crypto.Address("short"), newPubKey, EntityIndividualClearingMember, entity, true}, CodeInvalidAddress},
-		{"new pubkey is nil", fields{creatorAddress, nil, EntityIndividualClearingMember, entity, true}, CodeInvalidPubKey},
-		{"same creator and acct", fields{newPubKey.Address(), newPubKey, EntityIndividualClearingMember, entity, true}, CodeInvalidPubKey},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			msg := CreateUserAccountMsg{
-				Creator:         tt.fields.Creator,
-				PubKey:          tt.fields.PubKey,
-				LegalEntityType: tt.fields.LegalEntityType,
-				LegalEntityName: tt.fields.LegalEntityName,
-				IsAdmin:         tt.fields.IsAdmin,
-			}
-			got := msg.ValidateBasic()
-			if got == nil {
-				assert.True(t, tt.want == sdk.CodeOK)
-			} else {
-				assert.Equal(t, tt.want, got.ABCICode(), got.Error())
-			}
-		})
-	}
-}
 func TestCreateAssetAccountMsg_ValidateBasic(t *testing.T) {
 	creatorAddress := crypto.GenPrivKeyEd25519().PubKey().Address()
 	newPubKey := crypto.GenPrivKeyEd25519().PubKey()
@@ -316,6 +271,85 @@ func TestCreateAssetAccountMsg_ValidateBasic(t *testing.T) {
 				assert.True(t, tt.want == sdk.CodeOK)
 			} else {
 				assert.Equal(t, tt.want, got.ABCICode(), got.Error())
+			}
+		})
+	}
+}
+
+func TestBaseCreateUserMsg_ValidateBasic(t *testing.T) {
+	pub := crypto.GenPrivKeyEd25519().PubKey()
+	addr := crypto.GenPrivKeyEd25519().PubKey().Address()
+	long := crypto.Address("hefkuhwqekufghwqekufgwqekufgkwuqgfkugfkuwgek")
+	type fields struct {
+		Creator crypto.Address
+		PubKey  crypto.PubKey
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   sdk.CodeType
+	}{
+		{"nil pubkey", fields{Creator: pub.Address()}, CodeInvalidPubKey},
+		{"nil address", fields{PubKey: pub}, CodeInvalidAddress},
+		{"empty address", fields{Creator: crypto.Address(""), PubKey: pub}, CodeInvalidAddress},
+		{"short address", fields{Creator: crypto.Address("foo"), PubKey: pub}, CodeInvalidAddress},
+		{"long address", fields{Creator: long, PubKey: pub}, CodeInvalidAddress},
+		{"self create", fields{Creator: pub.Address(), PubKey: pub}, CodeSelfCreate},
+		{"good to go", fields{Creator: addr, PubKey: pub}, sdk.CodeOK},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msg := BaseCreateUserMsg{
+				Creator: tt.fields.Creator,
+				PubKey:  tt.fields.PubKey,
+			}
+			got := msg.ValidateBasic()
+			if got != nil {
+				assert.Equal(t, tt.want, got.ABCICode(), got.Error())
+			} else {
+				assert.Equal(t, tt.want, sdk.CodeOK)
+			}
+		})
+	}
+}
+
+func TestCreateAdminMsg_ValidateBasic(t *testing.T) {
+	addr := crypto.GenPrivKeyEd25519().PubKey().Address()
+	pub := crypto.GenPrivKeyEd25519().PubKey()
+	validEntity := BaseLegalEntity{
+		EntityName: "CH",
+		EntityType: EntityClearingHouse,
+	}
+	validCreateUser := BaseCreateUserMsg{
+		Creator: addr,
+		PubKey:  pub,
+	}
+	type fields struct {
+		cm BaseCreateUserMsg
+		le BaseLegalEntity
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   sdk.CodeType
+	}{
+		{"nil pubkey", fields{cm: BaseCreateUserMsg{nil, nil}, le: validEntity}, CodeInvalidPubKey},
+		{"invalid entity type", fields{cm: validCreateUser, le: BaseLegalEntity{EntityName: "CH", EntityType: "invalid"}}, CodeInvalidEntity},
+		{"empty entity name", fields{cm: validCreateUser, le: BaseLegalEntity{EntityName: "    ", EntityType: EntityClearingHouse}}, CodeInvalidEntity},
+		{"self create", fields{cm: BaseCreateUserMsg{Creator: pub.Address(), PubKey: pub}, le: validEntity}, CodeSelfCreate},
+		{"ok", fields{cm: validCreateUser, le: validEntity}, sdk.CodeOK},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msg := CreateAdminMsg{
+				BaseCreateUserMsg: tt.fields.cm,
+				BaseLegalEntity:   tt.fields.le,
+			}
+			got := msg.ValidateBasic()
+			if got != nil {
+				assert.Equal(t, tt.want, got.ABCICode(), got.ABCILog)
+			} else {
+				assert.Equal(t, tt.want, sdk.CodeOK)
 			}
 		})
 	}
