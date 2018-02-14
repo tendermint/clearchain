@@ -114,6 +114,7 @@ func Test_depositMsgHandler_Do(t *testing.T) {
 	_, member := fakeAsset(accts, ctx, mCoins, EntityIndividualClearingMember)
 	chOp := chOpPriv.PubKey().Address()
 	inactiveOp, _ := fakeInactiveUser(accts, ctx, EntityClearingHouse)
+	_, inactiveAssetAddr := fakeInactiveAssetWithEntityName(accts, ctx, cCoins, EntityGeneralClearingMember, EntityGeneralClearingMember)
 
 	type args struct {
 		ctx sdk.Context
@@ -127,12 +128,12 @@ func Test_depositMsgHandler_Do(t *testing.T) {
 		mBal   sdk.Coins
 	}{
 		{
-			"admin ain't allowed", args{ctx: ctx, msg: DepositMsg{Operator: chAdmAddr, Sender: cust,
+			"admins ain't allowed", args{ctx: ctx, msg: DepositMsg{Operator: chAdmAddr, Sender: cust,
 				Recipient: member, Amount: sdk.Coin{"USD", 700}}}, CodeWrongSigner, cCoins, nil,
 		},
 		{
 			"inactive operator", args{ctx: ctx, msg: DepositMsg{Operator: inactiveOp.Address, Sender: cust,
-				Recipient: member, Amount: sdk.Coin{"USD", 700}}}, CodeWrongSigner, cCoins, nil,
+				Recipient: member, Amount: sdk.Coin{"USD", 700}}}, CodeInactiveAccount, cCoins, nil,
 		},
 		{
 			"no returns", args{ctx: ctx, msg: DepositMsg{Operator: chOp, Sender: member,
@@ -146,6 +147,11 @@ func Test_depositMsgHandler_Do(t *testing.T) {
 			// allow the custodian to go negative
 			"overdraft", args{ctx: ctx, msg: DepositMsg{Operator: chOp, Sender: cust, Recipient: member, Amount: sdk.Coin{"EUR", 10000}}},
 			sdk.CodeOK, sdk.Coins{{"EUR", -5000}, {"USD", 300}}, sdk.Coins{{"EUR", 10000}, {"USD", 700}},
+		},
+		{
+			// want an active asset for the recipient
+			"overdraft", args{ctx: ctx, msg: DepositMsg{Operator: chOp, Sender: cust, Recipient: inactiveAssetAddr, Amount: sdk.Coin{"EUR", 10000}}},
+			CodeInactiveAccount, sdk.Coins{{"EUR", -5000}, {"USD", 300}}, sdk.Coins{{"EUR", 10000}, {"USD", 700}},
 		},
 	}
 	for _, tt := range tests {
@@ -279,128 +285,6 @@ func Test_withdrawMsgHandler_Do(t *testing.T) {
 	}
 }
 
-func Test_createUserAccountMsgHandler_Do(t *testing.T) {
-	accts, ctx := fakeAccountMapper()
-	createAccount := func(typ, entityName string, isAdm bool) crypto.Address {
-		if isAdm {
-			ac, _ := fakeAdminWithEntityName(accts, ctx, entityName, typ)
-			return ac.PubKey.Address()
-		}
-		ac, _ := fakeUserWithEntityName(accts, ctx, entityName, typ)
-		return ac.PubKey.Address()
-	}
-	mkKey := func() crypto.PubKey {
-		return crypto.GenPrivKeyEd25519().PubKey()
-	}
-	chOp := createAccount(EntityClearingHouse, "CH", false)
-	chAdm := createAccount(EntityClearingHouse, "CH", true)
-	custOp := createAccount(EntityCustodian, "CUST", false)
-	custAdm := createAccount(EntityCustodian, "CUST", true)
-	existingCustOp, _ := fakeUserWithEntityName(accts, ctx, "CUST", EntityCustodian)
-	accts.SetAccount(ctx, existingCustOp)
-
-	type args struct {
-		ctx sdk.Context
-		msg sdk.Msg
-	}
-	tests := []struct {
-		name   string
-		args   args
-		expect sdk.CodeType
-	}{
-		{
-			"CH admin can create CH admin", args{ctx: ctx, msg: CreateUserAccountMsg{
-				Creator: chAdm, PubKey: mkKey(), LegalEntityType: EntityClearingHouse,
-				IsAdmin: true, LegalEntityName: "CH"}}, sdk.CodeOK,
-		},
-		{
-			"CH admin can create CH op", args{ctx: ctx, msg: CreateUserAccountMsg{
-				Creator: chAdm, PubKey: mkKey(), LegalEntityType: EntityClearingHouse,
-				IsAdmin: false, LegalEntityName: "CH"}}, sdk.CodeOK,
-		},
-		{
-			"CH op cannot create CH admin", args{ctx: ctx, msg: CreateUserAccountMsg{
-				Creator: chOp, PubKey: mkKey(), LegalEntityType: EntityClearingHouse,
-				IsAdmin: true, LegalEntityName: "CH"}}, sdk.CodeUnauthorized,
-		},
-		{
-			"CH admin can create CUST admin", args{ctx: ctx, msg: CreateUserAccountMsg{
-				Creator: chAdm, PubKey: mkKey(), LegalEntityType: EntityCustodian,
-				IsAdmin: true, LegalEntityName: "CUST"}}, sdk.CodeOK,
-		},
-		{
-			"CH admin can create CUST op", args{ctx: ctx, msg: CreateUserAccountMsg{
-				Creator: chAdm, PubKey: mkKey(), LegalEntityType: EntityCustodian,
-				IsAdmin: false, LegalEntityName: "CUST"}}, sdk.CodeUnauthorized,
-		},
-		{
-			"CH op cannot create CUST admin", args{ctx: ctx, msg: CreateUserAccountMsg{
-				Creator: chOp, PubKey: mkKey(), LegalEntityType: EntityCustodian,
-				IsAdmin: true, LegalEntityName: "CUST"}}, sdk.CodeUnauthorized,
-		},
-		{
-			"CH op cannot create CUST op", args{ctx: ctx, msg: CreateUserAccountMsg{
-				Creator: chOp, PubKey: mkKey(), LegalEntityType: EntityCustodian,
-				IsAdmin: false, LegalEntityName: "CUST"}}, sdk.CodeUnauthorized,
-		},
-		{
-			"CUST admin can create CUST op", args{ctx: ctx, msg: CreateUserAccountMsg{
-				Creator: custAdm, PubKey: mkKey(), LegalEntityType: EntityCustodian,
-				IsAdmin: false, LegalEntityName: "CUST"}}, sdk.CodeOK,
-		},
-		{
-			"CUST op cannot create CUST op", args{ctx: ctx, msg: CreateUserAccountMsg{
-				Creator: custOp, PubKey: mkKey(), LegalEntityType: EntityCustodian,
-				IsAdmin: false, LegalEntityName: "CUST"}}, sdk.CodeUnauthorized,
-		},
-		{
-			"CUST admin cannot create member op", args{ctx: ctx, msg: CreateUserAccountMsg{
-				Creator: custAdm, PubKey: mkKey(), LegalEntityType: EntityIndividualClearingMember,
-				IsAdmin: false, LegalEntityName: "ICM"}}, sdk.CodeUnauthorized,
-		},
-		{
-			"CUST admin cannot create CH op", args{ctx: ctx, msg: CreateUserAccountMsg{
-				Creator: custAdm, PubKey: mkKey(), LegalEntityType: EntityClearingHouse,
-				IsAdmin: false, LegalEntityName: "CH"}}, sdk.CodeUnauthorized,
-		},
-		{
-			"CUST admin cannot create CH admin", args{ctx: ctx, msg: CreateUserAccountMsg{
-				Creator: custAdm, PubKey: mkKey(), LegalEntityType: EntityClearingHouse,
-				IsAdmin: true, LegalEntityName: "CH"}}, sdk.CodeUnauthorized,
-		},
-		{
-			"CUST admin cannot create CH admin", args{ctx: ctx, msg: CreateUserAccountMsg{
-				Creator: mkKey().Address(), PubKey: mkKey(), LegalEntityType: EntityClearingHouse,
-				IsAdmin: true, LegalEntityName: "CH"}}, CodeInvalidAccount,
-		},
-		{
-			"account already exists", args{ctx: ctx, msg: CreateUserAccountMsg{
-				Creator: custAdm, PubKey: existingCustOp.PubKey, LegalEntityType: EntityCustodian,
-				IsAdmin: true, LegalEntityName: "CUST"}}, CodeInvalidAccount,
-		},
-		{
-			"nil creator", args{ctx: ctx, msg: CreateUserAccountMsg{
-				Creator: nil, PubKey: mkKey(), LegalEntityType: EntityClearingHouse,
-				IsAdmin: true, LegalEntityName: "CH"}}, CodeInvalidAccount,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			handler := CreateUserAccountMsgHandler(accts)
-			got := handler(tt.args.ctx, tt.args.msg)
-			assert.Equal(t, tt.expect, got.Code, got.Log)
-
-			newAcc := accts.GetAccount(ctx, tt.args.msg.(CreateUserAccountMsg).PubKey.Address())
-			if tt.expect == sdk.CodeOK || tt.name == "account already exists" {
-				assert.True(t, newAcc != nil)
-			} else {
-				assert.True(t, newAcc == nil)
-			}
-
-		})
-	}
-}
-
 func Test_createAssetAccountMsgHandler_Do(t *testing.T) {
 	accts, ctx := fakeAccountMapper()
 	createAccount := func(typ, entityName string, isAdm bool) crypto.Address {
@@ -418,6 +302,7 @@ func Test_createAssetAccountMsgHandler_Do(t *testing.T) {
 	chAdm := createAccount(EntityClearingHouse, "CH", true)
 	custOp := createAccount(EntityCustodian, "CUST", false)
 	custAdm := createAccount(EntityCustodian, "CUST", true)
+	existing, _ := fakeAsset(accts, ctx, nil, "CUST")
 	tests := []struct {
 		name   string
 		msg    sdk.Msg
@@ -427,6 +312,7 @@ func Test_createAssetAccountMsgHandler_Do(t *testing.T) {
 		{"CH op cannot create CH asset", CreateAssetAccountMsg{Creator: chOp, PubKey: mkKey()}, CodeWrongSigner},
 		{"CUST admin can create CUST asset", CreateAssetAccountMsg{Creator: custAdm, PubKey: mkKey()}, sdk.CodeOK},
 		{"CUST op cannot create CUST asset", CreateAssetAccountMsg{Creator: custOp, PubKey: mkKey()}, CodeWrongSigner},
+		{"account already exists", CreateAssetAccountMsg{Creator: custAdm, PubKey: existing.PubKey}, CodeInvalidAccount},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -436,7 +322,9 @@ func Test_createAssetAccountMsgHandler_Do(t *testing.T) {
 
 			concreteMsg := tt.msg.(CreateAssetAccountMsg)
 			newAcc := accts.GetAccount(ctx, concreteMsg.PubKey.Address())
-			if tt.expect == sdk.CodeOK || tt.name == "account already exists" {
+			if tt.name == "account already exists" {
+				assert.True(t, newAcc != nil)
+			} else if tt.expect == sdk.CodeOK {
 				creator := accts.GetAccount(ctx, concreteMsg.Creator).(*AppAccount)
 				assert.True(t, newAcc != nil)
 				concAcc := newAcc.(*AppAccount)
@@ -445,6 +333,90 @@ func Test_createAssetAccountMsgHandler_Do(t *testing.T) {
 				assert.True(t, newAcc == nil)
 			}
 
+		})
+	}
+}
+
+func Test_validateAdminAndCreateOperator(t *testing.T) {
+	accts, ctx := fakeAccountMapper()
+	newAccPub := crypto.GenPrivKeyEd25519().PubKey()
+	inactiveAdm, _ := fakeInactiveAdmin(accts, ctx, EntityClearingHouse)
+	admin, _ := fakeAdmin(accts, ctx, EntityClearingHouse)
+	opCreated := NewOpUser(newAccPub, admin.Address, admin.GetLegalEntityName(), admin.GetLegalEntityType())
+	operator, _ := fakeUser(accts, ctx, EntityClearingHouse)
+	type args struct {
+		creatorAddr crypto.Address
+		pub         crypto.PubKey
+	}
+	tests := []struct {
+		name  string
+		args  args
+		want  *AppAccount
+		want1 sdk.CodeType
+	}{
+		{"inactive admin cannot create", args{inactiveAdm.Address, newAccPub}, nil, CodeInactiveAccount},
+		{"operator cannot create operator", args{operator.Address, newAccPub}, nil, CodeWrongSigner},
+		{"admin can create operator", args{admin.Address, newAccPub}, opCreated, sdk.CodeOK},
+		{"account already exists", args{admin.Address, operator.PubKey}, nil, CodeInvalidAccount},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1 := validateAdminAndCreateOperator(ctx, accts, tt.args.creatorAddr, tt.args.pub)
+			if got == nil || tt.want == nil {
+				assert.True(t, got == tt.want)
+			} else {
+				assert.True(t, accountEqual(tt.want, got))
+			}
+			if got1 == nil {
+				assert.Equal(t, tt.want1, sdk.CodeOK)
+			} else {
+				assert.Equal(t, tt.want1, got1.ABCICode(), got1.ABCILog())
+			}
+		})
+	}
+}
+
+func Test_validateCHAdminAndCreateXEntityAdmin(t *testing.T) {
+	accts, ctx := fakeAccountMapper()
+	ent := BaseLegalEntity{EntityName: "ICM", EntityType: EntityIndividualClearingMember}
+	newAccPub := crypto.GenPrivKeyEd25519().PubKey()
+	admin, _ := fakeAdmin(accts, ctx, EntityClearingHouse)
+	inactiveAdmin, _ := fakeInactiveAdmin(accts, ctx, EntityClearingHouse)
+	adminCreated := NewAdminUser(newAccPub, admin.Address, ent.GetLegalEntityName(), ent.GetLegalEntityType())
+	icmAdmin, _ := fakeAdmin(accts, ctx, EntityIndividualClearingMember)
+	chOperator, _ := fakeUser(accts, ctx, EntityClearingHouse)
+	custOperator, _ := fakeUser(accts, ctx, EntityCustodian)
+	type args struct {
+		creatorAddr crypto.Address
+		pub         crypto.PubKey
+		ent         LegalEntity
+	}
+	tests := []struct {
+		name  string
+		args  args
+		want  *AppAccount
+		want1 sdk.CodeType
+	}{
+		{"foreign operator cannot create", args{custOperator.Address, newAccPub, ent}, nil, CodeWrongSigner},
+		{"foreign admin cannot create", args{icmAdmin.Address, newAccPub, ent}, nil, CodeWrongSigner},
+		{"operator cannot create admin", args{chOperator.Address, newAccPub, ent}, nil, CodeWrongSigner},
+		{"admin can create admin", args{admin.Address, newAccPub, ent}, adminCreated, sdk.CodeOK},
+		{"existing account", args{admin.Address, icmAdmin.PubKey, icmAdmin.BaseLegalEntity}, nil, CodeInvalidAccount},
+		{"inactive admin cannot create", args{inactiveAdmin.Address, newAccPub, ent}, nil, CodeInactiveAccount},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1 := validateCHAdminAndCreateXEntityAdmin(ctx, accts, tt.args.creatorAddr, tt.args.pub, tt.args.ent)
+			if got == nil || tt.want == nil {
+				assert.True(t, got == tt.want)
+			} else {
+				assert.True(t, accountEqual(tt.want, got))
+			}
+			if got1 == nil {
+				assert.Equal(t, tt.want1, sdk.CodeOK)
+			} else {
+				assert.Equal(t, tt.want1, got1.ABCICode(), got1.ABCILog())
+			}
 		})
 	}
 }
@@ -493,6 +465,13 @@ func fakeAdmin(accts sdk.AccountMapper, ctx sdk.Context, typ string) (*AppAccoun
 	return fakeAdminWithEntityName(accts, ctx, typ, typ)
 }
 
+func fakeInactiveAdmin(accts sdk.AccountMapper, ctx sdk.Context, typ string) (*AppAccount, crypto.PrivKey) {
+	acct, priv := makeAdminUser(typ, typ)
+	acct.Active = false
+	accts.SetAccount(ctx, acct)
+	return acct, priv
+}
+
 func fakeAdminWithEntityName(accts sdk.AccountMapper, ctx sdk.Context, entname, typ string) (*AppAccount, crypto.PrivKey) {
 	acct, priv := makeAdminUser(entname, typ)
 	accts.SetAccount(ctx, acct)
@@ -503,8 +482,82 @@ func fakeAsset(accts sdk.AccountMapper, ctx sdk.Context, cash sdk.Coins, typ str
 	return fakeAssetWithEntityName(accts, ctx, cash, typ, typ)
 }
 
+func fakeInactiveAssetWithEntityName(accts sdk.AccountMapper, ctx sdk.Context,
+	cash sdk.Coins, entname, typ string) (*AppAccount, crypto.Address) {
+	acct, addr := makeAssetAccount(cash, entname, typ)
+	acct.Active = false
+	accts.SetAccount(ctx, acct)
+	return acct, addr
+}
+
 func fakeAssetWithEntityName(accts sdk.AccountMapper, ctx sdk.Context, cash sdk.Coins, entname, typ string) (*AppAccount, crypto.Address) {
 	acct, addr := makeAssetAccount(cash, entname, typ)
 	accts.SetAccount(ctx, acct)
 	return acct, addr
+}
+
+func Test_createOperatorMsgHandler_Do(t *testing.T) {
+	accts, ctx := fakeAccountMapper()
+	newPub := crypto.GenPrivKeyEd25519().PubKey()
+	admin, _ := fakeAdminWithEntityName(accts, ctx, "member", EntityIndividualClearingMember)
+	operator, _ := fakeUser(accts, ctx, EntityCustodian)
+	asset, _ := fakeAsset(accts, ctx, nil, EntityGeneralClearingMember)
+	admAddr := admin.Address
+	opAddr := operator.Address
+	assetAddr := asset.Address
+	tests := []struct {
+		name string
+		msg  BaseCreateUserMsg
+		want sdk.CodeType
+	}{
+		{"admin can create", BaseCreateUserMsg{Creator: admAddr, PubKey: newPub}, sdk.CodeOK},
+		{"already exists", BaseCreateUserMsg{Creator: admAddr, PubKey: admin.PubKey}, CodeInvalidAccount},
+		{"operator cannot create", BaseCreateUserMsg{Creator: opAddr, PubKey: newPub}, CodeWrongSigner},
+		{"asset cannot create", BaseCreateUserMsg{Creator: assetAddr, PubKey: newPub}, CodeWrongSigner},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msg := CreateOperatorMsg{tt.msg}
+			h := createOperatorMsgHandler{
+				accts: accts,
+			}
+			assert.Equal(t, tt.want, h.Do(ctx, msg).Code)
+		})
+	}
+}
+
+func Test_createAdminMsgHandler_Do(t *testing.T) {
+	accts, ctx := fakeAccountMapper()
+	newPub := crypto.GenPrivKeyEd25519().PubKey()
+	chAdmin, _ := fakeAdminWithEntityName(accts, ctx, "clearing house", EntityClearingHouse)
+	nonchAdmin, _ := fakeAdminWithEntityName(accts, ctx, "member", EntityIndividualClearingMember)
+	operator, _ := fakeUser(accts, ctx, EntityCustodian)
+	asset, _ := fakeAsset(accts, ctx, nil, EntityGeneralClearingMember)
+	chAdmAddr := chAdmin.Address
+	nonchAdmAddr := nonchAdmin.Address
+	opAddr := operator.Address
+	assetAddr := asset.Address
+	tests := []struct {
+		name string
+		msg  CreateAdminMsg
+		want sdk.CodeType
+	}{
+		{"non CH admin cannot create", CreateAdminMsg{BaseCreateUserMsg{
+			Creator: nonchAdmAddr, PubKey: newPub}, BaseLegalEntity{}}, CodeWrongSigner},
+		{"CH admin can create", CreateAdminMsg{BaseCreateUserMsg{
+			Creator: chAdmAddr, PubKey: newPub}, BaseLegalEntity{}}, sdk.CodeOK},
+		{"operator cannot create", CreateAdminMsg{BaseCreateUserMsg{
+			Creator: opAddr, PubKey: newPub}, BaseLegalEntity{}}, CodeWrongSigner},
+		{"asset cannot create", CreateAdminMsg{BaseCreateUserMsg{
+			Creator: assetAddr, PubKey: newPub}, BaseLegalEntity{}}, CodeWrongSigner},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := createAdminMsgHandler{
+				accts: accts,
+			}
+			got := h.Do(ctx, tt.msg)
+			assert.Equal(t, tt.want, got.Code, got.Log)
+		})
+	}
 }

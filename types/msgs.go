@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	crypto "github.com/tendermint/go-crypto"
@@ -14,7 +15,8 @@ const (
 	DepositType            = "deposit"
 	SettlementType         = "settlement"
 	WithdrawType           = "withdraw"
-	CreateUserAccountType  = "createUser"
+	CreateOperatorType     = "createOperator"
+	CreateAdminType        = "createAdmin"
 	CreateAssetAccountType = "createAsset"
 )
 
@@ -184,56 +186,6 @@ func (msg WithdrawMsg) GetSigners() []crypto.Address {
 	return []crypto.Address{msg.Operator}
 }
 
-// CreateUserAccountMsg defines the property of a create user transaction.
-type CreateUserAccountMsg struct {
-	Creator         crypto.Address
-	PubKey          crypto.PubKey
-	LegalEntityType string
-	LegalEntityName string
-	IsAdmin         bool
-}
-
-var _ sdk.Msg = CreateUserAccountMsg{}
-
-// ValidateBasic performs basic validation checks and it's
-// called by the SDK automatically.
-func (msg CreateUserAccountMsg) ValidateBasic() sdk.Error {
-	if err := validateAddress(msg.Creator); err != nil {
-		return err
-	}
-	if msg.PubKey == nil {
-		return ErrInvalidPubKey("pub key is nil")
-	}
-	if bytes.Equal(msg.Creator, msg.PubKey.Address()) {
-		return ErrInvalidPubKey("creator and new account have the same address")
-	}
-	if err := validateEntity(msg.LegalEntityName, msg.LegalEntityType); err != nil {
-		return ErrInvalidAccount(err.Error())
-	}
-	return nil
-}
-
-// Type returns the message type.
-// Must be alphanumeric or empty.
-func (msg CreateUserAccountMsg) Type() string { return CreateUserAccountType }
-
-// Get returns some property of the Msg.
-func (msg CreateUserAccountMsg) Get(key interface{}) (value interface{}) { return nil }
-
-// GetSignBytes returns the canonical byte representation of the Msg.
-func (msg CreateUserAccountMsg) GetSignBytes() []byte {
-	bz, err := cdc.MarshalBinary(msg)
-	if err != nil {
-		panic(err)
-	}
-	return bz
-}
-
-// GetSigners returns the addrs of signers that must sign.
-// CONTRACT: All signatures must be present to be valid.
-// CONTRACT: Returns addrs in some deterministic order.
-func (msg CreateUserAccountMsg) GetSigners() []crypto.Address { return []crypto.Address{msg.Creator} }
-
 // CreateAssetAccountMsg defines the property of a create user transaction.
 type CreateAssetAccountMsg struct {
 	Creator crypto.Address
@@ -279,6 +231,88 @@ func (msg CreateAssetAccountMsg) GetSignBytes() []byte {
 // CONTRACT: All signatures must be present to be valid.
 // CONTRACT: Returns addrs in some deterministic order.
 func (msg CreateAssetAccountMsg) GetSigners() []crypto.Address { return []crypto.Address{msg.Creator} }
+
+// BaseCreateUserMsg defines the properties of a transaction
+// that triggers the creation of a new generic user.
+// Legal entitiy is inherited from the creator.
+type BaseCreateUserMsg struct {
+	Creator crypto.Address
+	PubKey  crypto.PubKey
+}
+
+// ValidateBasic is called by the SDK automatically.
+func (msg BaseCreateUserMsg) ValidateBasic() sdk.Error {
+	if msg.PubKey == nil {
+		return ErrInvalidPubKey("pub key is nil")
+	}
+	if err := validateAddress(msg.Creator); err != nil {
+		return err
+	}
+	if bytes.Equal(msg.Creator, msg.PubKey.Address()) {
+		return ErrSelfCreate(fmt.Sprintf("%v", msg.Creator))
+	}
+	return nil
+}
+
+// Type returns the message type.
+// Must be alphanumeric or empty.
+//func (msg BaseCreateUserMsg) Type() string { return CreateOperatorType }
+
+// Get returns some property of the Msg.
+func (msg BaseCreateUserMsg) Get(key interface{}) (value interface{}) { return nil }
+
+// GetSignBytes returns the canonical byte representation of the Msg.
+func (msg BaseCreateUserMsg) GetSignBytes() []byte {
+	bz, err := cdc.MarshalBinary(msg)
+	if err != nil {
+		panic(err)
+	}
+	return bz
+}
+
+// GetSigners returns the addrs of signers that must sign.
+// CONTRACT: All signatures must be present to be valid.
+// CONTRACT: Returns addrs in some deterministic order.
+func (msg BaseCreateUserMsg) GetSigners() []crypto.Address { return []crypto.Address{msg.Creator} }
+
+// CreateOperatorMsg defines the properties of a transaction
+// that triggers the creation of a new unpriviliged user.
+// Legal entitiy is inherited from the creator.
+type CreateOperatorMsg struct{ BaseCreateUserMsg }
+
+var _ sdk.Msg = (*CreateOperatorMsg)(nil)
+
+// Type returns the message type.
+// Must be alphanumeric or empty.
+func (msg CreateOperatorMsg) Type() string { return CreateOperatorType }
+
+// CreateAdminMsg defines the properties of a transaction
+// that triggers the cross-entity creation of priviliged users
+// The message must carry the legal entity.
+// Only a clearing house can utilise this endpoint.
+type CreateAdminMsg struct {
+	BaseCreateUserMsg
+	BaseLegalEntity
+}
+
+var _ sdk.Msg = (*CreateAdminMsg)(nil)
+
+// ValidateBasic is called by the SDK automatically.
+func (msg CreateAdminMsg) ValidateBasic() sdk.Error {
+	if err := msg.BaseCreateUserMsg.ValidateBasic(); err != nil {
+		return err
+	}
+	if err := ValidateLegalEntity(msg.BaseLegalEntity); err != nil {
+		return ErrInvalidLegalEntity(err.Error())
+	}
+	return nil
+}
+
+// Type returns the message type.
+// Must be alphanumeric or empty.
+func (msg CreateAdminMsg) Type() string { return CreateAdminType }
+
+/* Auxiliary functions, could be undocumented */
 
 func validateAddress(addr crypto.Address) sdk.Error {
 	if addr == nil {

@@ -85,16 +85,18 @@ func BelongToSameEntity(e1, e2 LegalEntity) bool {
 		(e1.GetLegalEntityType() == e2.GetLegalEntityType())
 }
 
-func validateEntity(name, typ string) error {
-	if len(strings.TrimSpace(name)) == 0 {
+// ValidateLegalEntity performs basic validation
+// on types that implement LegalEntity.
+func ValidateLegalEntity(e LegalEntity) error {
+	if len(strings.TrimSpace(e.GetLegalEntityName())) == 0 {
 		return fmt.Errorf("legal entity name must be non-nil")
 	}
 	if !sliceContainsString([]string{
 		EntityClearingHouse,
 		EntityGeneralClearingMember,
 		EntityIndividualClearingMember,
-		EntityCustodian}, typ) {
-		return fmt.Errorf("legal entity type %q is invalid", typ)
+		EntityCustodian}, e.GetLegalEntityType()) {
+		return fmt.Errorf("legal entity type %q is invalid", e.GetLegalEntityType())
 	}
 	return nil
 }
