@@ -16,10 +16,8 @@ const (
 // LegalEntity is the interface that wraps the basic accessor methods
 // to set and get entities attributes.
 type LegalEntity interface {
-	SetLegalEntityName(string)
-	GetLegalEntityName() string
-	SetLegalEntityType(string)
-	GetLegalEntityType() string
+	LegalEntityName() string
+	LegalEntityType() string
 }
 
 // BaseLegalEntity defines the properties of a legal entity.
@@ -28,48 +26,38 @@ type BaseLegalEntity struct {
 	EntityType string
 }
 
-// SetLegalEntityName modifies an entity's name.
-func (e BaseLegalEntity) SetLegalEntityName(name string) {
-	e.EntityName = name
-}
-
-// GetLegalEntityName returns the entity's name.
-func (e BaseLegalEntity) GetLegalEntityName() string {
+// LegalEntityName returns the entity's name.
+func (e BaseLegalEntity) LegalEntityName() string {
 	return e.EntityName
 }
 
-// SetLegalEntityType modifies an entity's type.
-func (e BaseLegalEntity) SetLegalEntityType(typ string) {
-	e.EntityType = typ
-}
-
-// GetLegalEntityType returns the entity's type.
-func (e BaseLegalEntity) GetLegalEntityType() string {
+// LegalEntityType returns the entity's type.
+func (e BaseLegalEntity) LegalEntityType() string {
 	return e.EntityType
 }
 
 // IsCustodian returns true if the account's owner entity
 // is a custodian; false otherwise.
 func IsCustodian(e LegalEntity) bool {
-	return e.GetLegalEntityType() == EntityCustodian
+	return e.LegalEntityType() == EntityCustodian
 }
 
 // IsClearingHouse returns true if the account's owner entity
 // is the clearing house; false otherwise.
 func IsClearingHouse(e LegalEntity) bool {
-	return e.GetLegalEntityType() == EntityClearingHouse
+	return e.LegalEntityType() == EntityClearingHouse
 }
 
 // IsGeneralClearingMember returns true if the account's owner entity
 // is a general clearing member; false otherwise.
 func IsGeneralClearingMember(e LegalEntity) bool {
-	return e.GetLegalEntityType() == EntityGeneralClearingMember
+	return e.LegalEntityType() == EntityGeneralClearingMember
 }
 
 // IsIndividualClearingMember returns true if the account's owner entity
 // is an individual clearing member; false otherwise.
 func IsIndividualClearingMember(e LegalEntity) bool {
-	return e.GetLegalEntityType() == EntityIndividualClearingMember
+	return e.LegalEntityType() == EntityIndividualClearingMember
 }
 
 // IsMember returns true if the account's owner entity is either
@@ -81,22 +69,22 @@ func IsMember(e LegalEntity) bool {
 // BelongToSameEntity returns true if two accounts
 // belong to the same legal entity.
 func BelongToSameEntity(e1, e2 LegalEntity) bool {
-	return (e1.GetLegalEntityName() == e2.GetLegalEntityName()) &&
-		(e1.GetLegalEntityType() == e2.GetLegalEntityType())
+	return (e1.LegalEntityName() == e2.LegalEntityName()) &&
+		(e1.LegalEntityType() == e2.LegalEntityType())
 }
 
 // ValidateLegalEntity performs basic validation
 // on types that implement LegalEntity.
 func ValidateLegalEntity(e LegalEntity) error {
-	if len(strings.TrimSpace(e.GetLegalEntityName())) == 0 {
+	if len(strings.TrimSpace(e.LegalEntityName())) == 0 {
 		return fmt.Errorf("legal entity name must be non-nil")
 	}
 	if !sliceContainsString([]string{
 		EntityClearingHouse,
 		EntityGeneralClearingMember,
 		EntityIndividualClearingMember,
-		EntityCustodian}, e.GetLegalEntityType()) {
-		return fmt.Errorf("legal entity type %q is invalid", e.GetLegalEntityType())
+		EntityCustodian}, e.LegalEntityType()) {
+		return fmt.Errorf("legal entity type %q is invalid", e.LegalEntityType())
 	}
 	return nil
 }

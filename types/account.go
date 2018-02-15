@@ -71,17 +71,17 @@ func NewAssetAccount(pub crypto.PubKey, cash sdk.Coins, creator crypto.Address, 
 }
 
 // GetAccountType returns the account type.
-func (a *AppAccount) GetAccountType() string {
+func (a AppAccount) GetAccountType() string {
 	return a.AccountType
 }
 
 // IsActive returns true if the account is active; false otherwise.
-func (a *AppAccount) IsActive() bool {
+func (a AppAccount) IsActive() bool {
 	return a.Active
 }
 
 // IsAdmin returns true if the account is admin; false otherwise.
-func (a *AppAccount) IsAdmin() bool {
+func (a AppAccount) IsAdmin() bool {
 	return a.Admin
 }
 

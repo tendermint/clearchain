@@ -178,7 +178,7 @@ func Test_settleMsgHandler_Do(t *testing.T) {
 	chOpAcc, _ := fakeUser(accts, ctx, EntityClearingHouse)
 	chAdm := chAdmAcc.Address
 	chOp := chOpAcc.Address
-	_, clh := fakeAssetWithEntityName(accts, ctx, clhCoins, chOpAcc.GetLegalEntityType(), EntityClearingHouse)
+	_, clh := fakeAssetWithEntityName(accts, ctx, clhCoins, chOpAcc.LegalEntityType(), EntityClearingHouse)
 	_, member := fakeAssetWithEntityName(accts, ctx, mCoins, "ICM", EntityIndividualClearingMember)
 
 	type args struct {
@@ -342,7 +342,7 @@ func Test_validateAdminAndCreateOperator(t *testing.T) {
 	newAccPub := crypto.GenPrivKeyEd25519().PubKey()
 	inactiveAdm, _ := fakeInactiveAdmin(accts, ctx, EntityClearingHouse)
 	admin, _ := fakeAdmin(accts, ctx, EntityClearingHouse)
-	opCreated := NewOpUser(newAccPub, admin.Address, admin.GetLegalEntityName(), admin.GetLegalEntityType())
+	opCreated := NewOpUser(newAccPub, admin.Address, admin.LegalEntityName(), admin.LegalEntityType())
 	operator, _ := fakeUser(accts, ctx, EntityClearingHouse)
 	type args struct {
 		creatorAddr crypto.Address
@@ -382,7 +382,7 @@ func Test_validateCHAdminAndCreateXEntityAdmin(t *testing.T) {
 	newAccPub := crypto.GenPrivKeyEd25519().PubKey()
 	admin, _ := fakeAdmin(accts, ctx, EntityClearingHouse)
 	inactiveAdmin, _ := fakeInactiveAdmin(accts, ctx, EntityClearingHouse)
-	adminCreated := NewAdminUser(newAccPub, admin.Address, ent.GetLegalEntityName(), ent.GetLegalEntityType())
+	adminCreated := NewAdminUser(newAccPub, admin.Address, ent.LegalEntityName(), ent.LegalEntityType())
 	icmAdmin, _ := fakeAdmin(accts, ctx, EntityIndividualClearingMember)
 	chOperator, _ := fakeUser(accts, ctx, EntityClearingHouse)
 	custOperator, _ := fakeUser(accts, ctx, EntityCustodian)

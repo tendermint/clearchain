@@ -191,7 +191,7 @@ func validateCHAdminAndCreateXEntityAdmin(ctx sdk.Context, accts sdk.AccountMapp
 	if accts.GetAccount(ctx, pub.Address()) != nil {
 		return nil, ErrInvalidAccount("couldn't create the account, it already exists")
 	}
-	return NewAdminUser(pub, creatorAddr, ent.GetLegalEntityName(), ent.GetLegalEntityType()), nil
+	return NewAdminUser(pub, creatorAddr, ent.LegalEntityName(), ent.LegalEntityType()), nil
 }
 
 // CreateAssetAccountMsgHandler returns the handler's method.
@@ -222,7 +222,7 @@ func (h createAssetAccountMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Resul
 		return ErrInvalidAccount("the account already exists").Result()
 	}
 	// Construct a new account
-	newAcct := NewAssetAccount(cm.PubKey, sdk.Coins{}, creator.Address, creator.GetLegalEntityName(), creator.GetLegalEntityType())
+	newAcct := NewAssetAccount(cm.PubKey, sdk.Coins{}, creator.Address, creator.LegalEntityName(), creator.LegalEntityType())
 	h.accts.SetAccount(ctx, newAcct)
 	return sdk.Result{}
 }
@@ -239,7 +239,7 @@ func validateAdminAndCreateOperator(ctx sdk.Context, accts sdk.AccountMapper,
 	if accts.GetAccount(ctx, pub.Address()) != nil {
 		return nil, ErrInvalidAccount("couldn't create the account, it already exists")
 	}
-	return NewOpUser(pub, creator.GetAddress(), creator.GetLegalEntityName(), creator.GetLegalEntityType()), nil
+	return NewOpUser(pub, creator.GetAddress(), creator.LegalEntityName(), creator.LegalEntityType()), nil
 }
 
 // Transfers money from the sender to the  recipient
@@ -280,7 +280,7 @@ func getUserAccountWithGetterAndEntityType(ctx sdk.Context, accts sdk.AccountMap
 		return nil, err
 	}
 	if !entityTypeCheck(account) {
-		return nil, ErrWrongSigner(account.GetLegalEntityType())
+		return nil, ErrWrongSigner(account.LegalEntityType())
 	}
 	return account, nil
 }
@@ -292,7 +292,7 @@ func getActiveAssetWithEntityType(ctx sdk.Context, accts sdk.AccountMapper, addr
 		return nil, err
 	}
 	if !entityTypeCheck(account) {
-		return nil, ErrWrongSigner(account.GetLegalEntityType())
+		return nil, ErrWrongSigner(account.LegalEntityType())
 	}
 	return account, nil
 }
