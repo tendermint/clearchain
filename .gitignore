@@ -35,4 +35,3 @@ build/
 testbed/testbed.go
 /vendor
 data
-/glide.lock
