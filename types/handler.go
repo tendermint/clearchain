@@ -16,6 +16,8 @@ func RegisterRoutes(r baseapp.Router, accts sdk.AccountMapper) {
 	r.AddRoute(CreateOperatorType, CreateOperatorMsgHandler(accts))
 	r.AddRoute(CreateAdminType, CreateAdminMsgHandler(accts))
 	r.AddRoute(CreateAssetAccountType, CreateAssetAccountMsgHandler(accts))
+	r.AddRoute(FreezeOperatorType, FreezeOperatorMsgHandler(accts))
+	r.AddRoute(FreezeAdminType, FreezeAdminMsgHandler(accts))
 }
 
 /*
@@ -97,15 +99,12 @@ func (sh settleMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 	return sdk.Result{}
 }
 
-/*
-
-Withdraw functionality.
-
-Sender is member
-Reci is custodian
-Operator is CH
-
-*/
+// WithdrawMsgHandler implements the withdraw functionality.
+//
+// Sender is member
+// Reci is custodian
+// Operator is CH
+//
 func WithdrawMsgHandler(accts sdk.AccountMapper) sdk.Handler { return withdrawMsgHandler{accts}.Do }
 
 type withdrawMsgHandler struct {
@@ -182,18 +181,6 @@ func (h createAdminMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
 	return sdk.Result{}
 }
 
-func validateCHAdminAndCreateXEntityAdmin(ctx sdk.Context, accts sdk.AccountMapper,
-	creatorAddr crypto.Address, pub crypto.PubKey, ent LegalEntity) (*AppAccount, sdk.Error) {
-	if _, err := getCHActiveAdmin(ctx, accts, creatorAddr); err != nil {
-		return nil, err
-	}
-	// ensure new account does not exist
-	if accts.GetAccount(ctx, pub.Address()) != nil {
-		return nil, ErrInvalidAccount("couldn't create the account, it already exists")
-	}
-	return NewAdminUser(pub, creatorAddr, ent.LegalEntityName(), ent.LegalEntityType()), nil
-}
-
 // CreateAssetAccountMsgHandler returns the handler's method.
 func CreateAssetAccountMsgHandler(accts sdk.AccountMapper) sdk.Handler {
 	return createAssetAccountMsgHandler{accts}.Do
@@ -227,6 +214,70 @@ func (h createAssetAccountMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Resul
 	return sdk.Result{}
 }
 
+// FreezeOperatorMsgHandler returns the handler's method.
+func FreezeOperatorMsgHandler(accts sdk.AccountMapper) sdk.Handler {
+	return freezeOperatorMsgHandler{accts}.Do
+}
+
+type freezeOperatorMsgHandler struct{ accts sdk.AccountMapper }
+
+// Freeze operator's message logic.
+// Admins can freeze their own entity's operator accounts.
+func (h freezeOperatorMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+	// ensure proper message
+	cm, ok := msg.(FreezeOperatorMsg)
+	if !ok {
+		return ErrWrongMsgFormat("expected FreezeOperatorMsg").Result()
+	}
+	// ensure admin exists
+	admin, err := getActiveAdmin(ctx, h.accts, cm.Admin)
+	if err != nil {
+		return err.Result()
+	}
+	// ensure operator exists
+	operator, err := getActiveOperator(ctx, h.accts, cm.Target)
+	if err != nil {
+		return err.Result()
+	}
+	if !BelongToSameEntity(admin, operator) {
+		return ErrWrongSigner("admin and operator do not belong to the same entity").Result()
+	}
+	// Construct a new account
+	operator.Active = false
+	h.accts.SetAccount(ctx, operator)
+	return sdk.Result{}
+}
+
+// FreezeAdminMsgHandler returns the handler's method.
+func FreezeAdminMsgHandler(accts sdk.AccountMapper) sdk.Handler {
+	return freezeAdminMsgHandler{accts}.Do
+}
+
+type freezeAdminMsgHandler struct{ accts sdk.AccountMapper }
+
+// Freeze admin's message logic.
+// Clearing house Admins can freeze any other admin.
+func (h freezeAdminMsgHandler) Do(ctx sdk.Context, msg sdk.Msg) sdk.Result {
+	// ensure proper message
+	cm, ok := msg.(FreezeAdminMsg)
+	if !ok {
+		return ErrWrongMsgFormat("expected FreezeAdminMsg").Result()
+	}
+	// ensure clearing house admin exists
+	if _, err := getCHActiveAdmin(ctx, h.accts, cm.Admin); err != nil {
+		return err.Result()
+	}
+	// ensure target admin exists
+	admin, err := getActiveAdmin(ctx, h.accts, cm.Target)
+	if err != nil {
+		return err.Result()
+	}
+	// Construct a new account
+	admin.Active = false
+	h.accts.SetAccount(ctx, admin)
+	return sdk.Result{}
+}
+
 // Business logic
 
 func validateAdminAndCreateOperator(ctx sdk.Context, accts sdk.AccountMapper,
@@ -240,6 +291,18 @@ func validateAdminAndCreateOperator(ctx sdk.Context, accts sdk.AccountMapper,
 		return nil, ErrInvalidAccount("couldn't create the account, it already exists")
 	}
 	return NewOpUser(pub, creator.GetAddress(), creator.LegalEntityName(), creator.LegalEntityType()), nil
+}
+
+func validateCHAdminAndCreateXEntityAdmin(ctx sdk.Context, accts sdk.AccountMapper,
+	creatorAddr crypto.Address, pub crypto.PubKey, ent LegalEntity) (*AppAccount, sdk.Error) {
+	if _, err := getCHActiveAdmin(ctx, accts, creatorAddr); err != nil {
+		return nil, err
+	}
+	// ensure new account does not exist
+	if accts.GetAccount(ctx, pub.Address()) != nil {
+		return nil, ErrInvalidAccount("couldn't create the account, it already exists")
+	}
+	return NewAdminUser(pub, creatorAddr, ent.LegalEntityName(), ent.LegalEntityType()), nil
 }
 
 // Transfers money from the sender to the  recipient

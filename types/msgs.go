@@ -18,6 +18,8 @@ const (
 	CreateOperatorType     = "createOperator"
 	CreateAdminType        = "createAdmin"
 	CreateAssetAccountType = "createAsset"
+	FreezeOperatorType     = "freezeOperator"
+	FreezeAdminType        = "freezeAdmin"
 )
 
 // DepositMsg defines the properties of an asset transfer
@@ -194,8 +196,6 @@ type CreateAssetAccountMsg struct {
 
 var _ sdk.Msg = CreateAssetAccountMsg{}
 
-// Auxiliary functions, might be undocumented
-
 // ValidateBasic performs basic validation checks and it's
 // called by the SDK automatically.
 func (msg CreateAssetAccountMsg) ValidateBasic() sdk.Error {
@@ -311,6 +311,70 @@ func (msg CreateAdminMsg) ValidateBasic() sdk.Error {
 // Type returns the message type.
 // Must be alphanumeric or empty.
 func (msg CreateAdminMsg) Type() string { return CreateAdminType }
+
+// BaseFreezeAccountMsg defines the properties of a transaction
+// that freezes user or asset accounts.
+type BaseFreezeAccountMsg struct {
+	Admin  crypto.Address
+	Target crypto.Address
+}
+
+// ValidateBasic is called by the SDK automatically.
+func (msg BaseFreezeAccountMsg) ValidateBasic() sdk.Error {
+	if err := validateAddress(msg.Admin); err != nil {
+		return err
+	}
+	if err := validateAddress(msg.Target); err != nil {
+		return err
+	}
+	if bytes.Equal(msg.Admin, msg.Target) {
+		return ErrSelfFreeze(fmt.Sprintf("%v", msg.Admin))
+	}
+	return nil
+}
+
+// Type returns the message type.
+// Must be alphanumeric or empty.
+
+// Get returns some property of the Msg.
+func (msg BaseFreezeAccountMsg) Get(key interface{}) (value interface{}) { return nil }
+
+// GetSignBytes returns the canonical byte representation of the Msg.
+func (msg BaseFreezeAccountMsg) GetSignBytes() []byte {
+	bz, err := cdc.MarshalBinary(msg)
+	if err != nil {
+		panic(err)
+	}
+	return bz
+}
+
+// GetSigners returns the addrs of signers that must sign.
+// CONTRACT: All signatures must be present to be valid.
+// CONTRACT: Returns addrs in some deterministic order.
+func (msg BaseFreezeAccountMsg) GetSigners() []crypto.Address { return []crypto.Address{msg.Admin} }
+
+// FreezeOperatorMsg defines the properties of a transaction
+// that freezes an operator. Admin accounts can freeze their
+// own legal entity's operators.
+type FreezeOperatorMsg struct{ BaseFreezeAccountMsg }
+
+var _ sdk.Msg = (*FreezeOperatorMsg)(nil)
+
+// Type returns the message type.
+// Must be alphanumeric or empty.
+func (msg FreezeOperatorMsg) Type() string { return FreezeOperatorType }
+
+// FreezeAdminMsg defines the properties of a transaction
+// that freezes an admin. Only clearing house Admin accounts
+// can freeze other Admin accounts, regardless of the entity
+// that own them.
+type FreezeAdminMsg struct{ BaseFreezeAccountMsg }
+
+var _ sdk.Msg = (*FreezeAdminMsg)(nil)
+
+// Type returns the message type.
+// Must be alphanumeric or empty.
+func (msg FreezeAdminMsg) Type() string { return FreezeAdminType }
 
 /* Auxiliary functions, could be undocumented */
 
