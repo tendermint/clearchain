@@ -16,7 +16,8 @@ const (
 	CodeInvalidAccount     sdk.CodeType = 1003
 	CodeInvalidEntity      sdk.CodeType = 1004
 	CodeSelfCreate         sdk.CodeType = 1005
-	CodeInactiveAccount    sdk.CodeType = 1006
+	CodeSelfFreeze         sdk.CodeType = 1006
+	CodeInactiveAccount    sdk.CodeType = 1007
 	CodeWrongSigner        sdk.CodeType = 1010
 	CodeWrongMessageFormat sdk.CodeType = 1100
 )
@@ -44,6 +45,10 @@ func ErrInvalidLegalEntity(typ string) sdk.Error {
 func ErrSelfCreate(typ string) sdk.Error {
 	return sdk.NewError(CodeSelfCreate, fmt.Sprintf(
 		"why on earth are you trying to create yourself? %s", typ))
+}
+
+func ErrSelfFreeze(typ string) sdk.Error {
+	return sdk.NewError(CodeSelfFreeze, fmt.Sprintf("self-freeze attempted: %s", typ))
 }
 
 func ErrInactiveUser(typ string) sdk.Error {

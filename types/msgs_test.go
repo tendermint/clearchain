@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -353,4 +354,47 @@ func TestCreateAdminMsg_ValidateBasic(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBaseFreezeAccountMsg_ValidateBasic(t *testing.T) {
+	addr1 := crypto.GenPrivKeyEd25519().PubKey().Address()
+	addr2 := crypto.GenPrivKeyEd25519().PubKey().Address()
+	type fields struct {
+		a crypto.Address
+		t crypto.Address
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		want   sdk.CodeType
+	}{
+		{"empty msg", fields{}, CodeInvalidAddress},
+		{"empty target", fields{a: addr1}, CodeInvalidAddress},
+		{"self freeze", fields{a: addr1, t: addr1}, CodeSelfFreeze},
+		{"ok", fields{a: addr1, t: addr2}, sdk.CodeOK},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			msg := BaseFreezeAccountMsg{
+				Admin:  tt.fields.a,
+				Target: tt.fields.t,
+			}
+			got := msg.ValidateBasic()
+			if got != nil {
+				assert.Equal(t, tt.want, got.ABCICode(), got.ABCILog)
+			} else {
+				assert.Equal(t, tt.want, sdk.CodeOK)
+			}
+		})
+	}
+}
+
+func TestBaseFreezeAccountMsg_GetSigners(t *testing.T) {
+	msg := BaseFreezeAccountMsg{
+		Admin:  crypto.GenPrivKeyEd25519().PubKey().Address(),
+		Target: crypto.GenPrivKeyEd25519().PubKey().Address(),
+	}
+	got := msg.GetSigners()
+	assert.Equal(t, len(got), 1)
+	assert.True(t, bytes.Equal(msg.Admin, got[0]))
 }

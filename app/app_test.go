@@ -13,8 +13,8 @@ import (
 
 // TODO: init state
 // TODO: query
-func TestApp(t *testing.T) {
-	cc := NewClearchainApp()
+func TestApp_DepositMsg(t *testing.T) {
+	cc := NewClearchainApp("depositMsg", "cc")
 	junk := []byte("khekfhewgfsug")
 
 	cc.BeginBlock(abci.RequestBeginBlock{})
@@ -36,6 +36,49 @@ func TestApp(t *testing.T) {
 	// TODO: not working yet...
 	// cres := cc.Commit()
 	// assert.NotEqual(t, 0, len(cres.Data))
+}
+
+func TestApp_FreezeOperator(t *testing.T) {
+	cc := NewClearchainApp("freezeOperator", "cc")
+
+	cc.BeginBlock(abci.RequestBeginBlock{})
+	// send a deposit msg
+	chAdmAddr, chAdmPrivKey := fakeAdminAccount(cc, types.EntityClearingHouse, "CH")
+	chOpAddr, chOpPrivKey := fakeOpAccount(cc, types.EntityClearingHouse, "CH")
+	custAssetAddr := fakeAssetAccount(cc, nil, types.EntityCustodian, "CUST")
+	memberAssetAddr := fakeAssetAccount(cc, nil, types.EntityIndividualClearingMember, "ICM")
+	depositMsg := types.DepositMsg{Operator: chOpAddr, Sender: custAssetAddr,
+		Recipient: memberAssetAddr, Amount: sdk.Coin{"USD", 700}}
+	freezeOpMsg := types.FreezeOperatorMsg{types.BaseFreezeAccountMsg{Admin: chAdmAddr, Target: chOpAddr}}
+	freezeOperatorTx := makeTx(freezeOpMsg, chAdmPrivKey)
+	dres := cc.DeliverTx(freezeOperatorTx)
+	assert.EqualValues(t, sdk.CodeOK, dres.Code, dres.Log)
+	depositTx := makeTx(depositMsg, chOpPrivKey)
+	// get real working
+	dres = cc.DeliverTx(depositTx)
+	assert.EqualValues(t, types.CodeInactiveAccount, dres.Code, dres.Log)
+	cc.EndBlock(abci.RequestEndBlock{})
+}
+
+func TestApp_FreezeAdmin(t *testing.T) {
+	cc := NewClearchainApp("freezeOperator", "cc")
+
+	cc.BeginBlock(abci.RequestBeginBlock{})
+	// send a deposit msg
+	chAdmAddr, chAdmPrivKey := fakeAdminAccount(cc, types.EntityClearingHouse, "CH")
+	memAdmAddr, memAdmPrivKey := fakeAdminAccount(cc, types.EntityGeneralClearingMember, "GCM")
+	memOpAddr, _ := fakeOpAccount(cc, types.EntityGeneralClearingMember, "GCM")
+	// the CH admin freezes the member admin
+	freezeAdmMsg := types.FreezeAdminMsg{types.BaseFreezeAccountMsg{Admin: chAdmAddr, Target: memAdmAddr}}
+	freezeAdmTx := makeTx(freezeAdmMsg, chAdmPrivKey)
+	dres := cc.DeliverTx(freezeAdmTx)
+	assert.EqualValues(t, sdk.CodeOK, dres.Code, dres.Log)
+	// the member's admin can no longer freeze its own operators
+	freezeOpMsg := types.FreezeOperatorMsg{types.BaseFreezeAccountMsg{Admin: memAdmAddr, Target: memOpAddr}}
+	freezeOperatorTx := makeTx(freezeOpMsg, memAdmPrivKey)
+	dres = cc.DeliverTx(freezeOperatorTx)
+	assert.EqualValues(t, types.CodeInactiveAccount, dres.Code, dres.Log)
+	cc.EndBlock(abci.RequestEndBlock{})
 }
 
 func makeTx(msg sdk.Msg, keys ...crypto.PrivKey) []byte {

@@ -17,12 +17,20 @@ func RegisterWire(cdc *wire.Codec) {
 		"com.tendermint.clearchain.SettleMsg", nil)
 	cdc.RegisterConcrete(WithdrawMsg{},
 		"com.tendermint.clearchain.WithdrawMsg", nil)
+	cdc.RegisterConcrete(BaseCreateUserMsg{},
+		"com.tendermint.clearchain.BaseCreateUserMsg", nil)
 	cdc.RegisterConcrete(CreateOperatorMsg{},
 		"com.tendermint.clearchain.CreateOperatorMsg", nil)
 	cdc.RegisterConcrete(CreateAdminMsg{},
 		"com.tendermint.clearchain.CreateAdminMsg", nil)
 	cdc.RegisterConcrete(CreateAssetAccountMsg{},
 		"com.tendermint.clearchain.CreateAssetAccountMsg", nil)
+	cdc.RegisterConcrete(BaseFreezeAccountMsg{},
+		"com.tendermint.clearchain.BaseFreezeAccountMsg", nil)
+	cdc.RegisterConcrete(FreezeOperatorMsg{},
+		"com.tendermint.clearchain.FreezeOperatorMsg", nil)
+	cdc.RegisterConcrete(FreezeAdminMsg{},
+		"com.tendermint.clearchain.FreezeAdminMsg", nil)
 }
 
 // MakeTxCodec instantiate a wire.Codec and register

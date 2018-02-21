@@ -19,14 +19,14 @@ type ClearchainApp struct {
 	accts sdk.AccountMapper
 }
 
-func NewClearchainApp() *ClearchainApp {
+func NewClearchainApp(appname, storeKey string) *ClearchainApp {
 	// var app = &ClearchainApp{}
 
 	// make multistore with various keys
-	mainKey := sdk.NewKVStoreKey("cc")
+	mainKey := sdk.NewKVStoreKey(storeKey)
 	// ibcKey = sdk.NewKVStoreKey("ibc")
 
-	bApp := baseapp.NewBaseApp(AppName)
+	bApp := baseapp.NewBaseApp(appname)
 	mountMultiStore(bApp, mainKey)
 	err := bApp.LoadLatestVersion(mainKey)
 	if err != nil {

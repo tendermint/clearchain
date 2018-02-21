@@ -561,3 +561,92 @@ func Test_createAdminMsgHandler_Do(t *testing.T) {
 		})
 	}
 }
+
+func Test_freezeOperatorMsgHandler_Do(t *testing.T) {
+	accts, ctx := fakeAccountMapper()
+	admin, _ := fakeAdminWithEntityName(accts, ctx, "qweasdzxc", EntityIndividualClearingMember)
+	admAddr := admin.Address
+	inactiveAdmin, _ := fakeAdminWithEntityName(accts, ctx, "qweasdzxc", EntityIndividualClearingMember)
+	inactiveAdmin.Active = false
+	accts.SetAccount(ctx, inactiveAdmin)
+	inadmAddr := inactiveAdmin.Address
+	operator, _ := fakeUserWithEntityName(accts, ctx, admin.LegalEntityName(), EntityIndividualClearingMember)
+	opAddr := operator.Address
+	inactiveOperator, _ := fakeUserWithEntityName(accts, ctx, admin.LegalEntityName(), EntityIndividualClearingMember)
+	inactiveOperator.Active = false
+	accts.SetAccount(ctx, inactiveOperator)
+	inopAddr := inactiveOperator.Address
+	foreignOperator, _ := fakeUser(accts, ctx, EntityIndividualClearingMember)
+	fopAddr := foreignOperator.Address
+	asset, _ := fakeAsset(accts, ctx, nil, EntityGeneralClearingMember)
+	assetAddr := asset.Address
+	tests := []struct {
+		name string
+		msg  BaseFreezeAccountMsg
+		want sdk.CodeType
+	}{
+		{"inactive admin", BaseFreezeAccountMsg{Admin: inadmAddr, Target: opAddr}, CodeInactiveAccount},
+		{"inactive op", BaseFreezeAccountMsg{Admin: admAddr, Target: inopAddr}, CodeInactiveAccount},
+		{"op can't freeze", BaseFreezeAccountMsg{Admin: opAddr}, CodeWrongSigner},
+		{"foreign operator", BaseFreezeAccountMsg{Admin: admAddr, Target: fopAddr}, CodeWrongSigner},
+		{"invalid account", BaseFreezeAccountMsg{Admin: admAddr, Target: assetAddr}, CodeWrongSigner},
+		{"ok", BaseFreezeAccountMsg{Admin: admAddr, Target: opAddr}, sdk.CodeOK},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := freezeOperatorMsgHandler{accts: accts}
+			got := h.Do(ctx, FreezeOperatorMsg{tt.msg})
+			assert.Equal(t, tt.want, got.Code, got.Log)
+			if got.Code == sdk.CodeOK {
+				acct := accts.GetAccount(ctx, tt.msg.Target)
+				ca := acct.(*AppAccount)
+				assert.False(t, ca.IsActive())
+			}
+		})
+	}
+}
+
+func Test_freezeAdminMsgHandler_Do(t *testing.T) {
+	accts, ctx := fakeAccountMapper()
+	chAdmin, _ := fakeAdmin(accts, ctx, EntityClearingHouse)
+	chAdmAddr := chAdmin.Address
+	inactiveChAdmin, _ := fakeAdminWithEntityName(accts, ctx, chAdmin.EntityName, EntityClearingHouse)
+	inactiveChAdmin.Active = false
+	accts.SetAccount(ctx, inactiveChAdmin)
+	inChAdmAddr := inactiveChAdmin.Address
+	operator, _ := fakeUser(accts, ctx, EntityIndividualClearingMember)
+	opAddr := operator.Address
+	foreignAdmin, _ := fakeAdmin(accts, ctx, EntityIndividualClearingMember)
+	foaAddr := foreignAdmin.Address
+	foreignInactiveAdmin, _ := fakeAdmin(accts, ctx, EntityIndividualClearingMember)
+	foreignInactiveAdmin.Active = false
+	accts.SetAccount(ctx, foreignInactiveAdmin)
+	foaInAddr := foreignInactiveAdmin.Address
+	asset, _ := fakeAsset(accts, ctx, nil, EntityGeneralClearingMember)
+	assetAddr := asset.Address
+	tests := []struct {
+		name string
+		msg  BaseFreezeAccountMsg
+		want sdk.CodeType
+	}{
+		{"can't freeze op", BaseFreezeAccountMsg{Admin: inChAdmAddr, Target: foaAddr}, CodeInactiveAccount},
+		{"inactive admin", BaseFreezeAccountMsg{Admin: inChAdmAddr, Target: foaAddr}, CodeInactiveAccount},
+		{"inactive target", BaseFreezeAccountMsg{Admin: chAdmAddr, Target: foaInAddr}, CodeInactiveAccount},
+		{"op can't freeze", BaseFreezeAccountMsg{Admin: opAddr}, CodeWrongSigner},
+		{"invalid account", BaseFreezeAccountMsg{Admin: chAdmAddr, Target: assetAddr}, CodeWrongSigner},
+		{"can't freeze op", BaseFreezeAccountMsg{Admin: chAdmAddr, Target: opAddr}, CodeWrongSigner},
+		{"ok", BaseFreezeAccountMsg{Admin: chAdmAddr, Target: foaAddr}, sdk.CodeOK},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := freezeAdminMsgHandler{accts: accts}
+			got := h.Do(ctx, FreezeAdminMsg{tt.msg})
+			assert.Equal(t, tt.want, got.Code, got.Log)
+			if got.Code == sdk.CodeOK {
+				acct := accts.GetAccount(ctx, tt.msg.Target)
+				ca := acct.(*AppAccount)
+				assert.False(t, ca.IsActive())
+			}
+		})
+	}
+}
