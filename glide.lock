@@ -1,8 +1,8 @@
 hash: 7d9d26124560a66e89d75d9b71fb5561bc2d4d06c32f882a7aca7b235668d7d0
-updated: 2018-02-22T10:38:12.263526693+01:00
+updated: 2018-02-22T11:45:33.1448324+01:00
 imports:
 - name: github.com/btcsuite/btcd
-  version: 9866016012e7992f394888a4e65ec4315dfa8d49
+  version: 2be2f12b358dc57d70b8f501b00be450192efbc3
   subpackages:
   - btcec
 - name: github.com/cosmos/cosmos-sdk
@@ -90,7 +90,7 @@ imports:
   - log
   - merkle
 - name: golang.org/x/crypto
-  version: 650f4a345ab4e5b245a3034b110ebc7299e68186
+  version: 432090b8f568c018896cd8a0fb0345872bbac6ce
   subpackages:
   - nacl/secretbox
   - openpgp/armor
@@ -99,7 +99,7 @@ imports:
   - ripemd160
   - salsa20/salsa
 - name: golang.org/x/net
-  version: f5dfe339be1d06f81b22525fe34671ee7d2c8904
+  version: cbe0f9307d0156177f9dd5dc85da1a31abc5f2fb
   subpackages:
   - context
   - http2
@@ -109,7 +109,7 @@ imports:
   - lex/httplex
   - trace
 - name: golang.org/x/text
-  version: 4e4a3210bb54bb31f6ab2cdca2edcc0b50c420c1
+  version: 9e2b64d659da1afe07ce1c9c1dfefc09d188f21e
   subpackages:
   - secure/bidirule
   - transform
