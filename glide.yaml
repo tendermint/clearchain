@@ -1,7 +1,7 @@
 package: github.com/tendermint/clearchain
 import:
 - package: github.com/cosmos/cosmos-sdk
-  version: develop
+  version: v0.10.0
 testImport:
 - package: github.com/stretchr/testify
   version: ^1.2.0

@@ -1,12 +1,12 @@
-hash: 3e4739156d654d16fc9c25e65b6232eca37259b1e5ae149077f8dfa115e64223
-updated: 2018-02-15T20:27:22.884253123Z
+hash: 7d9d26124560a66e89d75d9b71fb5561bc2d4d06c32f882a7aca7b235668d7d0
+updated: 2018-02-22T10:38:12.263526693+01:00
 imports:
 - name: github.com/btcsuite/btcd
   version: 9866016012e7992f394888a4e65ec4315dfa8d49
   subpackages:
   - btcec
 - name: github.com/cosmos/cosmos-sdk
-  version: e628756bea99492b247b1476f79cf3f9f1383a2f
+  version: 8ccf055ca1ac73fc5599a60fcb66ed43dc3fdbc9
   subpackages:
   - baseapp
   - store
@@ -67,7 +67,7 @@ imports:
   - leveldb/table
   - leveldb/util
 - name: github.com/tendermint/abci
-  version: bf70f5e273bd7dd6e22e64186cd1ccc4e3a03df1
+  version: 6d47f4afe2b68b20802aa4d049fd6b8c0f54f1a5
   subpackages:
   - server
   - types
@@ -79,11 +79,11 @@ imports:
 - name: github.com/tendermint/go-crypto
   version: 4fc3055dbd17aa1203d0abc64b9293f378da22ec
 - name: github.com/tendermint/go-wire
-  version: dec83f641903b22f039da3974607859715d0377e
+  version: 5d7845f24b843c914cf571dad2ca13c91cf70f0d
 - name: github.com/tendermint/iavl
   version: 1a59ec0c82dc940c25339dd7c834df5cb76a95cb
 - name: github.com/tendermint/tmlibs
-  version: a0f652dc2e131be86fc8d9e4e2beec9831a8a6ec
+  version: 1b9b5652a199ab0be2e781393fb275b66377309d
   subpackages:
   - common
   - db
