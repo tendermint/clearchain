@@ -22,7 +22,7 @@ func Test_ToAdminUser(t *testing.T) {
 	pubBytes, _ = hex.DecodeString("328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f876")
 	publicKey3, _ := crypto.PubKeyFromBytes(pubBytes)
 
-	adminCreated1 := NewAdminUser(publicKey1, nil, "FXCH", "ch")
+	adminCreated1 := NewAdminUser(publicKey1, nil, "ClearChain", "ch")
 	adminCreated2 := NewAdminUser(publicKey2, nil, "ClearingHouse", "ch")
 	adminCreated3 := NewAdminUser(publicKey3, nil, "Admin", "gcm")
 	
@@ -35,7 +35,7 @@ func Test_ToAdminUser(t *testing.T) {
 		expectedAccount   *AppAccount	
 	}{
 		{
-			"instantiate admin 1 ok", args{jsonValue: "{\"public_key\":\"328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f874\", \"entity_name\":\"FXCH\", \"entity_type\":\"ch\"}"}, adminCreated1,
+			"instantiate admin 1 ok", args{jsonValue: "{\"public_key\":\"328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f874\", \"entity_name\":\"ClearChain\", \"entity_type\":\"ch\"}"}, adminCreated1,
 		},	
 		{
 			"instantiate admin 2 ok", args{jsonValue: "{\"public_key\":\"328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f875\", \"entity_name\":\"ClearingHouse\", \"entity_type\":\"ch\"}"}, adminCreated2,

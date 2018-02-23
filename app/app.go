@@ -71,12 +71,6 @@ func (app *ClearchainApp) RunForever(addrPtr string) {
 	})
 }
 
-func (app *ClearchainApp) StoreAccount(acct sdk.Account) {
-	// delivertx with fake tx bytes (we don't care for SetAccount)
-	var ctx = app.NewContext(false, abci.Header{})
-	app.accts.SetAccount(ctx, acct)	
-}
-
 func mountMultiStore(bApp *baseapp.BaseApp,
 	keys ...*sdk.KVStoreKey) {
 

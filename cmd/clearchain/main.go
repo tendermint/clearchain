@@ -33,7 +33,7 @@ func main() {
 	// If genesis file was specified, set key-value options	
 	fmt.Println("genesis filePath: " +  *genFilePath)
 	if *genFilePath != "" {
-		initStateFromgenesis(app, *genFilePath)
+		initStateFromGenesis(app, *genFilePath)
 	}	
 	
 	// Start the listener
@@ -41,14 +41,11 @@ func main() {
 	app.RunForever(*addrPtr)
 }
 
-// initStateFromgenesis populates the state
-func initStateFromgenesis(app *app.ClearchainApp , genFilePath string) {
+// initStateFromGenesis populates the state
+func initStateFromGenesis(app *app.ClearchainApp , genFilePath string) {
 	stateBytes, _ := common.ReadFile(genFilePath)
 	vals := []abci.Validator{}
-	app.BeginBlock(abci.RequestBeginBlock{})
 	res := app.InitChain(abci.RequestInitChain{vals, stateBytes})
-	fmt.Printf("Result from InitChain:  %s \n", res.String())
-	app.Commit()
-	app.EndBlock(abci.RequestEndBlock{})
+	fmt.Printf("Result from InitChain:  %s \n", res.String())	
 }
 

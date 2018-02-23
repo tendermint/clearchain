@@ -99,6 +99,7 @@ func TestApp_FreezeAdmin(t *testing.T) {
 // It makes the app read an external genesis file and then verifies that all accounts were created by using the Query interface
 func Test_Genesis(t *testing.T) {
 
+	codec := types.MakeTxCodec()
 	app := newTestClearchainApp("loadFromGenesis", "cc")		
 	absPathFileOk, _ := filepath.Abs("test/genesis_ok_test.1.json")	
 	pubBytes, _ := hex.DecodeString("328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f874")
@@ -108,7 +109,7 @@ func Test_Genesis(t *testing.T) {
 	pubBytes, _ = hex.DecodeString("328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f876")
 	publicKey3, _ := crypto.PubKeyFromBytes(pubBytes)
 
-	adminCreated1 := types.NewAdminUser(publicKey1, nil, "FXCH", "ch")
+	adminCreated1 := types.NewAdminUser(publicKey1, nil, "ClearChain", "ch")
 	adminCreated2 := types.NewAdminUser(publicKey2, nil, "ClearingHouse", "ch")
 	adminCreated3 := types.NewAdminUser(publicKey3, nil, "Admin", "gcm")	
 
@@ -119,16 +120,13 @@ func Test_Genesis(t *testing.T) {
 	app.Commit()
 	app.EndBlock(abci.RequestEndBlock{})
 	
-	expectedAccounts := []*types.AppAccount{adminCreated1,adminCreated2,adminCreated3}
-	ctxCheck := app.BaseApp.NewContext(true, abci.Header{})
+	expectedAccounts := []*types.AppAccount{adminCreated1,adminCreated2,adminCreated3}	
 	for _,expAcc := range expectedAccounts {
-		// Query the existing data
-		cc := types.MakeTxCodec()
+		// Query the existing data	
 		res := app.Query(abci.RequestQuery{Data:expAcc.GetAddress(), Path: "/cc/key"})
-		assert.NotNil(t, res.GetValue())	
-		assert.NotNil(t,ctxCheck)	
+		assert.NotNil(t, res.GetValue())		
 		var foundAcc types.AppAccount				
-		err := cc.UnmarshalBinary(res.GetValue(), &foundAcc)	
+		err := codec.UnmarshalBinary(res.GetValue(), &foundAcc)	
 		assert.Nil(t, err)
 		assert.Equal(t, hex.EncodeToString(expAcc.Address), hex.EncodeToString(foundAcc.Address))
 		assert.True(t, expAcc.PubKey.Equals(foundAcc.PubKey))									
@@ -172,7 +170,8 @@ func fakeAssetAccount(cc *ClearchainApp, cash sdk.Coins, typ string, entityName 
 	pub := crypto.GenPrivKeyEd25519().PubKey()
 	addr := pub.Address()
 	acct := types.NewAssetAccount(pub, cash, nil, entityName, typ)
-	cc.StoreAccount(acct)
+	var ctx = cc.NewContext(false, abci.Header{})
+	cc.accts.SetAccount(ctx, acct)
 	return addr
 }
 
@@ -181,7 +180,8 @@ func fakeOpAccount(cc *ClearchainApp, typ string, entityName string) (crypto.Add
 	pub := priv.PubKey()
 	addr := pub.Address()
 	acct := types.NewOpUser(pub, nil, entityName, typ)
-	cc.StoreAccount(acct)
+	var ctx = cc.NewContext(false, abci.Header{})
+	cc.accts.SetAccount(ctx, acct)
 	return addr, priv
 }
 
@@ -190,7 +190,8 @@ func fakeAdminAccount(cc *ClearchainApp, typ string, entityName string) (crypto.
 	pub := priv.PubKey()
 	addr := pub.Address()
 	acct := types.NewAdminUser(pub, nil, entityName, typ)
-	cc.StoreAccount(acct)
+	var ctx = cc.NewContext(false, abci.Header{})
+	cc.accts.SetAccount(ctx, acct)
 	return addr, priv
 }
 
