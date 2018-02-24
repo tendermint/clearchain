@@ -15,3 +15,6 @@ script:
   - export GOPATH=$HOME/gopath
   - export PATH=$HOME/gopath/bin:$PATH
   - make
+
+after_success:
+  - bash tools/codecov
