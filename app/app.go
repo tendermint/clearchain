@@ -1,21 +1,21 @@
 package app
 
-import (	
-	"encoding/json"	
+import (
+	"encoding/json"
+	"fmt"
 	"github.com/tendermint/abci/server"
-	"fmt"	
-		
+
 	cmn "github.com/tendermint/tmlibs/common"
 	dbm "github.com/tendermint/tmlibs/db"
 	"github.com/tendermint/tmlibs/log"
 
-	abci "github.com/tendermint/abci/types"		
-		
-	"github.com/tendermint/clearchain/types"	
+	abci "github.com/tendermint/abci/types"
+
+	"github.com/tendermint/clearchain/types"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	sdk "github.com/cosmos/cosmos-sdk/types"		
 )
 
 const AppName = "ClearchainApp"
@@ -46,9 +46,9 @@ func NewClearchainApp(appname, storeKey string, logger log.Logger, db dbm.DB) *C
 
 	// set up ante and tx parsing
 	setAnteHandler(bApp, accts)
-	initBaseAppTxDecoder(bApp)	
+	initBaseAppTxDecoder(bApp)
 
-	ccApp :=  &ClearchainApp{
+	ccApp := &ClearchainApp{
 		BaseApp: bApp,
 		accts:   accts,
 	}
@@ -100,7 +100,6 @@ func initBaseAppTxDecoder(bApp *baseapp.BaseApp) {
 	})
 }
 
-
 // custom logic for clearchain initialization
 func (app *ClearchainApp) initChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 	stateJSON := req.AppStateBytes
@@ -109,17 +108,17 @@ func (app *ClearchainApp) initChainer(ctx sdk.Context, req abci.RequestInitChain
 	if err != nil {
 		panic(err) // TODO https://github.com/cosmos/cosmos-sdk/issues/468
 		// return sdk.ErrGenesisParse("").TraceCause(err, "")
-	}	
+	}
 	for _, gAdUsr := range genesisState.AdminUsers {
 		acc, err := gAdUsr.ToAdminUser()
 		if err != nil {
 			panic(err) // TODO https://github.com/cosmos/cosmos-sdk/issues/468
 			//	return sdk.ErrGenesisParse("").TraceCause(err, "")
-		}	
+		}
 		app.accts.SetAccount(ctx, acc)
 		fmt.Println("***** Set Admin user *****")
 		fmt.Printf("Entity name: %v \n", acc.EntityName)
-		fmt.Printf("Entity type: %v \n", acc.EntityType)				
+		fmt.Printf("Entity type: %v \n", acc.EntityType)
 		fmt.Println("*****")
 	}
 	fmt.Println("Genesis file loaded successfully!")
