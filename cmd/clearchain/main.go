@@ -43,7 +43,10 @@ func main() {
 
 // initStateFromGenesis populates the state
 func initStateFromGenesis(app *app.ClearchainApp, genFilePath string) {
-	stateBytes, _ := common.ReadFile(genFilePath)
+	stateBytes, err := common.ReadFile(genFilePath)
+	if err != nil {
+		panic(err) 
+	}
 	vals := []abci.Validator{}
 	res := app.InitChain(abci.RequestInitChain{vals, stateBytes})
 	fmt.Printf("Result from InitChain:  %s \n", res.String())

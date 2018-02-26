@@ -101,46 +101,37 @@ func Test_Genesis(t *testing.T) {
 
 	codec := types.MakeTxCodec()
 	app := newTestClearchainApp("loadFromGenesis", "cc")
-	absPathFileOk, _ := filepath.Abs("test/genesis_ok_test.1.json")
+	absPathFileOk, _ := filepath.Abs("test/genesis_ok_ch_admin_test.json")
 	pubBytes, _ := hex.DecodeString("328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f874")
 	publicKey1, _ := crypto.PubKeyFromBytes(pubBytes)
-	pubBytes, _ = hex.DecodeString("328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f875")
-	publicKey2, _ := crypto.PubKeyFromBytes(pubBytes)
-	pubBytes, _ = hex.DecodeString("328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f876")
-	publicKey3, _ := crypto.PubKeyFromBytes(pubBytes)
-
-	adminCreated1 := types.NewAdminUser(publicKey1, nil, "ClearChain", "ch")
-	adminCreated2 := types.NewAdminUser(publicKey2, nil, "ClearingHouse", "ch")
-	adminCreated3 := types.NewAdminUser(publicKey3, nil, "Admin", "gcm")
-
+	
+	adminCreated1 := types.NewAdminUser(publicKey1, nil, "ClearChain", "ch")	
 	stateBytes, _ := common.ReadFile(absPathFileOk)
 	vals := []abci.Validator{}
 	app.BeginBlock(abci.RequestBeginBlock{})
 	app.InitChain(abci.RequestInitChain{vals, stateBytes})
 	app.Commit()
 	app.EndBlock(abci.RequestEndBlock{})
-
-	expectedAccounts := []*types.AppAccount{adminCreated1, adminCreated2, adminCreated3}
-	for _, expAcc := range expectedAccounts {
-		// Query the existing data
-		res := app.Query(abci.RequestQuery{Data: expAcc.GetAddress(), Path: "/cc/key"})
-		assert.NotNil(t, res.GetValue())
-		var foundAcc types.AppAccount
-		err := codec.UnmarshalBinary(res.GetValue(), &foundAcc)
-		assert.Nil(t, err)
-		assert.Equal(t, hex.EncodeToString(expAcc.Address), hex.EncodeToString(foundAcc.Address))
-		assert.True(t, expAcc.PubKey.Equals(foundAcc.PubKey))
-		assert.True(t, foundAcc.Coins.IsZero())
-		assert.True(t, foundAcc.Creator == nil)
-		assert.Equal(t, expAcc.EntityName, foundAcc.EntityName)
-		assert.Equal(t, expAcc.EntityType, foundAcc.EntityType)
-		assert.Equal(t, expAcc.AccountType, foundAcc.AccountType)
-		assert.Equal(t, types.AccountUser, foundAcc.AccountType)
-		assert.Equal(t, expAcc.Active, foundAcc.Active)
-		assert.True(t, foundAcc.Active)
-		assert.Equal(t, expAcc.Admin, foundAcc.Admin)
-		assert.True(t, foundAcc.Admin)
-	}
+	
+	expAcc := adminCreated1
+	// Query the existing data
+	res := app.Query(abci.RequestQuery{Data: expAcc.GetAddress(), Path: "/cc/key"})
+	assert.NotNil(t, res.GetValue())
+	var foundAcc types.AppAccount
+	err := codec.UnmarshalBinary(res.GetValue(), &foundAcc)
+	assert.Nil(t, err)
+	assert.Equal(t, hex.EncodeToString(expAcc.Address), hex.EncodeToString(foundAcc.Address))
+	assert.True(t, expAcc.PubKey.Equals(foundAcc.PubKey))
+	assert.True(t, foundAcc.Coins.IsZero())
+	assert.True(t, foundAcc.Creator == nil)
+	assert.Equal(t, expAcc.EntityName, foundAcc.EntityName)
+	assert.Equal(t, expAcc.EntityType, foundAcc.EntityType)
+	assert.Equal(t, expAcc.AccountType, foundAcc.AccountType)
+	assert.Equal(t, types.AccountUser, foundAcc.AccountType)
+	assert.Equal(t, expAcc.Active, foundAcc.Active)
+	assert.True(t, foundAcc.Active)
+	assert.Equal(t, expAcc.Admin, foundAcc.Admin)
+	assert.True(t, foundAcc.Admin)	
 }
 
 func makeTx(msg sdk.Msg, keys ...crypto.PrivKey) []byte {

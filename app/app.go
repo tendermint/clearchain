@@ -108,19 +108,23 @@ func (app *ClearchainApp) initChainer(ctx sdk.Context, req abci.RequestInitChain
 	if err != nil {
 		panic(err) // TODO https://github.com/cosmos/cosmos-sdk/issues/468
 		// return sdk.ErrGenesisParse("").TraceCause(err, "")
-	}
-	for _, gAdUsr := range genesisState.AdminUsers {
-		acc, err := gAdUsr.ToAdminUser()
+	}		
+	
+	genChAdmin := genesisState.ClearingHouseAdmin
+	if(genChAdmin != types.GenesisAccount{}) {
+		acc, err := genChAdmin.ToClearingHouseAdmin()
 		if err != nil {
 			panic(err) // TODO https://github.com/cosmos/cosmos-sdk/issues/468
 			//	return sdk.ErrGenesisParse("").TraceCause(err, "")
 		}
 		app.accts.SetAccount(ctx, acc)
-		fmt.Println("***** Set Admin user *****")
+		fmt.Println("***** Set Ch Admin *****")
 		fmt.Printf("Entity name: %v \n", acc.EntityName)
 		fmt.Printf("Entity type: %v \n", acc.EntityType)
+		fmt.Printf("Public key: %v \n", genChAdmin.PubKeyHexa)
 		fmt.Println("*****")
 	}
+	
 	fmt.Println("Genesis file loaded successfully!")
 	return abci.ResponseInitChain{}
 }

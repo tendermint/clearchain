@@ -7,16 +7,16 @@ import (
 
 // State to Unmarshal
 type GenesisState struct {
-	AdminUsers []GenesisAccount `json:"admin_users"`
+	ClearingHouseAdmin GenesisAccount `json:"ch_admin"`
 }
 
 // GenesisAccount is an abstraction of the accounts specified in a genesis file
 type GenesisAccount struct {
 	PubKeyHexa string `json:"public_key"`
-	EntityName string `json:"entity_name"`
-	EntityType string `json:"entity_type"`
+	EntityName string `json:"entity_name"`	
 
 	/* future support
+	EntityType string `json:"entity_type"`
 	Creator 	crypto.Address 	`json:"creator_address"`
 	Coins 		sdk.Coins    	`json:"coins"`
 	IsActive    bool 			`json:"is_active"`
@@ -25,13 +25,13 @@ type GenesisAccount struct {
 	*/
 }
 
-// ToAdminUser converts  GenesisAccount into an AppAccount (Admin User)
-func (ga *GenesisAccount) ToAdminUser() (acc *AppAccount, err error) {
+// ToClearingHouseAdmin converts  a GenesisAccount into an AppAccount (a Clearing House admin user)
+func (ga *GenesisAccount) ToClearingHouseAdmin() (acc *AppAccount, err error) {
 
 	// Done manually since JSON Unmarshalling does not create a PubKey from a hexa value
 	pubBytes, _ := hex.DecodeString(ga.PubKeyHexa)
 	publicKey, _ := crypto.PubKeyFromBytes(pubBytes)
 
-	adminUser := NewAdminUser(publicKey, nil, ga.EntityName, ga.EntityType)
+	adminUser := NewAdminUser(publicKey, nil, ga.EntityName, EntityClearingHouse)
 	return adminUser, nil
 }
