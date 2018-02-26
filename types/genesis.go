@@ -29,8 +29,14 @@ type GenesisAccount struct {
 func (ga *GenesisAccount) ToClearingHouseAdmin() (acc *AppAccount, err error) {
 
 	// Done manually since JSON Unmarshalling does not create a PubKey from a hexa value
-	pubBytes, _ := hex.DecodeString(ga.PubKeyHexa)
-	publicKey, _ := crypto.PubKeyFromBytes(pubBytes)
+	pubBytes, err := hex.DecodeString(ga.PubKeyHexa)
+	if err != nil {
+		return nil, err
+	}
+	publicKey, err := crypto.PubKeyFromBytes(pubBytes)
+	if err != nil {
+		return nil, err
+	}
 
 	adminUser := NewAdminUser(publicKey, nil, ga.EntityName, EntityClearingHouse)
 	return adminUser, nil
