@@ -1,12 +1,19 @@
 package app
 
 import (
+	"encoding/hex"
+	"github.com/stretchr/testify/assert"
+	"os"
+	"path/filepath"
 	"testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/stretchr/testify/assert"
+
 	abci "github.com/tendermint/abci/types"
 	crypto "github.com/tendermint/go-crypto"
+	common "github.com/tendermint/tmlibs/common"
+	dbm "github.com/tendermint/tmlibs/db"
+	"github.com/tendermint/tmlibs/log"
 
 	"github.com/tendermint/clearchain/types"
 )
@@ -14,7 +21,8 @@ import (
 // TODO: init state
 // TODO: query
 func TestApp_DepositMsg(t *testing.T) {
-	cc := NewClearchainApp("depositMsg", "cc")
+
+	cc := newTestClearchainApp("depositMsg", "cc")
 	junk := []byte("khekfhewgfsug")
 
 	cc.BeginBlock(abci.RequestBeginBlock{})
@@ -31,15 +39,21 @@ func TestApp_DepositMsg(t *testing.T) {
 	// get real working
 	dres = cc.DeliverTx(depositTx)
 	assert.EqualValues(t, sdk.CodeOK, dres.Code, dres.Log)
+	cc.Commit()
 	cc.EndBlock(abci.RequestEndBlock{})
 
-	// TODO: not working yet...
-	// cres := cc.Commit()
-	// assert.NotEqual(t, 0, len(cres.Data))
+	// Query data to verify the deposit
+	res := cc.Query(abci.RequestQuery{Data: memberAssetAddr, Path: "/cc/key"})
+	codec := types.MakeTxCodec()
+	var foundAcc types.AppAccount
+	err := codec.UnmarshalBinary(res.GetValue(), &foundAcc)
+	assert.Nil(t, err)
+	assert.NotNil(t, foundAcc)
+	assert.Equal(t, int64(700), foundAcc.Coins.AmountOf("USD"))
 }
 
 func TestApp_FreezeOperator(t *testing.T) {
-	cc := NewClearchainApp("freezeOperator", "cc")
+	cc := newTestClearchainApp("freezeOperator", "cc")
 
 	cc.BeginBlock(abci.RequestBeginBlock{})
 	// send a deposit msg
@@ -61,7 +75,7 @@ func TestApp_FreezeOperator(t *testing.T) {
 }
 
 func TestApp_FreezeAdmin(t *testing.T) {
-	cc := NewClearchainApp("freezeOperator", "cc")
+	cc := newTestClearchainApp("freezeOperator", "cc")
 
 	cc.BeginBlock(abci.RequestBeginBlock{})
 	// send a deposit msg
@@ -79,6 +93,45 @@ func TestApp_FreezeAdmin(t *testing.T) {
 	dres = cc.DeliverTx(freezeOperatorTx)
 	assert.EqualValues(t, types.CodeInactiveAccount, dres.Code, dres.Log)
 	cc.EndBlock(abci.RequestEndBlock{})
+}
+
+//Test_Genesis is an end-to-end test that verifies the complete process of loading a genesis file.
+// It makes the app read an external genesis file and then verifies that all accounts were created by using the Query interface
+func Test_Genesis(t *testing.T) {
+
+	codec := types.MakeTxCodec()
+	app := newTestClearchainApp("loadFromGenesis", "cc")
+	absPathFileOk, _ := filepath.Abs("test/genesis_ok_ch_admin_test.json")
+	pubBytes, _ := hex.DecodeString("328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f874")
+	publicKey1, _ := crypto.PubKeyFromBytes(pubBytes)
+	
+	adminCreated1 := types.NewAdminUser(publicKey1, nil, "ClearChain", "ch")	
+	stateBytes, _ := common.ReadFile(absPathFileOk)
+	vals := []abci.Validator{}
+	app.BeginBlock(abci.RequestBeginBlock{})
+	app.InitChain(abci.RequestInitChain{vals, stateBytes})
+	app.Commit()
+	app.EndBlock(abci.RequestEndBlock{})
+	
+	expAcc := adminCreated1
+	// Query the existing data
+	res := app.Query(abci.RequestQuery{Data: expAcc.GetAddress(), Path: "/cc/key"})
+	assert.NotNil(t, res.GetValue())
+	var foundAcc types.AppAccount
+	err := codec.UnmarshalBinary(res.GetValue(), &foundAcc)
+	assert.Nil(t, err)
+	assert.Equal(t, hex.EncodeToString(expAcc.Address), hex.EncodeToString(foundAcc.Address))
+	assert.True(t, expAcc.PubKey.Equals(foundAcc.PubKey))
+	assert.True(t, foundAcc.Coins.IsZero())
+	assert.True(t, foundAcc.Creator == nil)
+	assert.Equal(t, expAcc.EntityName, foundAcc.EntityName)
+	assert.Equal(t, expAcc.EntityType, foundAcc.EntityType)
+	assert.Equal(t, expAcc.AccountType, foundAcc.AccountType)
+	assert.Equal(t, types.AccountUser, foundAcc.AccountType)
+	assert.Equal(t, expAcc.Active, foundAcc.Active)
+	assert.True(t, foundAcc.Active)
+	assert.Equal(t, expAcc.Admin, foundAcc.Admin)
+	assert.True(t, foundAcc.Admin)	
 }
 
 func makeTx(msg sdk.Msg, keys ...crypto.PrivKey) []byte {
@@ -107,7 +160,8 @@ func fakeAssetAccount(cc *ClearchainApp, cash sdk.Coins, typ string, entityName 
 	pub := crypto.GenPrivKeyEd25519().PubKey()
 	addr := pub.Address()
 	acct := types.NewAssetAccount(pub, cash, nil, entityName, typ)
-	cc.StoreAccount(acct)
+	var ctx = cc.NewContext(false, abci.Header{})
+	cc.accts.SetAccount(ctx, acct)
 	return addr
 }
 
@@ -116,7 +170,8 @@ func fakeOpAccount(cc *ClearchainApp, typ string, entityName string) (crypto.Add
 	pub := priv.PubKey()
 	addr := pub.Address()
 	acct := types.NewOpUser(pub, nil, entityName, typ)
-	cc.StoreAccount(acct)
+	var ctx = cc.NewContext(false, abci.Header{})
+	cc.accts.SetAccount(ctx, acct)
 	return addr, priv
 }
 
@@ -125,6 +180,14 @@ func fakeAdminAccount(cc *ClearchainApp, typ string, entityName string) (crypto.
 	pub := priv.PubKey()
 	addr := pub.Address()
 	acct := types.NewAdminUser(pub, nil, entityName, typ)
-	cc.StoreAccount(acct)
+	var ctx = cc.NewContext(false, abci.Header{})
+	cc.accts.SetAccount(ctx, acct)
 	return addr, priv
+}
+
+// newTestClearchainApp a ClearchainApp with an in-memory datastore
+func newTestClearchainApp(appname, storeKey string) *ClearchainApp {
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "app")
+	db := dbm.NewMemDB()
+	return NewClearchainApp(appname, storeKey, logger, db)
 }

@@ -1,14 +1,21 @@
 package app
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/tendermint/abci/server"
+
 	cmn "github.com/tendermint/tmlibs/common"
+	dbm "github.com/tendermint/tmlibs/db"
+	"github.com/tendermint/tmlibs/log"
+
+	abci "github.com/tendermint/abci/types"
+
+	"github.com/tendermint/clearchain/types"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-
-	"github.com/tendermint/clearchain/types"
 )
 
 const AppName = "ClearchainApp"
@@ -19,14 +26,14 @@ type ClearchainApp struct {
 	accts sdk.AccountMapper
 }
 
-func NewClearchainApp(appname, storeKey string) *ClearchainApp {
+func NewClearchainApp(appname, storeKey string, logger log.Logger, db dbm.DB) *ClearchainApp {
 	// var app = &ClearchainApp{}
 
 	// make multistore with various keys
 	mainKey := sdk.NewKVStoreKey(storeKey)
 	// ibcKey = sdk.NewKVStoreKey("ibc")
 
-	bApp := baseapp.NewBaseApp(appname)
+	bApp := baseapp.NewBaseApp(appname, logger, db)
 	mountMultiStore(bApp, mainKey)
 	err := bApp.LoadLatestVersion(mainKey)
 	if err != nil {
@@ -41,15 +48,18 @@ func NewClearchainApp(appname, storeKey string) *ClearchainApp {
 	setAnteHandler(bApp, accts)
 	initBaseAppTxDecoder(bApp)
 
-	return &ClearchainApp{
+	ccApp := &ClearchainApp{
 		BaseApp: bApp,
 		accts:   accts,
 	}
+	ccApp.SetInitChainer(ccApp.initChainer)
+
+	return ccApp
 }
 
 // RunForever starts the abci server
-func (app *ClearchainApp) RunForever() {
-	srv, err := server.NewServer("0.0.0.0:46658", "socket", app)
+func (app *ClearchainApp) RunForever(addrPtr string) {
+	srv, err := server.NewServer(addrPtr, "socket", app)
 	if err != nil {
 		panic(err)
 	}
@@ -59,12 +69,6 @@ func (app *ClearchainApp) RunForever() {
 		// Cleanup
 		srv.Stop()
 	})
-}
-
-func (app *ClearchainApp) StoreAccount(acct sdk.Account) {
-	// delivertx with fake tx bytes (we don't care for SetAccount)
-	var ctx = app.NewContext(false, []byte{1, 2, 3, 4})
-	app.accts.SetAccount(ctx, acct)
 }
 
 func mountMultiStore(bApp *baseapp.BaseApp,
@@ -78,7 +82,7 @@ func mountMultiStore(bApp *baseapp.BaseApp,
 
 func setAnteHandler(bApp *baseapp.BaseApp, accts sdk.AccountMapper) {
 	// this checks auth, but may take fee is future, check for compatibility
-	bApp.SetDefaultAnteHandler(
+	bApp.SetAnteHandler(
 		auth.NewAnteHandler(accts))
 }
 
@@ -94,4 +98,33 @@ func initBaseAppTxDecoder(bApp *baseapp.BaseApp) {
 		}
 		return tx, nil
 	})
+}
+
+// custom logic for clearchain initialization
+func (app *ClearchainApp) initChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
+	stateJSON := req.AppStateBytes
+	genesisState := new(types.GenesisState)
+	err := json.Unmarshal(stateJSON, genesisState)
+	if err != nil {
+		panic(err) // TODO https://github.com/cosmos/cosmos-sdk/issues/468
+		// return sdk.ErrGenesisParse("").TraceCause(err, "")
+	}		
+	
+	genChAdmin := genesisState.ClearingHouseAdmin
+	if(genChAdmin != types.GenesisAccount{}) {
+		acc, err := genChAdmin.ToClearingHouseAdmin()
+		if err != nil {
+			panic(err) // TODO https://github.com/cosmos/cosmos-sdk/issues/468
+			//	return sdk.ErrGenesisParse("").TraceCause(err, "")
+		}
+		app.accts.SetAccount(ctx, acc)
+		fmt.Println("***** Set Ch Admin *****")
+		fmt.Printf("Entity name: %v \n", acc.EntityName)
+		fmt.Printf("Entity type: %v \n", acc.EntityType)
+		fmt.Printf("Public key: %v \n", genChAdmin.PubKeyHexa)
+		fmt.Println("*****")
+	}
+	
+	fmt.Println("Genesis file loaded successfully!")
+	return abci.ResponseInitChain{}
 }

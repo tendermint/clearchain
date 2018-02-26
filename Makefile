@@ -22,8 +22,18 @@ get_vendor_deps:
 ########################################
 ### Testing
 
-test:
-	@go test -v -cover $(PACKAGES)
+test: coverage.txt
+coverage.txt: clean
+	touch $@
+	for p in $(PACKAGES); do \
+	  rm -f profile.out ;\
+	  go test -v -race -coverprofile=profile.out -covermode=atomic $$p;\
+	  [ ! -f profile.out ] || \
+	    ( cat profile.out >> $@ ; rm profile.out ) \
+	done
+
+clean:
+	rm -f profile.out coverage.txt
 
 benchmark:
 	@go test -bench=. $(PACKAGES)
@@ -32,4 +42,4 @@ benchmark:
 # To avoid unintended conflicts with file names, always add to .PHONY
 # unless there is a reason not to.
 # https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html
-.PHONY: build check_tools get_vendor_deps test benchmark
+.PHONY: build check_tools get_vendor_deps test benchmark clean
