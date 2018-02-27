@@ -276,7 +276,7 @@ func (msg BaseCreateUserMsg) GetSignBytes() []byte {
 func (msg BaseCreateUserMsg) GetSigners() []crypto.Address { return []crypto.Address{msg.Creator} }
 
 // CreateOperatorMsg defines the properties of a transaction
-// that triggers the creation of a new unpriviliged user.
+// that triggers the creation of a new unprivileged user.
 // Legal entitiy is inherited from the creator.
 type CreateOperatorMsg struct{ BaseCreateUserMsg }
 
@@ -287,7 +287,7 @@ var _ sdk.Msg = (*CreateOperatorMsg)(nil)
 func (msg CreateOperatorMsg) Type() string { return CreateOperatorType }
 
 // CreateAdminMsg defines the properties of a transaction
-// that triggers the cross-entity creation of priviliged users
+// that triggers the cross-entity creation of privileged users
 // The message must carry the legal entity.
 // Only a clearing house can utilise this endpoint.
 type CreateAdminMsg struct {
