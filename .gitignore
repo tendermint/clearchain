@@ -35,3 +35,4 @@ build/
 testbed/testbed.go
 /vendor
 data
+/.idea
