@@ -45,7 +45,7 @@ func main() {
 func initStateFromGenesis(app *app.ClearchainApp, genFilePath string) {
 	stateBytes, err := common.ReadFile(genFilePath)
 	if err != nil {
-		panic(err) 
+		panic(err)
 	}
 	vals := []abci.Validator{}
 	res := app.InitChain(abci.RequestInitChain{vals, stateBytes})

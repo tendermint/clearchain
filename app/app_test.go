@@ -104,15 +104,15 @@ func Test_Genesis(t *testing.T) {
 	absPathFileOk, _ := filepath.Abs("test/genesis_ok_ch_admin_test.json")
 	pubBytes, _ := hex.DecodeString("328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f874")
 	publicKey1, _ := crypto.PubKeyFromBytes(pubBytes)
-	
-	adminCreated1 := types.NewAdminUser(publicKey1, nil, "ClearChain", "ch")	
+
+	adminCreated1 := types.NewAdminUser(publicKey1, nil, "ClearChain", "ch")
 	stateBytes, _ := common.ReadFile(absPathFileOk)
 	vals := []abci.Validator{}
 	app.BeginBlock(abci.RequestBeginBlock{})
 	app.InitChain(abci.RequestInitChain{vals, stateBytes})
 	app.Commit()
 	app.EndBlock(abci.RequestEndBlock{})
-	
+
 	expAcc := adminCreated1
 	// Query the existing data
 	res := app.Query(abci.RequestQuery{Data: expAcc.GetAddress(), Path: "/cc/key"})
@@ -131,7 +131,7 @@ func Test_Genesis(t *testing.T) {
 	assert.Equal(t, expAcc.Active, foundAcc.Active)
 	assert.True(t, foundAcc.Active)
 	assert.Equal(t, expAcc.Admin, foundAcc.Admin)
-	assert.True(t, foundAcc.Admin)	
+	assert.True(t, foundAcc.Admin)
 }
 
 func makeTx(msg sdk.Msg, keys ...crypto.PrivKey) []byte {

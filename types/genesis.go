@@ -13,7 +13,7 @@ type GenesisState struct {
 // GenesisAccount is an abstraction of the accounts specified in a genesis file
 type GenesisAccount struct {
 	PubKeyHexa string `json:"public_key"`
-	EntityName string `json:"entity_name"`	
+	EntityName string `json:"entity_name"`
 
 	/* future support
 	EntityType string `json:"entity_type"`
