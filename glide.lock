@@ -6,7 +6,7 @@ imports:
   subpackages:
   - btcec
 - name: github.com/cosmos/cosmos-sdk
-  version: 8ccf055ca1ac73fc5599a60fcb66ed43dc3fdbc9
+  version: 55730270e5b852f9e6d8b0fed63b6169fe4b4363
   subpackages:
   - baseapp
   - store
