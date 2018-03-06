@@ -1,12 +1,12 @@
-hash: 7d9d26124560a66e89d75d9b71fb5561bc2d4d06c32f882a7aca7b235668d7d0
-updated: 2018-02-22T11:45:33.1448324+01:00
+hash: 07d07558c2297cfc24654f7ea2b0db66f851f3c7e8bf7ed1241218974d476725
+updated: 2018-03-06T08:29:58.520082391+01:00
 imports:
 - name: github.com/btcsuite/btcd
   version: 2be2f12b358dc57d70b8f501b00be450192efbc3
   subpackages:
   - btcec
 - name: github.com/cosmos/cosmos-sdk
-  version: 55730270e5b852f9e6d8b0fed63b6169fe4b4363
+  version: f4c2b504f4be858dd893e990ea2df24c3564f5ae
   subpackages:
   - baseapp
   - store
@@ -67,7 +67,7 @@ imports:
   - leveldb/table
   - leveldb/util
 - name: github.com/tendermint/abci
-  version: 6d47f4afe2b68b20802aa4d049fd6b8c0f54f1a5
+  version: 3d5f0a8b94bbbfa70ecd4072fc55854f8210425b
   subpackages:
   - server
   - types
@@ -83,7 +83,7 @@ imports:
 - name: github.com/tendermint/iavl
   version: 1a59ec0c82dc940c25339dd7c834df5cb76a95cb
 - name: github.com/tendermint/tmlibs
-  version: 1b9b5652a199ab0be2e781393fb275b66377309d
+  version: 26f2ab65f82cfc6873c312e8030104c47c05f10e
   subpackages:
   - common
   - db
