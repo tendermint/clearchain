@@ -398,3 +398,22 @@ func TestBaseFreezeAccountMsg_GetSigners(t *testing.T) {
 	assert.Equal(t, len(got), 1)
 	assert.True(t, bytes.Equal(msg.Admin, got[0]))
 }
+
+func TestMessageTypes(t *testing.T) {
+	deposit := DepositMsg{}
+	settle := SettleMsg{}
+	withdraw := WithdrawMsg{}
+	createOp := CreateOperatorMsg{}
+	createAd := CreateAdminMsg{}
+	createAsset := CreateAssetAccountMsg{}
+	freezeOp := FreezeOperatorMsg{}
+	freezeAd := FreezeAdminMsg{}
+	assert.Equal(t, deposit.Type(), DepositType)
+	assert.Equal(t, settle.Type(), SettlementType)
+	assert.Equal(t, withdraw.Type(), WithdrawType)
+	assert.Equal(t, createOp.Type(), CreateOperatorType)
+	assert.Equal(t, createAd.Type(), CreateAdminType)
+	assert.Equal(t, createAsset.Type(), CreateAssetAccountType)
+	assert.Equal(t, freezeOp.Type(), FreezeOperatorType)
+	assert.Equal(t, freezeAd.Type(), FreezeAdminType)
+}
