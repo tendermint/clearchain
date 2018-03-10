@@ -184,9 +184,7 @@ func (msg WithdrawMsg) GetSignBytes() []byte {
 // GetSigners returns the addrs of signers that must sign.
 // CONTRACT: All signatures must be present to be valid.
 // CONTRACT: Returns addrs in some deterministic order.
-func (msg WithdrawMsg) GetSigners() []crypto.Address {
-	return []crypto.Address{msg.Operator}
-}
+func (msg WithdrawMsg) GetSigners() []crypto.Address { return []crypto.Address{msg.Operator} }
 
 // CreateAssetAccountMsg defines the property of a create user transaction.
 type CreateAssetAccountMsg struct {

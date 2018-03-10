@@ -389,6 +389,49 @@ func TestBaseFreezeAccountMsg_ValidateBasic(t *testing.T) {
 	}
 }
 
+func TestDepositMsg_GetSigners(t *testing.T) {
+	msg := DepositMsg{
+		Operator: crypto.GenPrivKeyEd25519().PubKey().Address(),
+	}
+	got := msg.GetSigners()
+	assert.Equal(t, len(got), 1)
+	assert.True(t, bytes.Equal(msg.Operator, got[0]))
+}
+
+func TestSettleMsg_GetSigners(t *testing.T) {
+	msg := SettleMsg{
+		Operator: crypto.GenPrivKeyEd25519().PubKey().Address(),
+	}
+	got := msg.GetSigners()
+	assert.Equal(t, len(got), 1)
+	assert.True(t, bytes.Equal(msg.Operator, got[0]))
+}
+
+func TestWithdrawMsg_GetSigners(t *testing.T) {
+	msg := WithdrawMsg{
+		Operator: crypto.GenPrivKeyEd25519().PubKey().Address(),
+	}
+	got := msg.GetSigners()
+	assert.Equal(t, len(got), 1)
+	assert.True(t, bytes.Equal(msg.Operator, got[0]))
+}
+func TestBaseCreateUserMsg_GetSigners(t *testing.T) {
+	msg := BaseCreateUserMsg{
+		Creator: crypto.GenPrivKeyEd25519().PubKey().Address(),
+	}
+	got := msg.GetSigners()
+	assert.Equal(t, len(got), 1)
+	assert.True(t, bytes.Equal(msg.Creator, got[0]))
+}
+func TestCreateAssetAccountMsg_GetSigners(t *testing.T) {
+	msg := CreateAssetAccountMsg{
+		Creator: crypto.GenPrivKeyEd25519().PubKey().Address(),
+	}
+	got := msg.GetSigners()
+	assert.Equal(t, len(got), 1)
+	assert.True(t, bytes.Equal(msg.Creator, got[0]))
+}
+
 func TestBaseFreezeAccountMsg_GetSigners(t *testing.T) {
 	msg := BaseFreezeAccountMsg{
 		Admin:  crypto.GenPrivKeyEd25519().PubKey().Address(),
