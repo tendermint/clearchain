@@ -2,10 +2,11 @@ package types
 
 import (
 	"encoding/hex"
+
 	crypto "github.com/tendermint/go-crypto"
 )
 
-// State to Unmarshal
+// GenesisState defines the app's initial state to unmarshal.
 type GenesisState struct {
 	ClearingHouseAdmin GenesisAccount `json:"ch_admin"`
 }

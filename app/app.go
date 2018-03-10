@@ -3,6 +3,7 @@ package app
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/tendermint/abci/server"
 
 	cmn "github.com/tendermint/tmlibs/common"
@@ -18,6 +19,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 )
 
+// AppName defines the name of the app.
 const AppName = "ClearchainApp"
 
 // ClearchainApp is basic application
@@ -26,9 +28,8 @@ type ClearchainApp struct {
 	accts sdk.AccountMapper
 }
 
+// NewClearchainApp creates a new ClearchainApp type.
 func NewClearchainApp(appname, storeKey string, logger log.Logger, db dbm.DB) *ClearchainApp {
-	// var app = &ClearchainApp{}
-
 	// make multistore with various keys
 	mainKey := sdk.NewKVStoreKey(storeKey)
 	// ibcKey = sdk.NewKVStoreKey("ibc")

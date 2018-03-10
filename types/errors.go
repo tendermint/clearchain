@@ -22,47 +22,58 @@ const (
 	CodeWrongMessageFormat sdk.CodeType = 1100
 )
 
+// ErrInvalidAmount signals that the asset validation failed.
 func ErrInvalidAmount(typ string) sdk.Error {
 	return sdk.NewError(CodeInvalidAmount, fmt.Sprintf("invalid amount: %s", typ))
 }
 
+// ErrInvalidAddress signals that an invalid address was passed.
 func ErrInvalidAddress(typ string) sdk.Error {
 	return sdk.NewError(CodeInvalidAddress, fmt.Sprintf("invalid address: %s", typ))
 }
 
+// ErrInvalidPubKey signals that an invalid public key was passed.
 func ErrInvalidPubKey(typ string) sdk.Error {
 	return sdk.NewError(CodeInvalidPubKey, fmt.Sprintf("invalid pub key: %s", typ))
 }
 
+// ErrInvalidAccount signals that account types mismatched.
 func ErrInvalidAccount(typ string) sdk.Error {
 	return sdk.NewError(CodeInvalidAccount, fmt.Sprintf("invalid account: %s", typ))
 }
 
+// ErrInvalidLegalEntity signals that legal entities mismatched.
 func ErrInvalidLegalEntity(typ string) sdk.Error {
 	return sdk.NewError(CodeInvalidEntity, fmt.Sprintf("invalid entity: %s", typ))
 }
 
+// ErrSelfCreate signals that an admin user attempted to create itself.
 func ErrSelfCreate(typ string) sdk.Error {
 	return sdk.NewError(CodeSelfCreate, fmt.Sprintf(
 		"why on earth are you trying to create yourself? %s", typ))
 }
 
+// ErrSelfFreeze signals that an admin user attempted to freeze itself.
 func ErrSelfFreeze(typ string) sdk.Error {
 	return sdk.NewError(CodeSelfFreeze, fmt.Sprintf("self-freeze attempted: %s", typ))
 }
 
+// ErrInactiveUser signals that an inactive user tried to perform an operation.
 func ErrInactiveUser(typ string) sdk.Error {
 	return sdk.NewError(CodeInactiveAccount, fmt.Sprintf("inactive user: %s", typ))
 }
 
+// ErrWrongSigner signals that a message carried invalid signatures.
 func ErrWrongSigner(typ string) sdk.Error {
 	return sdk.NewError(CodeWrongSigner, fmt.Sprintf("wrong signer: %s", typ))
 }
 
+// ErrWrongMsgFormat signals that the message was badly formatted.
 func ErrWrongMsgFormat(typ string) sdk.Error {
 	return sdk.NewError(CodeWrongMessageFormat, fmt.Sprintf("wrong message format: %s", typ))
 }
 
+// ErrUnauthorized signals that an unauthorized user attempted to perform an operation.
 func ErrUnauthorized(typ string) sdk.Error {
 	return sdk.NewError(sdk.CodeUnauthorized, fmt.Sprintf("unauthorized: %s", typ))
 }
