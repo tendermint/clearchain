@@ -1,5 +1,5 @@
 PACKAGES=$(shell go list ./... | grep -v '/vendor/')
-BUILD_FLAGS = -ldflags "-X github.com/tendermint/clearchain/version.GitCommit=`git rev-parse --short HEAD`"
+BUILD_FLAGS = -ldflags "-X github.com/tendermint/clearchain.Version=`git describe`"
 
 all: get_vendor_deps build test
 
