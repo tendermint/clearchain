@@ -10,14 +10,14 @@ import (
 
 // RegisterRoutes routes the message (request) to a proper handler.
 func RegisterRoutes(r baseapp.Router, accts sdk.AccountMapper) {
-	r.AddRoute(DepositType, DepositMsgHandler(accts))
-	r.AddRoute(SettlementType, SettleMsgHandler(accts))
-	r.AddRoute(WithdrawType, WithdrawMsgHandler(accts))
-	r.AddRoute(CreateOperatorType, CreateOperatorMsgHandler(accts))
-	r.AddRoute(CreateAdminType, CreateAdminMsgHandler(accts))
-	r.AddRoute(CreateAssetAccountType, CreateAssetAccountMsgHandler(accts))
-	r.AddRoute(FreezeOperatorType, FreezeOperatorMsgHandler(accts))
-	r.AddRoute(FreezeAdminType, FreezeAdminMsgHandler(accts))
+	r.AddRoute(DepositType, DepositMsgHandler(accts)).
+		AddRoute(SettlementType, SettleMsgHandler(accts)).
+		AddRoute(WithdrawType, WithdrawMsgHandler(accts)).
+		AddRoute(CreateOperatorType, CreateOperatorMsgHandler(accts)).
+		AddRoute(CreateAdminType, CreateAdminMsgHandler(accts)).
+		AddRoute(CreateAssetAccountType, CreateAssetAccountMsgHandler(accts)).
+		AddRoute(FreezeOperatorType, FreezeOperatorMsgHandler(accts)).
+		AddRoute(FreezeAdminType, FreezeAdminMsgHandler(accts))
 }
 
 /*

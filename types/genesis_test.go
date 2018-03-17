@@ -2,16 +2,16 @@ package types
 
 import (
 	"encoding/hex"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	crypto "github.com/tendermint/go-crypto"
 )
 
 // ToClearingHouseAdmin verifies that a GenesisAccount is converted correctly into an AppAccount (a Clearing House admin user)
 func Test_ToClearingHouseAdmin(t *testing.T) {
-
-	cdc := MakeTxCodec()
+	cdc := MakeCodec()
 
 	pubBytes, _ := hex.DecodeString("328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f874")
 	publicKey1, _ := crypto.PubKeyFromBytes(pubBytes)

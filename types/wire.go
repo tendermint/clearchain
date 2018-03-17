@@ -6,7 +6,7 @@ import (
 	wire "github.com/tendermint/go-wire"
 )
 
-var cdc = MakeTxCodec()
+var cdc = MakeCodec()
 
 // RegisterWire is the functions that registers application's
 // messages types to a wire.Codec.
@@ -29,19 +29,12 @@ func RegisterWire(cdc *wire.Codec) {
 		"com.tendermint.clearchain.FreezeAdminMsg", nil)
 }
 
-// MakeTxCodec instantiate a wire.Codec and register
+// MakeCodec instantiate a wire.Codec and register
 // all application's types; it returns the new codec.
-func MakeTxCodec() (cdc *wire.Codec) {
-	cdc = wire.NewCodec()
-
-	// Register crypto.[PubKey,PrivKey,Signature] types.
-	crypto.RegisterWire(cdc)
-
-	// Register clearchain types.
-	RegisterWire(cdc)
-
-	// Must register message interface to parse sdk.StdTx
+func MakeCodec() *wire.Codec {
+	cdc := wire.NewCodec()
 	cdc.RegisterInterface((*sdk.Msg)(nil), nil)
-
-	return
+	RegisterWire(cdc)        // Register types's messages
+	crypto.RegisterWire(cdc) // Register crypto.[PubKey,PrivKey,Signature] types.
+	return cdc
 }
