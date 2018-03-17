@@ -44,7 +44,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	app := app.NewClearchainApp(app.AppName, "cc", logger, db)
+	app := app.NewClearchainApp(logger, db)
 
 	// If genesis file was specified, set key-value options
 	fmt.Println("genesis filePath: " + *genFilePath)
