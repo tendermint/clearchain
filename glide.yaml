@@ -2,10 +2,40 @@ package: github.com/tendermint/clearchain
 import:
 - package: github.com/cosmos/cosmos-sdk
   version: v0.11.0
-- package: github.com/spf13/cobra
-  version: v0.0.1
-- package: github.com/spf13/viper
-  version: ^1.0.0
+- package: github.com/tendermint/go-crypto
+  version: 4fc3055dbd17aa1203d0abc64b9293f378da22ec
+- package: github.com/tendermint/tendermint
+  version: c330b9e43c93351a5c3040333d7d0c7c27859a20
+  subpackages:
+  - cmd/tendermint/commands
+  - config
+  - lite
+  - rpc/client
+  - types
+- package: github.com/tendermint/tmlibs
+  version: 26f2ab65f82cfc6873c312e8030104c47c05f10e
+  subpackages:
+  - autofile
+  - cli
+  - cli/flags
+  - clist
+  - common
+  - db
+  - flowrate
+  - log
+  - merkle
+  - pubsub
+  - pubsub/query
+- package: github.com/tendermint/go-wire
+  version: 5d7845f24b843c914cf571dad2ca13c91cf70f0d
+- package: github.com/tendermint/iavl
+  version: 1a59ec0c82dc940c25339dd7c834df5cb76a95cb
+- package: github.com/tendermint/abci
+  version: 68592f4d8ee34e97db94b7a7976b1309efdb7eb9
+  subpackages:
+  - client
+  - server
+  - types
 testImport:
 - package: github.com/stretchr/testify
   version: ^1.2.0
