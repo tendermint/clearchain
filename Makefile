@@ -1,12 +1,16 @@
 PACKAGES=$(shell go list ./... | grep -v '/vendor/')
 BUILD_FLAGS = -ldflags "-X github.com/tendermint/clearchain.Version=`git describe`"
+TARGETS = clearchainctl clearchaind
 
 all: get_vendor_deps build test
 
 ########################################
 ### Build
 
-build: clearchaind
+build: $(TARGETS)
+
+clearchainctl:
+	go build $(BUILD_FLAGS) ./cmd/clearchainctl
 
 clearchaind:
 	go build $(BUILD_FLAGS) ./cmd/clearchaind
@@ -21,9 +25,6 @@ get_vendor_deps:
 	@glide install
 
 
-########################################
-### Testing
-
 test: coverage.txt
 coverage.txt: clean
 	touch $@
@@ -35,7 +36,7 @@ coverage.txt: clean
 	done
 
 clean:
-	rm -f profile.out coverage.txt
+	rm -f $(TARGETS) profile.out coverage.txt
 
 benchmark:
 	@go test -bench=. $(PACKAGES)
