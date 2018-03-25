@@ -9,8 +9,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/spf13/cobra"
 	abci "github.com/tendermint/abci/types"
-	"github.com/tendermint/clearchain"
 	"github.com/tendermint/clearchain/app"
+	"github.com/tendermint/clearchain/commands"
 	crypto "github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-crypto/keys"
 	"github.com/tendermint/go-crypto/keys/words"
@@ -29,21 +29,7 @@ var (
 		Use:   "clearchaind",
 		Short: "Clearchain Daemon (server)",
 	}
-	versionCmd = &cobra.Command{
-		Use:   "version",
-		Short: "Print the app version",
-		Run:   doVersionCmd,
-	}
 )
-
-func doVersionCmd(cmd *cobra.Command, args []string) {
-	v := clearchain.Version
-	if len(v) == 0 {
-		fmt.Fprintln(os.Stderr, "unset")
-		return
-	}
-	fmt.Fprintln(os.Stderr, v)
-}
 
 func main() {
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stderr)).With("module", "main")
@@ -51,7 +37,7 @@ func main() {
 		server.InitCmd(defaultOptions, logger),
 		server.StartCmd(generateApp, logger),
 		server.UnsafeResetAllCmd(logger),
-		versionCmd,
+		commands.VersionCmd,
 	)
 	// prepare and add flags
 	rootDir := os.ExpandEnv(defaultConfigBaseDir)
