@@ -20,15 +20,24 @@ type GenesisAccount struct {
 // ToClearingHouseAdmin converts  a GenesisAccount into an AppAccount (a Clearing House admin user)
 func (ga *GenesisAccount) ToClearingHouseAdmin() (acc *AppAccount, err error) {
 	// Done manually since JSON Unmarshalling does not create a PubKey from a hexa value
-	pubBytes, err := hex.DecodeString(ga.PubKeyHexa)
+	publicKey, err := PubKeyFromHexString(ga.PubKeyHexa)
 	if err != nil {
 		return nil, err
 	}
-	publicKey, err := crypto.PubKeyFromBytes(pubBytes)
-	if err != nil {
-		return nil, err
-	}
-
 	adminUser := NewAdminUser(publicKey, nil, ga.EntityName, EntityClearingHouse)
 	return adminUser, nil
+}
+
+// PubKeyFromHexString converts a hexadecimal string representation of
+// a public key into a crypto.PubKey instance.
+func PubKeyFromHexString(s string) (crypto.PubKey, error) {
+	bytes, err := hex.DecodeString(s)
+	if err != nil {
+		return nil, err
+	}
+	pub, err := crypto.PubKeyFromBytes(bytes)
+	if err != nil {
+		return nil, err
+	}
+	return pub, err
 }

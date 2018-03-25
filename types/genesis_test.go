@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
 	crypto "github.com/tendermint/go-crypto"
 )
 
@@ -63,6 +62,27 @@ func Test_ToClearingHouseAdmin(t *testing.T) {
 			assert.True(t, adminUser.Active)
 			assert.Equal(t, tt.expectedAccount.Admin, adminUser.Admin)
 			assert.True(t, adminUser.Admin)
+		})
+	}
+}
+
+func TestPubKeyFromHexString(t *testing.T) {
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{"good key", args{"328eaf5937458f6c39c54ee3624137cabe7af88226454fd30180c8da6c711ad6de7f6053"}, false},
+		{"bad key", args{"24137cabe7af88226454fd30180c8da6c711ad6de7f6053"}, true},
+		{"nil", args{""}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := PubKeyFromHexString(tt.args.s)
+			assert.Equal(t, (err != nil), tt.wantErr)
 		})
 	}
 }
