@@ -20,11 +20,11 @@ import (
 )
 
 const (
-	defaultConfigBaseDir = "$HOME/.clearchaind"
+	defaultClearingHouseName = "ClearingHouse"
+	defaultConfigBaseDir     = "$HOME/.clearchaind"
 )
 
 var (
-	// clearchaindCmd is the entry point for this binary
 	clearchaindCmd = &cobra.Command{
 		Use:   "clearchaind",
 		Short: "Clearchain Daemon (server)",
@@ -52,14 +52,13 @@ func defaultOptions(args []string) (json.RawMessage, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Secret phrase to access coins:")
-	fmt.Println(secret)
+	fmt.Fprintf(os.Stderr, "Secret phrase to access clearing house's admin account: %s\n", secret)
 	opts := fmt.Sprintf(`{
-      "ch_admin": {
-		"public_key": "%s",
-		"entity_name": "Clearchain"
-	  }
-	}`, hex.EncodeToString(pub.Bytes()))
+		"ch_admin": {
+		  "public_key": "%s",
+		  "entity_name": "%s"
+		}
+	  }`, hex.EncodeToString(pub.Bytes()), defaultClearingHouseName)
 	return json.RawMessage(opts), nil
 }
 
@@ -82,12 +81,10 @@ func generateKey() (crypto.PubKey, string, error) {
 		dbm.NewMemDB(),
 		codec,
 	)
-
 	// generate a private key, with recovery phrase
 	info, secret, err := keybase.Create("name", "pass", keys.AlgoEd25519)
 	if err != nil {
 		return nil, "", err
 	}
-
 	return info.PubKey, secret, nil
 }
