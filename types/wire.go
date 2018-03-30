@@ -2,39 +2,40 @@ package types
 
 import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	crypto "github.com/tendermint/go-crypto"
-	wire "github.com/tendermint/go-wire"
+	"github.com/cosmos/cosmos-sdk/wire"
+	oldwire "github.com/tendermint/go-wire"
 )
 
-var cdc = MakeCodec()
+const (
+	typeDepositMsg            = 0x1
+	typeSettleMsg             = 0x2
+	typeWithdrawMsg           = 0x3
+	typeCreateAdminMsg        = 0x4
+	typeCreateOperatorMsg     = 0x5
+	typeCreateAssetAccountMsg = 0x6
+	typeFreezeAdminMsg        = 0x7
+	typeFreezeOperatorMsg     = 0x8
 
-// RegisterWire is the functions that registers application's
-// messages types to a wire.Codec.
-func RegisterWire(cdc *wire.Codec) {
-	cdc.RegisterConcrete(DepositMsg{},
-		"com.tendermint.clearchain.DepositMsg", nil)
-	cdc.RegisterConcrete(SettleMsg{},
-		"com.tendermint.clearchain.SettleMsg", nil)
-	cdc.RegisterConcrete(WithdrawMsg{},
-		"com.tendermint.clearchain.WithdrawMsg", nil)
-	cdc.RegisterConcrete(CreateOperatorMsg{},
-		"com.tendermint.clearchain.CreateOperatorMsg", nil)
-	cdc.RegisterConcrete(CreateAdminMsg{},
-		"com.tendermint.clearchain.CreateAdminMsg", nil)
-	cdc.RegisterConcrete(CreateAssetAccountMsg{},
-		"com.tendermint.clearchain.CreateAssetAccountMsg", nil)
-	cdc.RegisterConcrete(FreezeOperatorMsg{},
-		"com.tendermint.clearchain.FreezeOperatorMsg", nil)
-	cdc.RegisterConcrete(FreezeAdminMsg{},
-		"com.tendermint.clearchain.FreezeAdminMsg", nil)
-}
+	typeAppAccount = 0x1
+)
 
 // MakeCodec instantiate a wire.Codec and register
 // all application's types; it returns the new codec.
 func MakeCodec() *wire.Codec {
-	cdc := wire.NewCodec()
-	cdc.RegisterInterface((*sdk.Msg)(nil), nil)
-	RegisterWire(cdc)        // Register types's messages
-	crypto.RegisterWire(cdc) // Register crypto.[PubKey,PrivKey,Signature] types.
-	return cdc
+	var _ = oldwire.RegisterInterface(
+		struct{ sdk.Msg }{},
+		oldwire.ConcreteType{DepositMsg{}, typeDepositMsg},
+		oldwire.ConcreteType{SettleMsg{}, typeSettleMsg},
+		oldwire.ConcreteType{WithdrawMsg{}, typeWithdrawMsg},
+		oldwire.ConcreteType{CreateAdminMsg{}, typeCreateAdminMsg},
+		oldwire.ConcreteType{CreateOperatorMsg{}, typeCreateOperatorMsg},
+		oldwire.ConcreteType{CreateAssetAccountMsg{}, typeCreateAssetAccountMsg},
+		oldwire.ConcreteType{FreezeAdminMsg{}, typeFreezeAdminMsg},
+		oldwire.ConcreteType{FreezeOperatorMsg{}, typeFreezeOperatorMsg},
+	)
+	var _ = oldwire.RegisterInterface(
+		struct{ sdk.Account }{},
+		oldwire.ConcreteType{&AppAccount{}, typeAppAccount},
+	)
+	return wire.NewCodec()
 }

@@ -4,22 +4,23 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/cosmos/cosmos-sdk/wire"
 	"github.com/stretchr/testify/assert"
-
 	crypto "github.com/tendermint/go-crypto"
 )
 
 // ToClearingHouseAdmin verifies that a GenesisAccount is converted correctly into an AppAccount (a Clearing House admin user)
 func Test_ToClearingHouseAdmin(t *testing.T) {
 	cdc := MakeCodec()
+	wire.RegisterCrypto(cdc)
 
-	pubBytes, _ := hex.DecodeString("328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f874")
+	pubBytes, _ := hex.DecodeString("01328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f874")
 	publicKey1, _ := crypto.PubKeyFromBytes(pubBytes)
 
-	pubBytes, _ = hex.DecodeString("328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f875")
+	pubBytes, _ = hex.DecodeString("01328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f875")
 	publicKey2, _ := crypto.PubKeyFromBytes(pubBytes)
 
-	pubBytes, _ = hex.DecodeString("328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f876")
+	pubBytes, _ = hex.DecodeString("01328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f876")
 	publicKey3, _ := crypto.PubKeyFromBytes(pubBytes)
 
 	adminCreated1 := NewAdminUser(publicKey1, nil, "ClearChain", "ch")
@@ -35,13 +36,13 @@ func Test_ToClearingHouseAdmin(t *testing.T) {
 		expectedAccount *AppAccount
 	}{
 		{
-			"instantiate admin 1 ok", args{jsonValue: "{\"public_key\":\"328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f874\", \"entity_name\":\"ClearChain\"}"}, adminCreated1,
+			"instantiate admin 1 ok", args{jsonValue: "{\"public_key\":\"01328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f874\", \"entity_name\":\"ClearChain\"}"}, adminCreated1,
 		},
 		{
-			"instantiate admin 2 ok", args{jsonValue: "{\"public_key\":\"328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f875\", \"entity_name\":\"ClearingHouse\"}"}, adminCreated2,
+			"instantiate admin 2 ok", args{jsonValue: "{\"public_key\":\"01328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f875\", \"entity_name\":\"ClearingHouse\"}"}, adminCreated2,
 		},
 		{
-			"instantiate admin 3 ok", args{jsonValue: "{\"public_key\":\"328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f876\", \"entity_name\":\"Admin\"}"}, adminCreated3,
+			"instantiate admin 3 ok", args{jsonValue: "{\"public_key\":\"01328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f876\", \"entity_name\":\"Admin\"}"}, adminCreated3,
 		},
 	}
 
@@ -50,7 +51,8 @@ func Test_ToClearingHouseAdmin(t *testing.T) {
 			var genesisAcc GenesisAccount
 			err := cdc.UnmarshalJSON([]byte(tt.args.jsonValue), &genesisAcc)
 			assert.Nil(t, err)
-			adminUser, _ := genesisAcc.ToClearingHouseAdmin()
+			adminUser, err := genesisAcc.ToClearingHouseAdmin()
+			assert.Nil(t, err)
 			assert.Equal(t, hex.EncodeToString(tt.expectedAccount.Address), hex.EncodeToString(adminUser.Address))
 			assert.True(t, tt.expectedAccount.PubKey.Equals(adminUser.PubKey))
 			assert.True(t, adminUser.Coins.IsZero())

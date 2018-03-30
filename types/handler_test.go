@@ -42,7 +42,7 @@ func TestRegisterRoutes(t *testing.T) {
 	}{
 		{
 			"good deposit", args{ctx: ctx, msg: DepositMsg{Operator: op, Sender: cust, Recipient: member, Amount: sdk.Coin{"USD", 5000}}},
-			sdk.CodeOK, sdk.Coins{{"USD", -5000}}, sdk.Coins{{"USD", 5000}}, nil, nil,
+			sdk.CodeOK, sdk.Coins{{"USD", -5000}}, sdk.Coins{{"USD", 5000}}, sdk.Coins{}, sdk.Coins{},
 		},
 		{
 			"deposit2",
@@ -51,7 +51,7 @@ func TestRegisterRoutes(t *testing.T) {
 			sdk.Coins{{"USD", -12777}},
 			sdk.Coins{{"USD", 5000}},
 			sdk.Coins{{"USD", 7777}},
-			nil,
+			sdk.Coins{},
 		},
 		{
 			"settlement",
@@ -69,7 +69,7 @@ func TestRegisterRoutes(t *testing.T) {
 			sdk.Coins{{"USD", -12777}},
 			sdk.Coins{{"USD", 8000}},
 			sdk.Coins{{"USD", 4777}},
-			nil,
+			sdk.Coins{},
 		},
 		{
 			"withdraw",
@@ -78,7 +78,7 @@ func TestRegisterRoutes(t *testing.T) {
 			sdk.Coins{{"USD", -7277}},
 			sdk.Coins{{"USD", 2500}},
 			sdk.Coins{{"USD", 4777}},
-			nil,
+			sdk.Coins{},
 		},
 	}
 
@@ -129,15 +129,15 @@ func Test_depositMsgHandler_Do(t *testing.T) {
 	}{
 		{
 			"admins ain't allowed", args{ctx: ctx, msg: DepositMsg{Operator: chAdmAddr, Sender: cust,
-				Recipient: member, Amount: sdk.Coin{"USD", 700}}}, CodeWrongSigner, cCoins, nil,
+				Recipient: member, Amount: sdk.Coin{"USD", 700}}}, CodeWrongSigner, cCoins, sdk.Coins{},
 		},
 		{
 			"inactive operator", args{ctx: ctx, msg: DepositMsg{Operator: inactiveOp.Address, Sender: cust,
-				Recipient: member, Amount: sdk.Coin{"USD", 700}}}, CodeInactiveAccount, cCoins, nil,
+				Recipient: member, Amount: sdk.Coin{"USD", 700}}}, CodeInactiveAccount, cCoins, sdk.Coins{},
 		},
 		{
 			"no returns", args{ctx: ctx, msg: DepositMsg{Operator: chOp, Sender: member,
-				Recipient: cust, Amount: sdk.Coin{"USD", 200}}}, CodeWrongSigner, cCoins, nil, // sdk.Coins{}
+				Recipient: cust, Amount: sdk.Coin{"USD", 200}}}, CodeWrongSigner, cCoins, sdk.Coins{}, // sdk.Coins{}
 		},
 		{
 			"good deposit", args{ctx: ctx, msg: DepositMsg{Operator: chOp, Sender: cust, Recipient: member,
@@ -255,7 +255,7 @@ func Test_withdrawMsgHandler_Do(t *testing.T) {
 	}{
 		{
 			"no returns", WithdrawMsg{Sender: cust, Recipient: member, Operator: operator, Amount: sdk.Coin{"USD", 200}},
-			CodeWrongSigner, nil, mCoins,
+			CodeWrongSigner, sdk.Coins{}, mCoins,
 		},
 		{
 			"good Withdraw", WithdrawMsg{Sender: member, Recipient: cust, Operator: operator, Amount: sdk.Coin{"USD", 500}},
@@ -434,7 +434,7 @@ func fakeAccountMapper() (sdk.AccountMapper, sdk.Context) {
 		panic(err)
 	}
 
-	accts := AccountMapper(key)
+	accts := NewAccountMapper(key)
 	h := abci.Header{
 		Height:  100,
 		ChainID: "clear-chain",
