@@ -90,7 +90,7 @@ func generateKey() (crypto.PubKey, string, error) {
 	// construct an in-memory key store
 	codec, err := words.LoadCodec("english")
 	if err != nil {
-		return nil, "", err
+		return crypto.PubKey{}, "", err
 	}
 	keybase := keys.New(
 		dbm.NewMemDB(),
@@ -100,7 +100,7 @@ func generateKey() (crypto.PubKey, string, error) {
 	// generate a private key, with recovery phrase
 	info, secret, err := keybase.Create("name", "pass", keys.AlgoEd25519)
 	if err != nil {
-		return nil, "", err
+		return crypto.PubKey{}, "", err
 	}
 
 	return info.PubKey, secret, nil
