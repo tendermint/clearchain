@@ -20,7 +20,7 @@ get_vendor_deps: $(GOPATH)/bin/dep
 	rm -rf vendor/ ; dep ensure -v
 
 $(GOPATH)/bin/dep:
-	[ -f $(GOPATH)/bin ] || mkdir $(GOPATH)/bin
+	[ -d $(GOPATH)/bin ] || mkdir $(GOPATH)/bin
 	@wget https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 -O $@ && chmod +x $@
 
 
