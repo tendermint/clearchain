@@ -21,8 +21,8 @@ get_vendor_deps:
 
 dep: $(GOPATH)/bin/dep
 $(GOPATH)/bin/dep:
-	[ -d $(GOPATH)/bin ] || mkdir $(GOPATH)/bin
-	@wget https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 -O $@ && chmod +x $@
+	mkdir -p $(GOPATH)/bin
+	wget https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 -O $@ && chmod +x $@
 
 
 ########################################

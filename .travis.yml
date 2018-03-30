@@ -9,7 +9,8 @@ matrix:
 install:
   - export GOPATH=$HOME/gopath
   - export PATH=$HOME/gopath/bin:$PATH
-  - curl https://glide.sh/get | sh
+  - mkdir -p $GOPATH/bin
+  - wget https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 -O $GOPATH/bin/dep && chmod +x $GOPATH/bin/dep
 
 script:
   - export GOPATH=$HOME/gopath
