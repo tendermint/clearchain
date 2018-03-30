@@ -24,9 +24,9 @@ const (
 
 // DepositMsg defines the properties of an asset transfer
 type DepositMsg struct {
-	Operator  crypto.Address
-	Sender    crypto.Address
-	Recipient crypto.Address
+	Operator  sdk.Address
+	Sender    sdk.Address
+	Recipient sdk.Address
 	Amount    sdk.Coin
 }
 
@@ -75,13 +75,13 @@ func (d DepositMsg) GetSignBytes() []byte {
 // GetSigners returns the addrs of signers that must sign.
 // CONTRACT: All signatures must be present to be valid.
 // CONTRACT: Returns addrs in some deterministic order.
-func (d DepositMsg) GetSigners() []crypto.Address { return []crypto.Address{d.Operator} }
+func (d DepositMsg) GetSigners() []sdk.Address { return []sdk.Address{d.Operator} }
 
 // SettleMsg defines the properties of a settle transaction.
 type SettleMsg struct {
-	Operator  crypto.Address
-	Sender    crypto.Address
-	Recipient crypto.Address
+	Operator  sdk.Address
+	Sender    sdk.Address
+	Recipient sdk.Address
 	Amount    sdk.Coin
 }
 
@@ -130,13 +130,13 @@ func (msg SettleMsg) GetSignBytes() []byte {
 // GetSigners returns the addrs of signers that must sign.
 // CONTRACT: All signatures must be present to be valid.
 // CONTRACT: Returns addrs in some deterministic order.
-func (msg SettleMsg) GetSigners() []crypto.Address { return []crypto.Address{msg.Operator} }
+func (msg SettleMsg) GetSigners() []sdk.Address { return []sdk.Address{msg.Operator} }
 
 // WithdrawMsg defines the properties of a withdraw transaction.
 type WithdrawMsg struct {
-	Operator  crypto.Address
-	Sender    crypto.Address
-	Recipient crypto.Address
+	Operator  sdk.Address
+	Sender    sdk.Address
+	Recipient sdk.Address
 	Amount    sdk.Coin
 }
 
@@ -184,11 +184,11 @@ func (msg WithdrawMsg) GetSignBytes() []byte {
 // GetSigners returns the addrs of signers that must sign.
 // CONTRACT: All signatures must be present to be valid.
 // CONTRACT: Returns addrs in some deterministic order.
-func (msg WithdrawMsg) GetSigners() []crypto.Address { return []crypto.Address{msg.Operator} }
+func (msg WithdrawMsg) GetSigners() []sdk.Address { return []sdk.Address{msg.Operator} }
 
 // CreateAssetAccountMsg defines the property of a create user transaction.
 type CreateAssetAccountMsg struct {
-	Creator crypto.Address
+	Creator sdk.Address
 	PubKey  crypto.PubKey
 }
 
@@ -228,13 +228,13 @@ func (msg CreateAssetAccountMsg) GetSignBytes() []byte {
 // GetSigners returns the addrs of signers that must sign.
 // CONTRACT: All signatures must be present to be valid.
 // CONTRACT: Returns addrs in some deterministic order.
-func (msg CreateAssetAccountMsg) GetSigners() []crypto.Address { return []crypto.Address{msg.Creator} }
+func (msg CreateAssetAccountMsg) GetSigners() []sdk.Address { return []sdk.Address{msg.Creator} }
 
 // BaseCreateUserMsg defines the properties of a transaction
 // that triggers the creation of a new generic user.
 // Legal entitiy is inherited from the creator.
 type BaseCreateUserMsg struct {
-	Creator crypto.Address
+	Creator sdk.Address
 	PubKey  crypto.PubKey
 }
 
@@ -271,7 +271,7 @@ func (msg BaseCreateUserMsg) GetSignBytes() []byte {
 // GetSigners returns the addrs of signers that must sign.
 // CONTRACT: All signatures must be present to be valid.
 // CONTRACT: Returns addrs in some deterministic order.
-func (msg BaseCreateUserMsg) GetSigners() []crypto.Address { return []crypto.Address{msg.Creator} }
+func (msg BaseCreateUserMsg) GetSigners() []sdk.Address { return []sdk.Address{msg.Creator} }
 
 // CreateOperatorMsg defines the properties of a transaction
 // that triggers the creation of a new unprivileged user.
@@ -313,8 +313,8 @@ func (msg CreateAdminMsg) Type() string { return CreateAdminType }
 // BaseFreezeAccountMsg defines the properties of a transaction
 // that freezes user or asset accounts.
 type BaseFreezeAccountMsg struct {
-	Admin  crypto.Address
-	Target crypto.Address
+	Admin  sdk.Address
+	Target sdk.Address
 }
 
 // ValidateBasic is called by the SDK automatically.
@@ -349,7 +349,7 @@ func (msg BaseFreezeAccountMsg) GetSignBytes() []byte {
 // GetSigners returns the addrs of signers that must sign.
 // CONTRACT: All signatures must be present to be valid.
 // CONTRACT: Returns addrs in some deterministic order.
-func (msg BaseFreezeAccountMsg) GetSigners() []crypto.Address { return []crypto.Address{msg.Admin} }
+func (msg BaseFreezeAccountMsg) GetSigners() []sdk.Address { return []sdk.Address{msg.Admin} }
 
 // FreezeOperatorMsg defines the properties of a transaction
 // that freezes an operator. Admin accounts can freeze their
@@ -376,7 +376,7 @@ func (msg FreezeAdminMsg) Type() string { return FreezeAdminType }
 
 /* Auxiliary functions, could be undocumented */
 
-func validateAddress(addr crypto.Address) sdk.Error {
+func validateAddress(addr sdk.Address) sdk.Error {
 	if addr == nil {
 		return ErrInvalidAddress("address is nil")
 	}

@@ -5,7 +5,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	crypto "github.com/tendermint/go-crypto"
+	"github.com/tendermint/go-crypto"
 )
 
 // EntityType string identifiers
@@ -33,14 +33,14 @@ type UserAccount interface {
 type AppAccount struct {
 	auth.BaseAccount
 	BaseLegalEntity
-	Creator     crypto.Address
+	Creator     sdk.Address
 	AccountType string
 	Active      bool
 	Admin       bool
 }
 
 // NewAppAccount constructs a new account instance.
-func newAppAccount(pub crypto.PubKey, cash sdk.Coins, creator crypto.Address, typ string,
+func newAppAccount(pub crypto.PubKey, cash sdk.Coins, creator sdk.Address, typ string,
 	isActive bool, isAdmin bool, entityName, entityType string) *AppAccount {
 	acct := new(AppAccount)
 	acct.SetAddress(pub.Address())
@@ -56,17 +56,17 @@ func newAppAccount(pub crypto.PubKey, cash sdk.Coins, creator crypto.Address, ty
 }
 
 // NewOpUser constructs a new account instance, setting cash to nil.
-func NewOpUser(pub crypto.PubKey, creator crypto.Address, entityName, entityType string) *AppAccount {
+func NewOpUser(pub crypto.PubKey, creator sdk.Address, entityName, entityType string) *AppAccount {
 	return newAppAccount(pub, nil, creator, AccountUser, true, false, entityName, entityType)
 }
 
 // NewAdminUser constructs a new account instance, setting cash to nil.
-func NewAdminUser(pub crypto.PubKey, creator crypto.Address, entityName, entityType string) *AppAccount {
+func NewAdminUser(pub crypto.PubKey, creator sdk.Address, entityName, entityType string) *AppAccount {
 	return newAppAccount(pub, nil, creator, AccountUser, true, true, entityName, entityType)
 }
 
 // NewAssetAccount constructs a new account instance.
-func NewAssetAccount(pub crypto.PubKey, cash sdk.Coins, creator crypto.Address, entityName, entityType string) *AppAccount {
+func NewAssetAccount(pub crypto.PubKey, cash sdk.Coins, creator sdk.Address, entityName, entityType string) *AppAccount {
 	return newAppAccount(pub, cash, creator, AccountAsset, true, false, entityName, entityType)
 }
 
