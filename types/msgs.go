@@ -393,6 +393,13 @@ func NewCreateOperatorMsg(creator crypto.Address, pubkey crypto.PubKey) (msg Cre
 	return
 }
 
+// NewCreateAssetAccountMsg creates a new CreateAssetAccountMsg.
+func NewCreateAssetAccountMsg(creator crypto.Address, pubkey crypto.PubKey) (msg CreateAssetAccountMsg) {
+	msg.Creator = creator
+	msg.PubKey = pubkey
+	return
+}
+
 /* Auxiliary functions, could be undocumented */
 
 func validateAddress(addr crypto.Address) sdk.Error {

@@ -24,6 +24,7 @@ func GetCreateOperatorTxCmd(cdc *wire.Codec) *cobra.Command {
 		RunE:  cmdr.createOperatorTxCmd,
 	}
 	cmd.Flags().String(flagPubKey, "", "New operator's pubkey")
+	cmd.Flags().Int64(flagSequence, 0, "Sequence number")
 	return cmd
 }
 
@@ -75,7 +76,7 @@ func (c commander) buildCreateOperatorTx() ([]byte, error) {
 	sigs := []sdk.StdSignature{{
 		PubKey:    pubkey,
 		Signature: sig,
-		//Sequence: viper.GetInt64(flagSequence),
+		Sequence:  viper.GetInt64(flagSequence),
 	}}
 
 	// marshal bytes

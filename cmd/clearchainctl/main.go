@@ -55,6 +55,7 @@ func main() {
 		client.PostCommands(
 			commands.GetCreateAdminTxCmd(cdc),
 			commands.GetCreateOperatorTxCmd(cdc),
+			commands.GetCreateAssetAccountTxCmd(cdc),
 			//			bankcmd.SendTxCmd(cdc),
 		)...)
 
