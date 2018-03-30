@@ -15,10 +15,11 @@ clearchaind:
 ########################################
 ### Tools & dependencies
 
-get_vendor_deps: $(GOPATH)/bin/dep
+get_vendor_deps:
 	@echo "--> Purge old vendor/ directory and run dep ensure"
 	rm -rf vendor/ ; dep ensure -v
 
+dep: $(GOPATH)/bin/dep
 $(GOPATH)/bin/dep:
 	[ -d $(GOPATH)/bin ] || mkdir $(GOPATH)/bin
 	@wget https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 -O $@ && chmod +x $@
@@ -47,4 +48,4 @@ benchmark:
 # To avoid unintended conflicts with file names, always add to .PHONY
 # unless there is a reason not to.
 # https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html
-.PHONY: build check_tools get_vendor_deps test benchmark clean
+.PHONY: build dep get_vendor_deps test benchmark clean
