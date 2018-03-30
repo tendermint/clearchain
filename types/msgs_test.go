@@ -258,7 +258,7 @@ func TestCreateAssetAccountMsg_ValidateBasic(t *testing.T) {
 		{"new ICM acc ok", fields{creatorAddress, newPubKey}, sdk.CodeOK},
 		{"creator is nil", fields{nil, newPubKey}, CodeInvalidAddress},
 		{"invalid creator len", fields{crypto.Address("short"), newPubKey}, CodeInvalidAddress},
-		{"new pubkey is nil", fields{creatorAddress, nil}, CodeInvalidPubKey},
+		{"new pubkey is empty", fields{creatorAddress, crypto.PubKey{}}, CodeInvalidPubKey},
 		{"same creator and acct", fields{newPubKey.Address(), newPubKey}, CodeInvalidPubKey},
 	}
 	for _, tt := range tests {
@@ -334,7 +334,7 @@ func TestCreateAdminMsg_ValidateBasic(t *testing.T) {
 		fields fields
 		want   sdk.CodeType
 	}{
-		{"nil pubkey", fields{cm: BaseCreateUserMsg{nil, nil}, le: validEntity}, CodeInvalidPubKey},
+		{"nil pubkey", fields{cm: BaseCreateUserMsg{nil, crypto.PubKey{}}, le: validEntity}, CodeInvalidPubKey},
 		{"invalid entity type", fields{cm: validCreateUser, le: BaseLegalEntity{EntityName: "CH", EntityType: "invalid"}}, CodeInvalidEntity},
 		{"empty entity name", fields{cm: validCreateUser, le: BaseLegalEntity{EntityName: "    ", EntityType: EntityClearingHouse}}, CodeInvalidEntity},
 		{"self create", fields{cm: BaseCreateUserMsg{Creator: pub.Address(), PubKey: pub}, le: validEntity}, CodeSelfCreate},

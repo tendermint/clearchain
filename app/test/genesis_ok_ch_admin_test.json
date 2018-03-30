@@ -1,7 +1,7 @@
-{  
+{
   "ch_admin":
-     {  
-        "public_key":"328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f874",
-        "entity_name":"ClearChain"        
-     }  
+     {
+        "public_key":"01328eaf59335aa6724f253ca8f1620b249bb83e665d7e5134e9bf92079b2549df3572f874",
+        "entity_name":"ClearChain"
+     }
 }

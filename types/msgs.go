@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -22,6 +23,11 @@ const (
 	FreezeAdminType        = "freezeAdmin"
 )
 
+const (
+	// AddressLength represents the number of bytes that compose addresses.
+	AddressLength = 20
+)
+
 // DepositMsg defines the properties of an asset transfer
 type DepositMsg struct {
 	Operator  sdk.Address
@@ -31,26 +37,27 @@ type DepositMsg struct {
 }
 
 // ensure DepositMsg implements the sdk.Msg interface
+var _ sdk.Msg = DepositMsg{}
 var _ sdk.Msg = (*DepositMsg)(nil)
 
 // ValidateBasic is called by the SDK automatically.
-func (d DepositMsg) ValidateBasic() sdk.Error {
-	if d.Amount.Amount <= 0 {
+func (msg DepositMsg) ValidateBasic() sdk.Error {
+	if msg.Amount.Amount <= 0 {
 		return ErrInvalidAmount("negative amount")
 	}
-	if d.Amount.Denom == "" {
+	if msg.Amount.Denom == "" {
 		return ErrInvalidAmount("empty denom")
 	}
-	if err := validateAddress(d.Operator); err != nil {
+	if err := validateAddress(msg.Operator); err != nil {
 		return err
 	}
-	if err := validateAddress(d.Sender); err != nil {
+	if err := validateAddress(msg.Sender); err != nil {
 		return err
 	}
-	if err := validateAddress(d.Recipient); err != nil {
+	if err := validateAddress(msg.Recipient); err != nil {
 		return err
 	}
-	if bytes.Equal(d.Sender, d.Recipient) {
+	if bytes.Equal(msg.Sender, msg.Recipient) {
 		return ErrInvalidAddress("sender and recipient have the same address")
 	}
 	return nil
@@ -58,14 +65,14 @@ func (d DepositMsg) ValidateBasic() sdk.Error {
 
 // Type returns the message type.
 // Must be alphanumeric or empty.
-func (d DepositMsg) Type() string { return DepositType }
+func (msg DepositMsg) Type() string { return DepositType }
 
 // Get some property of the Msg.
-func (d DepositMsg) Get(key interface{}) (value interface{}) { return nil }
+func (msg DepositMsg) Get(key interface{}) (value interface{}) { return nil }
 
 // GetSignBytes returns the canonical byte representation of the Msg.
-func (d DepositMsg) GetSignBytes() []byte {
-	bz, err := cdc.MarshalBinary(d)
+func (msg DepositMsg) GetSignBytes() []byte {
+	bz, err := json.Marshal(msg)
 	if err != nil {
 		panic(err)
 	}
@@ -75,7 +82,7 @@ func (d DepositMsg) GetSignBytes() []byte {
 // GetSigners returns the addrs of signers that must sign.
 // CONTRACT: All signatures must be present to be valid.
 // CONTRACT: Returns addrs in some deterministic order.
-func (d DepositMsg) GetSigners() []sdk.Address { return []sdk.Address{d.Operator} }
+func (msg DepositMsg) GetSigners() []sdk.Address { return []sdk.Address{msg.Operator} }
 
 // SettleMsg defines the properties of a settle transaction.
 type SettleMsg struct {
@@ -120,7 +127,7 @@ func (msg SettleMsg) Get(key interface{}) (value interface{}) { return nil }
 
 // GetSignBytes returns the canonical byte representation of the Msg.
 func (msg SettleMsg) GetSignBytes() []byte {
-	bz, err := cdc.MarshalBinary(msg)
+	bz, err := json.Marshal(msg)
 	if err != nil {
 		panic(err)
 	}
@@ -174,7 +181,7 @@ func (msg WithdrawMsg) Get(key interface{}) (value interface{}) { return nil }
 
 // GetSignBytes returns the canonical byte representation of the Msg.
 func (msg WithdrawMsg) GetSignBytes() []byte {
-	bz, err := cdc.MarshalBinary(msg)
+	bz, err := json.Marshal(msg)
 	if err != nil {
 		panic(err)
 	}
@@ -200,7 +207,7 @@ func (msg CreateAssetAccountMsg) ValidateBasic() sdk.Error {
 	if err := validateAddress(msg.Creator); err != nil {
 		return err
 	}
-	if msg.PubKey == nil {
+	if msg.PubKey.Empty() {
 		return ErrInvalidPubKey("pub key is nil")
 	}
 	if bytes.Equal(msg.Creator, msg.PubKey.Address()) {
@@ -218,7 +225,7 @@ func (msg CreateAssetAccountMsg) Get(key interface{}) (value interface{}) { retu
 
 // GetSignBytes returns the canonical byte representation of the Msg.
 func (msg CreateAssetAccountMsg) GetSignBytes() []byte {
-	bz, err := cdc.MarshalBinary(msg)
+	bz, err := json.Marshal(msg)
 	if err != nil {
 		panic(err)
 	}
@@ -240,7 +247,7 @@ type BaseCreateUserMsg struct {
 
 // ValidateBasic is called by the SDK automatically.
 func (msg BaseCreateUserMsg) ValidateBasic() sdk.Error {
-	if msg.PubKey == nil {
+	if msg.PubKey.Empty() {
 		return ErrInvalidPubKey("pub key is nil")
 	}
 	if err := validateAddress(msg.Creator); err != nil {
@@ -261,7 +268,7 @@ func (msg BaseCreateUserMsg) Get(key interface{}) (value interface{}) { return n
 
 // GetSignBytes returns the canonical byte representation of the Msg.
 func (msg BaseCreateUserMsg) GetSignBytes() []byte {
-	bz, err := cdc.MarshalBinary(msg)
+	bz, err := json.Marshal(msg)
 	if err != nil {
 		panic(err)
 	}
@@ -339,7 +346,7 @@ func (msg BaseFreezeAccountMsg) Get(key interface{}) (value interface{}) { retur
 
 // GetSignBytes returns the canonical byte representation of the Msg.
 func (msg BaseFreezeAccountMsg) GetSignBytes() []byte {
-	bz, err := cdc.MarshalBinary(msg)
+	bz, err := json.Marshal(msg)
 	if err != nil {
 		panic(err)
 	}
@@ -380,7 +387,7 @@ func validateAddress(addr sdk.Address) sdk.Error {
 	if addr == nil {
 		return ErrInvalidAddress("address is nil")
 	}
-	if len(addr) != 20 {
+	if len(addr) != AddressLength {
 		return ErrInvalidAddress("invalid address length")
 	}
 	return nil

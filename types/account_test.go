@@ -65,12 +65,12 @@ func Test_sliceContainsString(t *testing.T) {
 
 func makeUser(entname, typ string) (*AppAccount, crypto.PrivKey) {
 	priv := crypto.GenPrivKeyEd25519()
-	return NewOpUser(priv.PubKey(), nil, entname, typ), priv
+	return NewOpUser(priv.PubKey(), nil, entname, typ), priv.Wrap()
 }
 
 func makeAdminUser(entname, typ string) (*AppAccount, crypto.PrivKey) {
 	priv := crypto.GenPrivKeyEd25519()
-	return NewAdminUser(priv.PubKey(), nil, entname, typ), priv
+	return NewAdminUser(priv.PubKey(), nil, entname, typ), priv.Wrap()
 }
 
 func makeAssetAccount(cash sdk.Coins, entname, typ string) (*AppAccount, crypto.Address) {

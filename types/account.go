@@ -42,17 +42,23 @@ type AppAccount struct {
 // NewAppAccount constructs a new account instance.
 func newAppAccount(pub crypto.PubKey, cash sdk.Coins, creator sdk.Address, typ string,
 	isActive bool, isAdmin bool, entityName, entityType string) *AppAccount {
-	acct := new(AppAccount)
-	acct.SetAddress(pub.Address())
-	acct.SetPubKey(pub)
-	acct.SetCoins(cash)
-	acct.Creator = creator
-	acct.EntityName = entityName
-	acct.EntityType = entityType
-	acct.AccountType = typ
-	acct.Active = isActive
-	acct.Admin = isAdmin
-	return acct
+	baseaccount := auth.BaseAccount{
+		Address: pub.Address(),
+		PubKey:  pub,
+		Coins:   cash,
+	}
+	entity := BaseLegalEntity{
+		EntityName: entityName,
+		EntityType: entityType,
+	}
+	return &AppAccount{
+		BaseAccount:     baseaccount,
+		BaseLegalEntity: entity,
+		Creator:         creator,
+		AccountType:     typ,
+		Active:          isActive,
+		Admin:           isAdmin,
+	}
 }
 
 // NewOpUser constructs a new account instance, setting cash to nil.
@@ -95,22 +101,9 @@ func IsAsset(a UserAccount) bool {
 	return a.GetAccountType() == AccountAsset
 }
 
-// AccountMapper creates an account mapper given a storekey
-func AccountMapper(capKey sdk.StoreKey) sdk.AccountMapper {
-	var accountMapper = auth.NewAccountMapper(
-		capKey,        // target store
-		&AppAccount{}, // prototype
-	)
-
-	// Register all interfaces and concrete types that
-	// implement those interfaces, here.
-	cdc := accountMapper.WireCodec()
-	crypto.RegisterWire(cdc)
-	// auth.RegisterWireBaseAccount(cdc)
-
-	// Make WireCodec inaccessible before sealing
-	res := accountMapper.Seal()
-	return res
+// NewAccountMapper creates an account mapper given a storekey
+func NewAccountMapper(capKey sdk.StoreKey) sdk.AccountMapper {
+	return auth.NewAccountMapperSealed(capKey, &AppAccount{})
 }
 
 func accountEqual(a1, a2 *AppAccount) bool {

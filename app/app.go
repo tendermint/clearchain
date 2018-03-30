@@ -6,11 +6,11 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/wire"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/tendermint/abci/server"
 	abci "github.com/tendermint/abci/types"
 	"github.com/tendermint/clearchain/types"
-	wire "github.com/tendermint/go-wire"
 	cmn "github.com/tendermint/tmlibs/common"
 	dbm "github.com/tendermint/tmlibs/db"
 	"github.com/tendermint/tmlibs/log"
@@ -77,9 +77,12 @@ func (app *ClearchainApp) RunForever(addrPtr string) {
 func (app *ClearchainApp) txDecoder(txBytes []byte) (sdk.Tx, sdk.Error) {
 	// StdTx.Msg is an interface. The concrete types are registered by MakeCodec.
 	var tx = sdk.StdTx{}
+	if len(txBytes) == 0 {
+		return nil, sdk.ErrTxDecode("txBytes are empty")
+	}
 	err := app.cdc.UnmarshalBinary(txBytes, &tx)
 	if err != nil {
-		return nil, sdk.ErrTxParse("").TraceCause(err, "")
+		return nil, sdk.ErrTxDecode("").TraceCause(err, "")
 	}
 	return tx, nil
 }
