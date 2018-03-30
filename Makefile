@@ -15,10 +15,13 @@ clearchaind:
 ########################################
 ### Tools & dependencies
 
-get_vendor_deps:
-	@rm -rf vendor/
-	@echo "--> Running glide install"
-	@glide install
+get_vendor_deps: $(GOPATH)/bin/dep
+	@echo "--> Purge old vendor/ directory and run dep ensure"
+	rm -rf vendor/ ; dep ensure -v
+
+$(GOPATH)/bin/dep:
+	[ -f $(GOPATH)/bin ] || mkdir $(GOPATH)/bin
+	@wget https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64 -O $@ && chmod +x $@
 
 
 ########################################
