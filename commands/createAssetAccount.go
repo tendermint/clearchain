@@ -4,47 +4,32 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/keys"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tendermint/clearchain/types"
-
 	crypto "github.com/tendermint/go-crypto"
 	wire "github.com/tendermint/go-wire"
-
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/keys"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-const (
-	flagPubKey     = "pubkey"
-	flagEntityName = "entityname"
-	flagEntityType = "entitytype"
-	flagSequence   = "seq"
-)
-
-// GetCreateAdminTxCmd returns a CreateAdminTxCmd.
-func GetCreateAdminTxCmd(cdc *wire.Codec) *cobra.Command {
+// GetCreateAssetAccountTxCmd returns a CreateAssetAccountTxCmd.
+func GetCreateAssetAccountTxCmd(cdc *wire.Codec) *cobra.Command {
 	cmdr := commander{cdc}
 	cmd := &cobra.Command{
-		Use:   "createadmin",
-		Short: "Create and sign a CreateAdminTx",
-		RunE:  cmdr.createAdminTxCmd,
+		Use:   "createasset",
+		Short: "Create and sign a CreateAssetAccountTxCmd",
+		RunE:  cmdr.createAssetAccountTxCmd,
 	}
-	cmd.Flags().String(flagPubKey, "", "New admin's pubkey")
-	cmd.Flags().String(flagEntityName, "", "New admin's entity name")
-	cmd.Flags().String(flagEntityType, "", "New admin's entity type")
+	cmd.Flags().String(flagPubKey, "", "New asset account's pubkey")
 	cmd.Flags().Int64(flagSequence, 0, "Sequence number")
 	return cmd
 }
 
-type commander struct {
-	cdc *wire.Codec
-}
-
-func (c commander) createAdminTxCmd(cmd *cobra.Command, args []string) error {
-	txBytes, err := c.buildCreateAdminTx()
+func (c commander) createAssetAccountTxCmd(cmd *cobra.Command, args []string) error {
+	txBytes, err := c.buildCreateAssetAccountTx()
 	if err != nil {
 		return err
 	}
@@ -58,7 +43,7 @@ func (c commander) createAdminTxCmd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (c commander) buildCreateAdminTx() ([]byte, error) {
+func (c commander) buildCreateAssetAccountTx() ([]byte, error) {
 	keybase, err := keys.GetKeyBase()
 	if err != nil {
 		return nil, err
@@ -71,7 +56,7 @@ func (c commander) buildCreateAdminTx() ([]byte, error) {
 	}
 	creator := info.PubKey.Address()
 
-	msg, err := buildCreateAdminMsg(creator)
+	msg, err := buildCreateAssetAccountMsg(creator)
 	if err != nil {
 		return nil, err
 	}
@@ -104,17 +89,12 @@ func (c commander) buildCreateAdminTx() ([]byte, error) {
 	return txBytes, nil
 }
 
-func buildCreateAdminMsg(creator crypto.Address) (sdk.Msg, error) {
-	// parse inputs
-	entityName := viper.GetString(flagEntityName)
-	entityType := viper.GetString(flagEntityType)
-
+func buildCreateAssetAccountMsg(creator crypto.Address) (sdk.Msg, error) {
 	// parse new account pubkey
 	pubKey, err := types.PubKeyFromHexString(viper.GetString(flagPubKey))
 	if err != nil {
 		return nil, err
 	}
-
-	msg := types.NewCreateAdminMsg(creator, pubKey, entityName, entityType)
+	msg := types.NewCreateAssetAccountMsg(creator, pubKey)
 	return msg, nil
 }
