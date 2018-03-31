@@ -16,10 +16,6 @@ import (
 	"github.com/tendermint/tmlibs/cli"
 )
 
-const (
-	defaultConfigBaseDir = ".clearchainctl"
-)
-
 // gaiacliCmd is the entry point for this binary
 var (
 	clearchainctlCmd = &cobra.Command{
@@ -54,7 +50,6 @@ func main() {
 	clearchainctlCmd.AddCommand(
 		client.PostCommands(
 			commands.GetCreateAdminTxCmd(cdc),
-			commands.GetCreateOperatorTxCmd(cdc),
 			//			bankcmd.SendTxCmd(cdc),
 		)...)
 
@@ -68,6 +63,6 @@ func main() {
 	)
 
 	// prepare and add flags
-	executor := cli.PrepareMainCmd(clearchainctlCmd, "CC", os.ExpandEnv(defaultConfigBaseDir))
+	executor := cli.PrepareMainCmd(clearchainctlCmd, "CC", os.ExpandEnv("$HOME/.clearchainctl"))
 	executor.Execute()
 }
