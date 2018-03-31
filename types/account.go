@@ -6,7 +6,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	crypto "github.com/tendermint/go-crypto"
-	wire "github.com/tendermint/go-wire"
 )
 
 // EntityType string identifiers
@@ -112,15 +111,6 @@ func AccountMapper(capKey sdk.StoreKey) sdk.AccountMapper {
 	// Make WireCodec inaccessible before sealing
 	res := accountMapper.Seal()
 	return res
-}
-
-// GetParseAccount returns the ParseAccount function for the custom AppAccount.
-func GetParseAccount(cdc *wire.Codec) sdk.ParseAccount {
-	return func(accBytes []byte) (res sdk.Account, err error) {
-		acct := new(AppAccount)
-		err = cdc.UnmarshalBinary(accBytes, acct)
-		return acct, err
-	}
 }
 
 func accountEqual(a1, a2 *AppAccount) bool {

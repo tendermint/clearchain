@@ -460,30 +460,3 @@ func TestMessageTypes(t *testing.T) {
 	assert.Equal(t, freezeOp.Type(), FreezeOperatorType)
 	assert.Equal(t, freezeAd.Type(), FreezeAdminType)
 }
-
-func Test_NewCreateAdminMsg(t *testing.T) {
-	addr := crypto.GenPrivKeyEd25519().PubKey().Address()
-	pub := crypto.GenPrivKeyEd25519().PubKey()
-	type args struct {
-		creator    crypto.Address
-		pubkey     crypto.PubKey
-		entityName string
-		entityType string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantMsg CreateAdminMsg
-	}{
-		{"nil", args{nil, nil, "", ""}, CreateAdminMsg{}},
-		{"CreateAdminMsg", args{addr, pub, "entityName", "typ"}, CreateAdminMsg{
-			BaseCreateUserMsg{PubKey: pub, Creator: addr},
-			BaseLegalEntity{EntityName: "entityName", EntityType: "typ"}}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := NewCreateAdminMsg(tt.args.creator, tt.args.pubkey, tt.args.entityName, tt.args.entityType)
-			assert.Equal(t, got, tt.wantMsg)
-		})
-	}
-}
