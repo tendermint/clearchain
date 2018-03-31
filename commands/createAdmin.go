@@ -21,7 +21,8 @@ const (
 	flagPubKey     = "pubkey"
 	flagEntityName = "entityname"
 	flagEntityType = "entitytype"
-	flagSequence   = "seq"
+
+//	flagSequence   = "seq"
 )
 
 // GetCreateAdminTxCmd returns a CreateAdminTxCmd.
@@ -35,7 +36,6 @@ func GetCreateAdminTxCmd(cdc *wire.Codec) *cobra.Command {
 	cmd.Flags().String(flagPubKey, "", "New admin's pubkey")
 	cmd.Flags().String(flagEntityName, "", "New admin's entity name")
 	cmd.Flags().String(flagEntityType, "", "New admin's entity type")
-	cmd.Flags().Int64(flagSequence, 0, "Sequence number")
 	return cmd
 }
 
@@ -91,7 +91,7 @@ func (c commander) buildCreateAdminTx() ([]byte, error) {
 	sigs := []sdk.StdSignature{{
 		PubKey:    pubkey,
 		Signature: sig,
-		Sequence:  viper.GetInt64(flagSequence),
+		//Sequence: viper.GetInt64(flagSequence),
 	}}
 
 	// marshal bytes
