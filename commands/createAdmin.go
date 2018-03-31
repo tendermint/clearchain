@@ -44,7 +44,7 @@ type commander struct {
 }
 
 func (c commander) createAdminTxCmd(cmd *cobra.Command, args []string) error {
-	txBytes, err := c.buildCreateAdminTx()
+	txBytes, err := c.buildTx()
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (c commander) createAdminTxCmd(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func (c commander) buildCreateAdminTx() ([]byte, error) {
+func (c commander) buildTx() ([]byte, error) {
 	keybase, err := keys.GetKeyBase()
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func (c commander) buildCreateAdminTx() ([]byte, error) {
 	}
 	creator := info.PubKey.Address()
 
-	msg, err := buildCreateAdminMsg(creator)
+	msg, err := buildMsg(creator)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,8 @@ func (c commander) buildCreateAdminTx() ([]byte, error) {
 	return txBytes, nil
 }
 
-func buildCreateAdminMsg(creator crypto.Address) (sdk.Msg, error) {
+func buildMsg(creator crypto.Address) (sdk.Msg, error) {
+
 	// parse inputs
 	entityName := viper.GetString(flagEntityName)
 	entityType := viper.GetString(flagEntityType)
