@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/wire"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/tendermint/go-crypto"
 )
@@ -105,6 +106,23 @@ func IsAsset(a UserAccount) bool {
 func NewAccountMapper(capKey sdk.StoreKey) sdk.AccountMapper {
 	return auth.NewAccountMapperSealed(capKey, &AppAccount{})
 }
+
+// Get the AccountDecoder function for the custom AppAccount
+func GetAccountDecoder(cdc *wire.Codec) sdk.AccountDecoder {
+	return func(accBytes []byte) (res sdk.Account, err error) {
+		if len(accBytes) == 0 {
+			return nil, sdk.ErrTxDecode("accBytes are empty")
+		}
+		acct := new(AppAccount)
+		err = cdc.UnmarshalBinary(accBytes, &acct)
+		if err != nil {
+			panic(err)
+		}
+		return acct, err
+	}
+}
+
+/* auxiliary functions */
 
 func accountEqual(a1, a2 *AppAccount) bool {
 	return ((a1.AccountType == a2.AccountType) &&
