@@ -28,9 +28,6 @@ _testmain.go
 ledger/.project
 
 .project
-ledger/.settings/com.googlecode.goclipse.core.prefs
-
-build/
 
 testbed/testbed.go
 /vendor
