@@ -2,15 +2,12 @@
 
 
 [[projects]]
-<<<<<<< Updated upstream
-=======
   name = "github.com/bgentry/speakeasy"
   packages = ["."]
   revision = "4aabc24848ce5fd31929f7d1e4ea74d3709c14cd"
   version = "v0.1.0"
 
 [[projects]]
->>>>>>> Stashed changes
   branch = "master"
   name = "github.com/btcsuite/btcd"
   packages = ["btcec"]
@@ -20,23 +17,16 @@
   name = "github.com/cosmos/cosmos-sdk"
   packages = [
     "baseapp",
-<<<<<<< Updated upstream
-=======
     "client",
     "client/builder",
     "client/keys",
     "client/lcd",
     "client/rpc",
     "client/tx",
->>>>>>> Stashed changes
     "mock",
     "server",
     "store",
     "types",
-<<<<<<< Updated upstream
-    "wire",
-    "x/auth"
-=======
     "version",
     "wire",
     "x/auth",
@@ -45,7 +35,6 @@
     "x/bank",
     "x/bank/commands",
     "x/bank/rest"
->>>>>>> Stashed changes
   ]
   revision = "6f9db78be1fd1b79adfbeba4c2d9a7506a0d1790"
   version = "v0.12.0"
@@ -122,8 +111,6 @@
   revision = "553a641470496b2327abcac10b36396bd98e45c9"
 
 [[projects]]
-<<<<<<< Updated upstream
-=======
   name = "github.com/gorilla/context"
   packages = ["."]
   revision = "1ea25387ff6f684839d82767c1733ff4d4d15d0a"
@@ -136,7 +123,6 @@
   version = "v1.6.1"
 
 [[projects]]
->>>>>>> Stashed changes
   name = "github.com/gorilla/websocket"
   packages = ["."]
   revision = "ea4d1f681babbce9545c9c5f3d5194a789c89f5b"
@@ -190,15 +176,12 @@
   version = "v1.7.6"
 
 [[projects]]
-<<<<<<< Updated upstream
-=======
   name = "github.com/mattn/go-isatty"
   packages = ["."]
   revision = "0360b2af4f38e8d38c7fce2a9f4e702702d73a39"
   version = "v0.0.3"
 
 [[projects]]
->>>>>>> Stashed changes
   branch = "master"
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
@@ -293,7 +276,7 @@
     "leveldb/table",
     "leveldb/util"
   ]
-  revision = "169b1b37be738edb2813dab48c97a549bcf99bb5"
+  revision = "714f901b98fdb3aa954b4193d8cbd64a28d80cad"
 
 [[projects]]
   name = "github.com/tendermint/abci"
@@ -419,7 +402,7 @@
     "ripemd160",
     "salsa20/salsa"
   ]
-  revision = "88942b9c40a4c9d203b82b3731787b672d6e809b"
+  revision = "12892e8c234f4fe6f6803f052061de9057903bb2"
 
 [[projects]]
   branch = "master"
@@ -433,7 +416,7 @@
     "lex/httplex",
     "trace"
   ]
-  revision = "6078986fec03a1dcc236c34816c71b0e05018fda"
+  revision = "b68f30494add4df6bd8ef5e82803f308e7f7c59c"
 
 [[projects]]
   branch = "master"
@@ -501,10 +484,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-<<<<<<< Updated upstream
-  inputs-digest = "7e3315650135155d0d5ffd0e234937b89976a2bfd6ea6932c27bc832a921ec98"
-=======
-  inputs-digest = "7888fa1c819b76ca83deeffd11351e1bbc03a02172ed9f1a56ce68f83615767b"
->>>>>>> Stashed changes
+  inputs-digest = "8b38fdb4fea18674fcd2e6f3d4ddbbc4f5b3f4ad0b3d3483f7463ff6ed8a187c"
   solver-name = "gps-cdcl"
   solver-version = 1
