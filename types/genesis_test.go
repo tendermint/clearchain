@@ -68,3 +68,24 @@ func Test_ToClearingHouseAdmin(t *testing.T) {
 		})
 	}
 }
+
+func TestPubKeyFromHexString(t *testing.T) {
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{"good key", args{"01328eaf5937458f6c39c54ee3624137cabe7af88226454fd30180c8da6c711ad6de7f6053"}, false},
+		{"bad key", args{"0124137cabe7af88226454fd30180c8da6c711ad6de7f6053"}, true},
+		{"nil", args{""}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := PubKeyFromHexString(tt.args.s)
+			assert.Equal(t, (err != nil), tt.wantErr)
+		})
+	}
+}

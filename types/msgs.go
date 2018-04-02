@@ -381,6 +381,18 @@ var _ sdk.Msg = (*FreezeAdminMsg)(nil)
 // Must be alphanumeric or empty.
 func (msg FreezeAdminMsg) Type() string { return FreezeAdminType }
 
+/* Constructors */
+
+// NewCreateAdminMsg creates a new CreateAdminMsg.
+func NewCreateAdminMsg(creator sdk.Address, pubkey crypto.PubKey,
+	entityName, entityType string) (msg CreateAdminMsg) {
+	msg.BaseCreateUserMsg.Creator = creator
+	msg.BaseCreateUserMsg.PubKey = pubkey
+	msg.BaseLegalEntity.EntityName = entityName
+	msg.BaseLegalEntity.EntityType = entityType
+	return
+}
+
 /* Auxiliary functions, could be undocumented */
 
 func validateAddress(addr sdk.Address) sdk.Error {
