@@ -52,6 +52,7 @@ func main() {
 		server.InitCmd(defaultOptions, logger),
 		server.StartCmd(generateApp, logger),
 		server.UnsafeResetAllCmd(logger),
+		server.ShowNodeIdCmd(logger),
 		versionCmd,
 	)
 	// prepare and add flags
