@@ -487,3 +487,51 @@ func Test_NewCreateAdminMsg(t *testing.T) {
 		})
 	}
 }
+
+func Test_NewCreateOperatorMsg(t *testing.T) {
+	addr := crypto.GenPrivKeyEd25519().PubKey().Address()
+	pub := crypto.GenPrivKeyEd25519().PubKey()
+	type args struct {
+		creator sdk.Address
+		pubkey  crypto.PubKey
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantMsg CreateOperatorMsg
+	}{
+		{"nil", args{nil, crypto.PubKey{}}, CreateOperatorMsg{}},
+		{"CreateAdminMsg", args{addr, pub}, CreateOperatorMsg{
+			BaseCreateUserMsg{PubKey: pub, Creator: addr},
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := NewCreateOperatorMsg(tt.args.creator, tt.args.pubkey)
+			assert.Equal(t, got, tt.wantMsg)
+		})
+	}
+}
+
+func Test_NewCreateAssetAccountMsg(t *testing.T) {
+	addr := crypto.GenPrivKeyEd25519().PubKey().Address()
+	pub := crypto.GenPrivKeyEd25519().PubKey()
+	type args struct {
+		creator sdk.Address
+		pubkey  crypto.PubKey
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantMsg CreateAssetAccountMsg
+	}{
+		{"nil", args{nil, crypto.PubKey{}}, CreateAssetAccountMsg{}},
+		{"CreateAdminMsg", args{addr, pub}, CreateAssetAccountMsg{PubKey: pub, Creator: addr}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := NewCreateAssetAccountMsg(tt.args.creator, tt.args.pubkey)
+			assert.Equal(t, got, tt.wantMsg)
+		})
+	}
+}
