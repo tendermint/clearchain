@@ -2,7 +2,7 @@ PACKAGES=$(shell go list ./... | grep -v '/vendor/')
 BUILD_FLAGS = -ldflags "-X github.com/tendermint/clearchain.Version=`git describe`"
 TARGETS = clearchainctl clearchaind
 
-all: get_vendor_deps build test
+all: dist-clean get_vendor_deps build test
 
 ########################################
 ### Build
@@ -19,8 +19,7 @@ clearchainctl:
 ### Tools & dependencies
 
 get_vendor_deps:
-	@echo "--> Purge old vendor/ directory and run dep ensure"
-	rm -rf vendor/ ; dep ensure -v
+	dep ensure -v
 
 dep: $(GOPATH)/bin/dep
 $(GOPATH)/bin/dep:
@@ -41,11 +40,19 @@ coverage.txt: clean
 	    ( cat profile.out >> $@ ; rm profile.out ) \
 	done
 
+
+dist-clean: clean clean-vendor
 clean: clean-arch clean-noarch
+
 clean-arch:
 	rm -f $(TARGETS)
+
 clean-noarch:
 	rm -f profile.out coverage.txt
+
+clean-vendor:
+	@echo "--> Purge vendor/ directory"
+	rm -rf vendor/
 
 benchmark:
 	@go test -bench=. $(PACKAGES)
@@ -54,4 +61,4 @@ benchmark:
 # To avoid unintended conflicts with file names, always add to .PHONY
 # unless there is a reason not to.
 # https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html
-.PHONY: build dep get_vendor_deps test benchmark clean clean-arch clean-noarch
+.PHONY: build dep get_vendor_deps test benchmark clean clean-arch clean-noarch clean-vendor dist-clean
