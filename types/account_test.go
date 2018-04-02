@@ -77,3 +77,29 @@ func makeAssetAccount(cash sdk.Coins, entname, typ string) (*AppAccount, crypto.
 	pub := crypto.GenPrivKeyEd25519().PubKey()
 	return NewAssetAccount(pub, cash, nil, entname, typ), pub.Address()
 }
+
+func TestGetAccountDecoder(t *testing.T) {
+	cdc := MakeCodec()
+	decoder := GetAccountDecoder(cdc)
+	admin, _ := makeAdminUser("member", "gcm")
+	adminBz, _ := cdc.MarshalBinary(admin)
+	tests := []struct {
+		name    string
+		account *AppAccount
+		bz      []byte
+		wantErr bool
+	}{
+		{"admin", admin, adminBz, false},
+		{"nil", &AppAccount{}, []byte{}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			acct, err := decoder(tt.bz)
+			assert.Equal(t, tt.wantErr, err != nil)
+			if err == nil {
+				concreteAcct := acct.(*AppAccount)
+				assert.True(t, accountEqual(concreteAcct, tt.account))
+			}
+		})
+	}
+}
