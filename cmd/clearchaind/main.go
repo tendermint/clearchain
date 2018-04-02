@@ -20,7 +20,8 @@ import (
 )
 
 const (
-	defaultConfigBaseDir = "$HOME/.clearchaind"
+	defaultClearingHouseName = "ClearingHouse"
+	defaultConfigBaseDir     = ".clearchaind"
 )
 
 var (
@@ -62,18 +63,23 @@ func main() {
 // defaultOptions sets up the app_options for the
 // default genesis file
 func defaultOptions(args []string) (json.RawMessage, error) {
-	pub, secret, err := generateKey()
-	if err != nil {
-		return nil, err
+	var pubHex string
+	if len(args) != 0 { // user has given a hexadecimal pubkey on the command line
+		pubHex = args[0]
+	} else {
+		pub, secret, err := generateKey()
+		if err != nil {
+			return nil, err
+		}
+		fmt.Fprintf(os.Stderr, "Secret phrase to access clearing house's admin account: %s\n", secret)
+		pubHex = hex.EncodeToString(pub.Bytes())
 	}
-	fmt.Println("Secret phrase to access coins:")
-	fmt.Println(secret)
 	opts := fmt.Sprintf(`{
       "ch_admin": {
 		"public_key": "%s",
-		"entity_name": "Clearchain"
+		"entity_name": "%s"
 	  }
-	}`, hex.EncodeToString(pub.Bytes()))
+	}`, pubHex, defaultClearingHouseName)
 	return json.RawMessage(opts), nil
 }
 
