@@ -43,6 +43,7 @@ func main() {
 		client.PostCommands(
 			commands.GetCreateAdminTxCmd(cdc),
 			commands.GetCreateOperatorTxCmd(cdc),
+			commands.GetCreateAssetAccountTxCmd(cdc),
 		)...)
 	clearchainctlCmd.AddCommand(commands.GetExportPubCmd(cdc))
 	//clearchainctlCmd.AddCommand(commands.GetImportPubCmd(cdc))
