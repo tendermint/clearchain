@@ -68,6 +68,7 @@ func main() {
 		server.StartCmd(generateApp, logger),
 		server.UnsafeResetAllCmd(logger),
 		server.ShowNodeIdCmd(logger),
+		server.ShowValidatorCmd(logger),
 		versionCmd,
 	)
 	// prepare and add flags

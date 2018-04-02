@@ -15,7 +15,7 @@ import (
 
 // GetCreateOperatorTxCmd returns a createOperatorTxCmd.
 func GetCreateOperatorTxCmd(cdc *wire.Codec) *cobra.Command {
-	cmdr := commander{cdc: cdc}
+	cmdr := Commander{Cdc: cdc}
 	cmd := &cobra.Command{
 		Use:   "create-operator",
 		Short: "Create and sign a CreateOperatorTx",
@@ -27,7 +27,7 @@ func GetCreateOperatorTxCmd(cdc *wire.Codec) *cobra.Command {
 	return cmd
 }
 
-func (c commander) createOperatorTxCmd(cmd *cobra.Command, args []string) error {
+func (c Commander) createOperatorTxCmd(cmd *cobra.Command, args []string) error {
 	name := args[0]
 	keybase, err := keys.GetKeyBase()
 	if err != nil {
@@ -43,7 +43,7 @@ func (c commander) createOperatorTxCmd(cmd *cobra.Command, args []string) error 
 		return err
 	}
 
-	res, err := builder.SignBuildBroadcast(name, msg, c.cdc)
+	res, err := builder.SignBuildBroadcast(name, msg, c.Cdc)
 	if err != nil {
 		return err
 	}

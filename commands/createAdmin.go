@@ -20,13 +20,13 @@ const (
 	flagSequence   = "seq"
 )
 
-type commander struct {
-	cdc *wire.Codec
+type Commander struct {
+	Cdc *wire.Codec
 }
 
 // GetCreateAdminTxCmd returns a CreateAdminTxCmd.
 func GetCreateAdminTxCmd(cdc *wire.Codec) *cobra.Command {
-	cmdr := commander{cdc: cdc}
+	cmdr := Commander{Cdc: cdc}
 	cmd := &cobra.Command{
 		Use:   "create-admin",
 		Short: "Create and sign a CreateAdminTx",
@@ -40,7 +40,7 @@ func GetCreateAdminTxCmd(cdc *wire.Codec) *cobra.Command {
 	return cmd
 }
 
-func (c commander) createAdminTxCmd(cmd *cobra.Command, args []string) error {
+func (c Commander) createAdminTxCmd(cmd *cobra.Command, args []string) error {
 	name := args[0]
 	keybase, err := keys.GetKeyBase()
 	if err != nil {
@@ -51,12 +51,12 @@ func (c commander) createAdminTxCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	creator := info.PubKey.Address()
-	msg, err := buildCreateAdminMsg(creator)
+	msg, err := BuildCreateAdminMsg(creator, viper.GetString(flagEntityName), viper.GetString(flagEntityType), viper.GetString(flagPubKey))
 	if err != nil {
 		return err
 	}
 
-	res, err := builder.SignBuildBroadcast(name, msg, c.cdc)
+	res, err := builder.SignBuildBroadcast(name, msg, c.Cdc)
 	if err != nil {
 		return err
 	}
@@ -65,16 +65,12 @@ func (c commander) createAdminTxCmd(cmd *cobra.Command, args []string) error {
 
 }
 
-func buildCreateAdminMsg(creator sdk.Address) (sdk.Msg, error) {
-	// parse inputs
-	entityName := viper.GetString(flagEntityName)
-	entityType := viper.GetString(flagEntityType)
-
+// BuildCreateAdminMsg makes a new CreateAdminMsg.
+func BuildCreateAdminMsg(creator sdk.Address, entityName, entityType, pubKey string) (sdk.Msg, error) {
 	// parse new account pubkey
-	pubKey, err := types.PubKeyFromHexString(viper.GetString(flagPubKey))
+	pub, err := types.PubKeyFromHexString(pubKey)
 	if err != nil {
 		return nil, err
 	}
-	msg := types.NewCreateAdminMsg(creator, pubKey, entityName, entityType)
-	return msg, nil
+	return types.NewCreateAdminMsg(creator, pub, entityName, entityType), nil
 }

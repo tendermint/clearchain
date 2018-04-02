@@ -15,7 +15,7 @@ import (
 
 // GetCreateAssetAccountTxCmd returns a createAssetAccountTxCmd.
 func GetCreateAssetAccountTxCmd(cdc *wire.Codec) *cobra.Command {
-	cmdr := commander{cdc: cdc}
+	cmdr := Commander{Cdc: cdc}
 	cmd := &cobra.Command{
 		Use:   "create-asset",
 		Short: "Create and sign a CreateAssetAccountTx",
@@ -27,7 +27,7 @@ func GetCreateAssetAccountTxCmd(cdc *wire.Codec) *cobra.Command {
 	return cmd
 }
 
-func (c commander) createAssetAccountTxCmd(cmd *cobra.Command, args []string) error {
+func (c Commander) createAssetAccountTxCmd(cmd *cobra.Command, args []string) error {
 	name := args[0]
 	keybase, err := keys.GetKeyBase()
 	if err != nil {
@@ -43,7 +43,7 @@ func (c commander) createAssetAccountTxCmd(cmd *cobra.Command, args []string) er
 		return err
 	}
 
-	res, err := builder.SignBuildBroadcast(name, msg, c.cdc)
+	res, err := builder.SignBuildBroadcast(name, msg, c.Cdc)
 	if err != nil {
 		return err
 	}
