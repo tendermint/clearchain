@@ -32,3 +32,13 @@ func (ga *GenesisAccount) ToClearingHouseAdmin() (acc *AppAccount, err error) {
 	adminUser := NewAdminUser(publicKey, nil, ga.EntityName, EntityClearingHouse)
 	return adminUser, nil
 }
+
+// PubKeyFromHexString converts a hexadecimal string representation of
+// a public key into a crypto.PubKey instance.
+func PubKeyFromHexString(s string) (crypto.PubKey, error) {
+	bytes, err := hex.DecodeString(s)
+	if err != nil {
+		return crypto.PubKey{}, err
+	}
+	return crypto.PubKeyFromBytes(bytes)
+}
