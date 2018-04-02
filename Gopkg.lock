@@ -34,10 +34,12 @@
     "x/auth/rest",
     "x/bank",
     "x/bank/commands",
-    "x/bank/rest"
+    "x/bank/rest",
+    "x/ibc",
+    "x/ibc/rest"
   ]
-  revision = "6f9db78be1fd1b79adfbeba4c2d9a7506a0d1790"
-  version = "v0.12.0"
+  revision = "797aec2e717cb177c5481a16bb4ef6fc052e379c"
+  version = "v0.13.0"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -484,6 +486,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "901ff6127720dc4372537f101d2c703983da67773d71d3cfdda1f8a4fce118e8"
+  inputs-digest = "5988778bcf69281f82f7a1cbde5bb9761a25a5aba2228f8849d3adadc0edacf9"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/builder"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -44,13 +43,7 @@ func (c commander) createOperatorTxCmd(cmd *cobra.Command, args []string) error 
 		return err
 	}
 
-	buf := client.BufferStdin()
-	prompt := fmt.Sprintf("Password to sign with '%s':", name)
-	passphrase, err := client.GetPassword(prompt, buf)
-	if err != nil {
-		return err
-	}
-	res, err := builder.SignBuildBroadcast(name, passphrase, msg, c.cdc)
+	res, err := builder.SignBuildBroadcast(name, msg, c.cdc)
 	if err != nil {
 		return err
 	}
