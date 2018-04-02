@@ -17,19 +17,13 @@ _cgo_defun.c
 _cgo_gotypes.go
 _cgo_export.*
 
-_testmain.go
-
 *.exe
 *.test
 *.prof
 
 .vscode/
 
-ledger/.project
-
 .project
 
-testbed/testbed.go
 /vendor
-data
 /.idea
