@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/spf13/viper"
@@ -13,7 +14,6 @@ import (
 	abci "github.com/tendermint/abci/types"
 	"github.com/tendermint/clearchain"
 	"github.com/tendermint/clearchain/app"
-	"github.com/tendermint/clearchain/types"
 	crypto "github.com/tendermint/go-crypto"
 	"github.com/tendermint/go-crypto/keys"
 	"github.com/tendermint/go-crypto/keys/words"
@@ -78,14 +78,18 @@ func main() {
 }
 
 func readOrGenerateKey(args []string) (crypto.PubKey, string, error) {
-	if len(args) != 0 { // user has given a hexadecimal pubkey on the command line
-		pub, err := types.PubKeyFromHexString(args[0])
-		if err != nil {
-			return crypto.PubKey{}, "", err
-		}
-		return pub, "", nil
+	if len(args) == 0 {
+		return generateKey()
 	}
-	return generateKey()
+	bytes, err := ioutil.ReadFile(args[0])
+	if err != nil {
+		return crypto.PubKey{}, "", err
+	}
+	var pub crypto.PubKey
+	if err := pub.UnmarshalJSON(bytes); err != nil {
+		return crypto.PubKey{}, "", err
+	}
+	return pub, "", nil
 }
 
 // defaultOptions sets up the app_options for the
