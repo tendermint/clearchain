@@ -2,21 +2,22 @@ package commands
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/cosmos/cosmos-sdk/client/builder"
-	"github.com/cosmos/cosmos-sdk/client/keys"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	wire "github.com/cosmos/cosmos-sdk/wire"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tendermint/clearchain/types"
+	crypto "github.com/tendermint/go-crypto"
 )
 
 const (
-	flagPubKey     = "pubkey"
-	flagEntityName = "entityname"
-	flagEntityType = "entitytype"
+	flagName       = "name"
+	flagPubKeyFile = "pubkey-file"
+	flagEntityName = "entity-name"
+	flagEntityType = "entity-type"
 	flagSequence   = "seq"
 )
 
@@ -31,27 +32,29 @@ func GetCreateAdminTxCmd(cdc *wire.Codec) *cobra.Command {
 		Use:   "create-admin",
 		Short: "Create and sign a CreateAdminTx",
 		RunE:  cmdr.createAdminTxCmd,
-		Args:  cobra.ExactArgs(1),
 	}
-	cmd.Flags().String(flagPubKey, "", "New admin's pubkey")
+	cmd.Flags().String(flagPubKeyFile, "", "Load new asset's pubkey from file")
 	cmd.Flags().String(flagEntityName, "", "New admin's entity name")
 	cmd.Flags().String(flagEntityType, "", "New admin's entity type (ch|gcm|icm|custodian)")
-	cmd.Flags().Int64(flagSequence, 0, "Sequence number")
+	cmd.MarkFlagRequired(flagPubKeyFile)
+	cmd.MarkFlagRequired(flagEntityName)
+	cmd.MarkFlagRequired(flagEntityType)
+	cmd.MarkFlagFilename(flagPubKeyFile)
 	return cmd
 }
 
 func (c Commander) createAdminTxCmd(cmd *cobra.Command, args []string) error {
-	name := args[0]
-	keybase, err := keys.GetKeyBase()
+	name := viper.GetString(flagName)
+	info, err := getKey(name)
 	if err != nil {
-		return nil
+		return fmt.Errorf("getKey(): %v", err)
 	}
-	info, err := keybase.Get(name)
+	pub, err := pubKeyFromFile()
 	if err != nil {
 		return err
 	}
 	creator := info.PubKey.Address()
-	msg, err := BuildCreateAdminMsg(creator, viper.GetString(flagEntityName), viper.GetString(flagEntityType), viper.GetString(flagPubKey))
+	msg := types.NewCreateAdminMsg(creator, pub, viper.GetString(flagEntityName), viper.GetString(flagEntityType))
 	if err != nil {
 		return err
 	}
@@ -65,12 +68,12 @@ func (c Commander) createAdminTxCmd(cmd *cobra.Command, args []string) error {
 
 }
 
-// BuildCreateAdminMsg makes a new CreateAdminMsg.
-func BuildCreateAdminMsg(creator sdk.Address, entityName, entityType, pubKey string) (sdk.Msg, error) {
-	// parse new account pubkey
-	pub, err := types.PubKeyFromHexString(pubKey)
+func pubKeyFromFile() (key crypto.PubKey, err error) {
+	filename := viper.GetString(flagPubKeyFile)
+	bytes, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return nil, err
+		return key, fmt.Errorf("Error reading from %s: %v", filename, err)
 	}
-	return types.NewCreateAdminMsg(creator, pub, entityName, entityType), nil
+	err = key.UnmarshalJSON(bytes)
+	return
 }

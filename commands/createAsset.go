@@ -6,11 +6,11 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/builder"
 	"github.com/cosmos/cosmos-sdk/client/keys"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	wire "github.com/cosmos/cosmos-sdk/wire"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/tendermint/clearchain/types"
+	cryptokeys "github.com/tendermint/go-crypto/keys"
 )
 
 // GetCreateAssetAccountTxCmd returns a createAssetAccountTxCmd.
@@ -20,29 +20,24 @@ func GetCreateAssetAccountTxCmd(cdc *wire.Codec) *cobra.Command {
 		Use:   "create-asset",
 		Short: "Create and sign a CreateAssetAccountTx",
 		RunE:  cmdr.createAssetAccountTxCmd,
-		Args:  cobra.ExactArgs(1),
 	}
-	cmd.Flags().String(flagPubKey, "", "New assset account's pubkey")
-	cmd.Flags().Int64(flagSequence, 0, "Sequence number")
+	cmd.Flags().String(flagPubKeyFile, "", "Load new asset's pubkey from file")
+	cmd.MarkFlagRequired(flagPubKeyFile)
+	cmd.MarkFlagFilename(flagPubKeyFile)
 	return cmd
 }
 
 func (c Commander) createAssetAccountTxCmd(cmd *cobra.Command, args []string) error {
-	name := args[0]
-	keybase, err := keys.GetKeyBase()
+	name := viper.GetString(flagName)
+	creatorInfo, err := getKey(name)
 	if err != nil {
-		return nil
+		return fmt.Errorf("getKey(): %v", err)
 	}
-	info, err := keybase.Get(name)
-	if err != nil {
-		return err
-	}
-	creator := info.PubKey.Address()
-	msg, err := buildCreateAssetAccountMsg(creator)
+	pub, err := pubKeyFromFile()
 	if err != nil {
 		return err
 	}
-
+	msg := types.NewCreateAssetAccountMsg(creatorInfo.PubKey.Address(), pub)
 	res, err := builder.SignBuildBroadcast(name, msg, c.Cdc)
 	if err != nil {
 		return err
@@ -52,12 +47,14 @@ func (c Commander) createAssetAccountTxCmd(cmd *cobra.Command, args []string) er
 
 }
 
-func buildCreateAssetAccountMsg(creator sdk.Address) (sdk.Msg, error) {
-	// parse new account pubkey
-	pubKey, err := types.PubKeyFromHexString(viper.GetString(flagPubKey))
+func getKey(name string) (cryptokeys.Info, error) {
+	keybase, err := keys.GetKeyBase()
 	if err != nil {
-		return nil, err
+		return cryptokeys.Info{}, err
 	}
-	msg := types.NewCreateAssetAccountMsg(creator, pubKey)
-	return msg, nil
+	creatorInfo, err := keybase.Get(name)
+	if err != nil {
+		return cryptokeys.Info{}, fmt.Errorf("couldn't retrieve key name %q: %v", name, err)
+	}
+	return creatorInfo, nil
 }
