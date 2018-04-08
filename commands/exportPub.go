@@ -12,6 +12,7 @@ func GetExportPubCmd(cdc *wire.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:  "export-pub",
 		RunE: exportPubCmd,
+		Args: cobra.MinimumNArgs(1),
 	}
 }
 
