@@ -1,0 +1,21 @@
+{
+  "app_hash": "",
+  "app_state": {
+    "ch_admin": {
+      "public_key": "01ceb016a0495dee269d655f12de14941963214b3bee034c3ddfdbcecb2627d3c7",
+      "entity_name": "ClearingHouse"
+    }
+  },
+  "chain_id": "test-chain-AQCCx4",
+  "genesis_time": "0001-01-01T00:00:00Z",
+  "validators": [
+    {
+      "pub_key": {
+        "type": "ed25519",
+        "data": "60663612A4EFF8DA609516BA2F79C010FC2874523E8174404B779795E476D3C7"
+      },
+      "power": 10,
+      "name": ""
+    }
+  ]
+}
