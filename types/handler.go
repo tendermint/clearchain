@@ -375,7 +375,7 @@ func getUser(ctx sdk.Context, accts sdk.AccountMapper,
 		return nil, ErrInvalidAccount("account does not exist")
 	}
 	account := rawAccount.(*AppAccount)
-	if !IsUser(account) {
+	if !account.IsUser() {
 		return nil, ErrWrongSigner("invalid account type")
 	}
 	if wantActive && !account.Active {
@@ -403,7 +403,7 @@ func getAsset(ctx sdk.Context, accts sdk.AccountMapper, addr crypto.Address, wan
 		return nil, ErrInvalidAccount("account does not exist")
 	}
 	account := rawAccount.(*AppAccount)
-	if !IsAsset(account) {
+	if !account.IsAsset() {
 		return nil, ErrWrongSigner("invalid account type")
 	}
 	if wantActive && !account.Active {

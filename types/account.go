@@ -19,16 +19,7 @@ const (
 var (
 	_ sdk.Account = (*AppAccount)(nil)
 	_ LegalEntity = (*AppAccount)(nil)
-	_ UserAccount = (*AppAccount)(nil)
 )
-
-// UserAccount is the interface that wraps the basic
-// accessor methods to set and get user accounts attributes.
-type UserAccount interface {
-	GetAccountType() string
-	IsAdmin() bool
-	IsActive() bool
-}
 
 // AppAccount defines the properties of an AppAccount.
 type AppAccount struct {
@@ -93,12 +84,12 @@ func (a AppAccount) IsAdmin() bool {
 }
 
 // IsUser returns true if the account holds user data; false otherwise.
-func IsUser(a UserAccount) bool {
+func (a AppAccount) IsUser() bool {
 	return a.GetAccountType() == AccountUser
 }
 
 // IsAsset returns true if the account holds assets; false otherwise.
-func IsAsset(a UserAccount) bool {
+func (a AppAccount) IsAsset() bool {
 	return a.GetAccountType() == AccountAsset
 }
 
